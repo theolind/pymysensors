@@ -3,7 +3,16 @@ import mysensors
 
 """ Test the Gateway logic function """
 class TestGateway(unittest.TestCase):
-    def test_logic(self):
+    def test_good_logic(self):
+        # test unknown sensor
+        gw = mysensors.Gateway()
+
+        # a non presented sensor sends some values
+        gw.logic("1;0;1;0;23;43\n")
+        gw.logic("1;1;1;0;1;75\n")
+
+
+        # test with presentation and id request
         gw = mysensors.Gateway()
 
         #internal id request

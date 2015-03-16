@@ -3,19 +3,22 @@ import const
 
 class Gateway:
     sensors = {}
-    metric = True   #if true - use metric, if fales - use imperial
+    metric = True   #if true - use metric, if false - use imperial
 
     # parse the data and respond to it appropriately
     # response is returned to the caller and has to be sent
     # data is a mysensors command string
     def logic(self, data):
         sMsg = Message(data)
+
+        # filter non-presented nodes (sensor was started before gateway)
+        if sMsg.node_id not in self.sensors and sMsg.child_id != 255:
+            return None
+
         if sMsg.type == 'presentation':
             if sMsg.child_id == 255:
                 # this is a presentation of the sensor platform
-                # add sensor if it does not exist
-                if sMsg.node_id not in self.sensors:
-                    self.addSensor(sMsg.node_id)
+                self.addSensor(sMsg.node_id)
                 self.sensors[sMsg.node_id].type = sMsg.sub_type
                 self.sensors[sMsg.node_id].version = sMsg.payload
             else:
@@ -76,9 +79,9 @@ class SerialGateway(Gateway):
 
         while True:
             s = self.serial.readline()
-            r = super.logic(s.decode('utf-8'))
+            r = self.logic(s.decode('utf-8'))
             if r is not None:
-                self.send(r)
+                self.send(r.encode())
 
     def send(self, message):
         self.serial.write(message.encode())
@@ -96,6 +99,12 @@ class Sensor:
 
     def addChildSensor(self, id, type):
         self.children[id] = ChildSensor(id, type)
+
+    def setChildValue(self, id, value):
+        if id in self.children:
+            self.children[id].value = value
+        #TODO: Handle error
+
 
 
 class ChildSensor:
