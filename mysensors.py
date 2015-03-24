@@ -49,6 +49,8 @@ class Gateway:
                 gMsg.sub_type = 'I_CONFIG'
                 gMsg.payload = 'M' if self.metric else 'I'
                 return gMsg
+            elif sMsg.sub_type == 'I_BATTERY_LEVEL':
+                self.sensors[sMsg.node_id].battery_level = int(sMsg.payload)
         return None
 
 
@@ -93,6 +95,7 @@ class Sensor:
     type = None
     sketch_name = None
     sketch_version = None
+    battery_level = 0
 
     def __init__(self, id):
         self.id = id
