@@ -1,5 +1,6 @@
 import serial
 import const
+import time
 
 class Gateway:
     sensors = {}
@@ -54,6 +55,15 @@ class Gateway:
                 #self.sensors[sMsg.node_id].battery_level = int(sMsg.payload)
                 if self.isSensor(sMsg.node_id):
                     self.sensors[sMsg.node_id].battery_level = int(sMsg.payload)
+            elif sMsg.sub_type == 'I_TIME':
+                gMsg = Message()
+                gMsg.node_id = sMsg.node_id
+                gMsg.child_id = sMsg.child_id
+                gMsg.type = 'internal'
+                gMsg.ack = 0
+                gMsg.sub_type = 'I_TIME'
+                gMsg.payload = str(int(time.time()))
+                return gMsg
         return None
 
 
