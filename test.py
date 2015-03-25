@@ -10,7 +10,7 @@ class TestGateway(unittest.TestCase):
         # a non presented sensor sends some values
         gw.logic("1;0;1;0;23;43\n")
         gw.logic("1;1;1;0;1;75\n")
-
+        gw.logic("1;255;3;0;0;79\n")
 
         # test with presentation and id request
         gw = mysensors.Gateway()
@@ -55,6 +55,10 @@ class TestGateway(unittest.TestCase):
         #set humidity level
         gw.logic("1;1;1;0;1;75\n")
         self.assertEqual(sensor.children[1].value, '75')
+
+        #set battery level
+        gw.logic("1;255;3;0;0;79\n")
+        self.assertEqual(sensor.battery_level, 79)
 
 
 """ Test the Message class and it's encode/decode functions """

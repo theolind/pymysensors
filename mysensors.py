@@ -4,6 +4,7 @@ import const
 class Gateway:
     sensors = {}
     metric = True   #if true - use metric, if false - use imperial
+    debug = False   #if true - print all received messages
 
     # parse the data and respond to it appropriately
     # response is returned to the caller and has to be sent
@@ -11,9 +12,8 @@ class Gateway:
     def logic(self, data):
         sMsg = Message(data)
 
-        # filter non-presented nodes (sensor was started before gateway)
-        if sMsg.node_id not in self.sensors and sMsg.child_id != 255:
-            return None
+        if sMsg.sub_type != 'I_LOG_MESSAGE' and self.debug:
+            print(str(sMsg.node_id)+ " " + str(sMsg.child_id) + " " + sMsg.type + " " + sMsg.sub_type + " " + sMsg.payload)
 
         if sMsg.type == 'presentation':
             if sMsg.child_id == 255:
@@ -25,7 +25,8 @@ class Gateway:
                 # this is a presentation of a child sensor
                 self.sensors[sMsg.node_id].addChildSensor(sMsg.child_id, sMsg.sub_type)
         elif sMsg.type == 'set':
-            self.sensors[sMsg.node_id].children[sMsg.child_id].value = sMsg.payload
+            if self.isSensor(sMsg.node_id, sMsg.child_id):
+                self.sensors[sMsg.node_id].children[sMsg.child_id].value = sMsg.payload
         elif sMsg.type == 'internal':
             if sMsg.sub_type == 'I_ID_REQUEST':
                 gMsg = Message()
@@ -50,7 +51,9 @@ class Gateway:
                 gMsg.payload = 'M' if self.metric else 'I'
                 return gMsg
             elif sMsg.sub_type == 'I_BATTERY_LEVEL':
-                self.sensors[sMsg.node_id].battery_level = int(sMsg.payload)
+                #self.sensors[sMsg.node_id].battery_level = int(sMsg.payload)
+                if self.isSensor(sMsg.node_id):
+                    self.sensors[sMsg.node_id].battery_level = int(sMsg.payload)
         return None
 
 
@@ -67,6 +70,16 @@ class Gateway:
                 return id
             else:
                 return None
+
+    # Check if a sensor and its child exist
+    def isSensor(self, id, child_id = None):
+        if id in self.sensors:
+            if child_id is not None:
+                if child_id in self.sensors[id].children:
+                    return True
+                return False
+            return True
+        return False
 
 
 # serial gateway
