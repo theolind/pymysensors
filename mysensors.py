@@ -1,6 +1,7 @@
 import serial
 import const
 import time
+import threading
 
 class Gateway:
     sensors = {}
@@ -93,15 +94,19 @@ class Gateway:
 
 
 # serial gateway
-class SerialGateway(Gateway):
+class SerialGateway(Gateway, threading.Thread):
     # provide the serial port
     def __init__(self, port):
+        super(SerialGateway, self).__init__()
         self.port = port
 
     # preferably start this in a new thread
     def listen(self):
         self.serial = serial.Serial(self.port, 115200)
+        self.start()
 
+
+    def run(self):
         while True:
             s = self.serial.readline()
             r = self.logic(s.decode('utf-8'))
