@@ -1,5 +1,5 @@
 import serial
-from . import const
+import const
 import time
 import threading
 
@@ -48,11 +48,13 @@ class Gateway:
                 gMsg.payload = self.addSensor()
                 return gMsg
             elif sMsg.sub_type == 'I_SKETCH_NAME':
-                self.sensors[sMsg.node_id].sketch_name = sMsg.payload
-                self.alert(sMsg.node_id)
+                if self.isSensor(sMsg.node_id):
+                    self.sensors[sMsg.node_id].sketch_name = sMsg.payload
+                    self.alert(sMsg.node_id)
             elif sMsg.sub_type == 'I_SKETCH_VERSION':
-                self.sensors[sMsg.node_id].sketch_version = sMsg.payload
-                self.alert(sMsg.node_id)
+                if self.isSensor(sMsg.node_id):
+                    self.sensors[sMsg.node_id].sketch_version = sMsg.payload
+                    self.alert(sMsg.node_id)
             elif sMsg.sub_type == 'I_CONFIG':
                 gMsg = Message()
                 gMsg.node_id = sMsg.node_id
