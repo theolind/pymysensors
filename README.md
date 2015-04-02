@@ -4,7 +4,7 @@ Python API for talking to a MySensors gateway
 # Usage
 Currently the API is best used by implementing a callback handler
 ```python
-from pymysensors import *
+import pymysensors.mysensors as mysensors
 
 def event(type, nid):
     print(type+" "+str(nid))
