@@ -1,12 +1,17 @@
 import serial
-import const
+from . import const
 import time
 import threading
+
 
 class Gateway:
     sensors = {}
     metric = True   #if true - use metric, if false - use imperial
     debug = False   #if true - print all received messages
+    eventCallback = None
+
+    def __init__(self, event_callback = None):
+        self.eventCallback = event_callback
 
     # parse the data and respond to it appropriately
     # response is returned to the caller and has to be sent
@@ -23,12 +28,15 @@ class Gateway:
                 self.addSensor(sMsg.node_id)
                 self.sensors[sMsg.node_id].type = sMsg.sub_type
                 self.sensors[sMsg.node_id].version = sMsg.payload
+                self.alert(sMsg.node_id)
             else:
                 # this is a presentation of a child sensor
                 self.sensors[sMsg.node_id].addChildSensor(sMsg.child_id, sMsg.sub_type)
+                self.alert(sMsg.node_id)
         elif sMsg.type == 'set':
             if self.isSensor(sMsg.node_id, sMsg.child_id):
                 self.sensors[sMsg.node_id].children[sMsg.child_id].value = sMsg.payload
+                self.alert(sMsg.node_id)
         elif sMsg.type == 'internal':
             if sMsg.sub_type == 'I_ID_REQUEST':
                 gMsg = Message()
@@ -41,8 +49,10 @@ class Gateway:
                 return gMsg
             elif sMsg.sub_type == 'I_SKETCH_NAME':
                 self.sensors[sMsg.node_id].sketch_name = sMsg.payload
+                self.alert(sMsg.node_id)
             elif sMsg.sub_type == 'I_SKETCH_VERSION':
                 self.sensors[sMsg.node_id].sketch_version = sMsg.payload
+                self.alert(sMsg.node_id)
             elif sMsg.sub_type == 'I_CONFIG':
                 gMsg = Message()
                 gMsg.node_id = sMsg.node_id
@@ -53,9 +63,9 @@ class Gateway:
                 gMsg.payload = 'M' if self.metric else 'I'
                 return gMsg
             elif sMsg.sub_type == 'I_BATTERY_LEVEL':
-                #self.sensors[sMsg.node_id].battery_level = int(sMsg.payload)
                 if self.isSensor(sMsg.node_id):
                     self.sensors[sMsg.node_id].battery_level = int(sMsg.payload)
+                    self.alert(sMsg.node_id)
             elif sMsg.sub_type == 'I_TIME':
                 gMsg = Message()
                 gMsg.node_id = sMsg.node_id
@@ -67,6 +77,10 @@ class Gateway:
                 return gMsg
         return None
 
+    # tell anyone who wants to know that a sensor was updated
+    def alert(self, nid):
+        if self.eventCallback is not None:
+            self.eventCallback("sensor_update", nid)
 
     def addSensor(self, id = None):
         if id is None:
@@ -96,15 +110,16 @@ class Gateway:
 # serial gateway
 class SerialGateway(Gateway, threading.Thread):
     # provide the serial port
-    def __init__(self, port):
-        super(SerialGateway, self).__init__()
+    def __init__(self, port, event_callback = None):
+        threading.Thread.__init__(self)
+        Gateway.__init__(self, event_callback)
+        #super(SerialGateway, self).__init__(event_callback)
         self.port = port
 
     # preferably start this in a new thread
     def listen(self):
         self.serial = serial.Serial(self.port, 115200)
         self.start()
-
 
     def run(self):
         while True:
@@ -115,6 +130,7 @@ class SerialGateway(Gateway, threading.Thread):
 
     def send(self, message):
         self.serial.write(message.encode())
+
 
 #represents a sensor
 class Sensor:
@@ -151,23 +167,33 @@ class ChildSensor:
 #receives and parses a message, just provide the string
 class Message:
     def __init__(self, data = None):
+        self.node_id = 0
+        self.child_id = 0
+        self.type = ""
+        self.ack = 0
+        self.sub_type = ""
+        self.payload = ""
         if data is not None:
             self.decode(data)
 
     # decode a message from command string
     def decode(self, data):
-        data = data[:-1].split(';')
-        self.node_id = int(data[0])
-        self.child_id = int(data[1])
-        self.type = const.message_type[int(data[2])]
-        self.ack = int(data[3])
-        if self.type == 'presentation':
-            self.sub_type = const.sensor_type[int(data[4])]
-        elif self.type == 'set' or self.type == 'req':
-            self.sub_type = const.value_type[int(data[4])]
-        elif self.type == 'internal':
-            self.sub_type = const.internal_type[int(data[4])]
-        self.payload = data[5]
+        # Try, because we might get garbage from the serial port
+        try:
+            data = data[:-1].split(';')
+            self.node_id = int(data[0])
+            self.child_id = int(data[1])
+            self.type = const.message_type[int(data[2])]
+            self.ack = int(data[3])
+            if self.type == 'presentation':
+                self.sub_type = const.sensor_type[int(data[4])]
+            elif self.type == 'set' or self.type == 'req':
+                self.sub_type = const.value_type[int(data[4])]
+            elif self.type == 'internal':
+                self.sub_type = const.internal_type[int(data[4])]
+            self.payload = data[5]
+        except:
+            pass
 
     # encode a command string from message
     def encode(self):
