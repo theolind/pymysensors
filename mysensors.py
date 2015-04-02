@@ -1,8 +1,7 @@
 import serial
-import const
 import time
 import threading
-
+from . import const
 
 class Gateway:
     sensors = {}
@@ -115,7 +114,6 @@ class SerialGateway(Gateway, threading.Thread):
     def __init__(self, port, event_callback = None):
         threading.Thread.__init__(self)
         Gateway.__init__(self, event_callback)
-        #super(SerialGateway, self).__init__(event_callback)
         self.port = port
 
     # preferably start this in a new thread
