@@ -1,70 +1,90 @@
 import unittest
-import mysensors
+import mysensors as my
 
-""" Test the Gateway logic function """
 class TestGateway(unittest.TestCase):
-    def test_good_logic(self):
-        # test unknown sensor
-        gw = mysensors.Gateway()
+    """ Test the Gateway logic function """
 
-        # a non presented sensor sends some values
-        gw.logic("1;0;1;0;23;43\n")
-        gw.logic("1;1;1;0;1;75\n")
-        gw.logic("1;255;3;0;0;79\n")
+    def setUp(self):
+        self.gw = my.Gateway()
 
-        # test with presentation and id request
-        gw = mysensors.Gateway()
+    def _add_sensor(self, sensorid):
+        self.gw.sensors[sensorid] = my.Sensor(sensorid)
+        return self.gw.sensors[sensorid]
 
-        #internal id request
-        ret = gw.logic("255;255;3;0;3;\n")
+    def test_non_presented_sensor(self):
+        self.gw.logic("1;0;1;0;23;43\n")
+        self.assertNotIn(1, self.gw.sensors)
+
+        self.gw.logic("1;1;1;0;1;75\n")
+        self.assertNotIn(1, self.gw.sensors)
+
+        self.gw.logic("1;255;3;0;0;79\n")
+        self.assertNotIn(1, self.gw.sensors)
+
+    def test_internal_id_request(self):
+        ret = self.gw.logic("255;255;3;0;3;\n")
         self.assertEqual(ret.encode(), "255;255;3;0;4;1\n")
-        self.assertEqual(1 in gw.sensors, True)
+        self.assertIn(1, self.gw.sensors)
 
-        sensor = gw.sensors[1]
-
-        #presentation arduino node
-        gw.logic("1;255;0;0;17;1.4.1\n")
+    def test_presenation_arduino_node(self):
+        sensor = self._add_sensor(1)
+        self.gw.logic("1;255;0;0;17;1.4.1\n")
         self.assertEqual(sensor.type, 'S_ARDUINO_NODE')
 
-        #internal config
-        ret = gw.logic("1;255;3;0;6;0\n")
+    def test_internal_config(self):
+        # metric
+        ret = self.gw.logic("1;255;3;0;6;0\n")
         self.assertEqual(ret.encode(), "1;255;3;0;6;M\n")
+        # imperial
+        self.gw.metric = False
+        ret = self.gw.logic("1;255;3;0;6;0\n")
+        self.assertEqual(ret.encode(), "1;255;3;0;6;I\n")
 
-        #internal sketch name
-        gw.logic("1;255;3;0;11;lighthum demo sens\n")
+    def test_internal_sketch_name(self):
+        sensor = self._add_sensor(1)
+        self.gw.logic("1;255;3;0;11;lighthum demo sens\n")
         self.assertEqual(sensor.sketch_name, "lighthum demo sens")
 
-        #internal sketch version
-        gw.logic("1;255;3;0;12;1.0\n")
+    def test_internal_sketch_version(self):
+        sensor = self._add_sensor(1)
+        self.gw.logic("1;255;3;0;12;1.0\n")
         self.assertEqual(sensor.sketch_version, "1.0")
 
-        #presentation light level sensor
-        gw.logic("1;0;0;0;16;1.4.1\n")
-        self.assertEqual(0 in sensor.children, True)
+    def test_presenation_light_level_sensor(self):
+        sensor = self._add_sensor(1)
+        self.gw.logic("1;0;0;0;16;1.4.1\n")
+        self.assertIn(0, sensor.children)
         self.assertEqual(sensor.children[0].type, "S_LIGHT_LEVEL")
 
-        #presentation humidity sensor
-        gw.logic("1;1;0;0;7;1.4.1\n")
-        self.assertEqual(1 in sensor.children, True)
-        self.assertEqual(sensor.children[1].type, "S_HUM")
+    def test_presentation_humidity_sensor(self):
+        sensor = self._add_sensor(1)
+        self.gw.logic("1;0;0;0;7;1.4.1\n")
+        self.assertEqual(0 in sensor.children, True)
+        self.assertEqual(sensor.children[0].type, "S_HUM")
 
-        #set light level
-        gw.logic("1;0;1;0;23;43\n")
+    def test_set_light_level(self):
+        sensor = self._add_sensor(1)
+        sensor.children[0] = my.ChildSensor(0, "S_LIGHT_LEVEL")
+        self.gw.logic("1;0;1;0;23;43\n")
         self.assertEqual(sensor.children[0].value, '43')
 
-        #set humidity level
-        gw.logic("1;1;1;0;1;75\n")
+    def test_humidity_level(self):
+        sensor = self._add_sensor(1)
+        sensor.children[1] = my.ChildSensor(1, "S_HUM")
+        self.gw.logic("1;1;1;0;1;75\n")
         self.assertEqual(sensor.children[1].value, '75')
 
-        #set battery level
-        gw.logic("1;255;3;0;0;79\n")
+    def test_battery_level(self):
+        sensor = self._add_sensor(1)
+        self.gw.logic("1;255;3;0;0;79\n")
         self.assertEqual(sensor.battery_level, 79)
 
 
-""" Test the Message class and it's encode/decode functions """
 class TestMessage(unittest.TestCase):
+    """ Test the Message class and it's encode/decode functions """
+
     def test_encode(self):
-        m = mysensors.Message()
+        m = my.Message()
         m.node_id = 255
         m.child_id = 255
         m.type = 'internal'
@@ -76,7 +96,7 @@ class TestMessage(unittest.TestCase):
         self.assertEqual(cmd, "255;255;3;0;0;57\n")
 
     def test_decode(self):
-        m = mysensors.Message("255;255;3;0;0;57\n")
+        m = my.Message("255;255;3;0;0;57\n")
         self.assertEqual(m.node_id, 255)
         self.assertEqual(m.child_id, 255)
         self.assertEqual(m.type, 'internal')

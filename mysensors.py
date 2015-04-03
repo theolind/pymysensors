@@ -1,16 +1,14 @@
 import serial
 import time
 import threading
-from . import const
+import const
 
 class Gateway:
-    sensors = {}
-    metric = True   #if true - use metric, if false - use imperial
-    debug = False   #if true - print all received messages
-    eventCallback = None
-
-    def __init__(self, event_callback = None):
+    def __init__(self, event_callback=None):
         self.eventCallback = event_callback
+        self.sensors = {}
+        self.metric = True   # if true - use metric, if false - use imperial
+        self.debug = False   # if true - print all received messages
 
     # parse the data and respond to it appropriately
     # response is returned to the caller and has to be sent
