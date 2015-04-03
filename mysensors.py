@@ -34,14 +34,9 @@ class Gateway(object):
     def _handle_internal(self, msg):
         """ Processes an internal protocol message. """
         if msg.sub_type == Internal.I_ID_REQUEST:
-            gMsg = Message()
-            gMsg.node_id = msg.node_id
-            gMsg.child_id = msg.child_id
-            gMsg.type = MessageType.internal
-            gMsg.ack = 0
-            gMsg.sub_type = Internal.I_ID_RESPONSE
-            gMsg.payload = self.addSensor()
-            return gMsg
+            return msg.copy(ack=0,
+                            sub_type=Internal.I_ID_RESPONSE,
+                            payload=self.addSensor())
         elif msg.sub_type == Internal.I_SKETCH_NAME:
             if self.isSensor(msg.node_id):
                 self.sensors[msg.node_id].sketch_name = msg.payload
@@ -51,27 +46,13 @@ class Gateway(object):
                 self.sensors[msg.node_id].sketch_version = msg.payload
                 self.alert(msg.node_id)
         elif msg.sub_type == Internal.I_CONFIG:
-            gMsg = Message()
-            gMsg.node_id = msg.node_id
-            gMsg.child_id = msg.child_id
-            gMsg.type = MessageType.internal
-            gMsg.ack = 0
-            gMsg.sub_type = Internal.I_CONFIG
-            gMsg.payload = 'M' if self.metric else 'I'
-            return gMsg
+            return msg.copy(ack=0, payload='M' if self.metric else 'I')
         elif msg.sub_type == Internal.I_BATTERY_LEVEL:
             if self.isSensor(msg.node_id):
                 self.sensors[msg.node_id].battery_level = int(msg.payload)
                 self.alert(msg.node_id)
         elif msg.sub_type == Internal.I_TIME:
-            gMsg = Message()
-            gMsg.node_id = msg.node_id
-            gMsg.child_id = msg.child_id
-            gMsg.type = MessageType.internal
-            gMsg.ack = 0
-            gMsg.sub_type = Internal.I_TIME
-            gMsg.payload = str(int(time.time()))
-            return gMsg
+            return msg.copy(ack=0, payload=int(time.time()))
         elif msg.sub_type == Internal.I_LOG_MESSAGE and self.debug:
             print("n:{} c:{} t:{} s:{} p:{}".format(
                 msg.node_id,
@@ -205,6 +186,16 @@ class Message:
         if data is not None:
             self.decode(data)
 
+    def copy(self, **kwargs):
+        """
+        Copies a message, optionally replacing attributes with keyword
+        arguments.
+        """
+        msg = Message(self.encode())
+        for k,v in kwargs.items():
+            setattr(msg, k, v)
+        return msg
+
     def decode(self, data):
         """ Decode a message from command string. """
         data = data.rstrip().split(';')
@@ -214,12 +205,11 @@ class Message:
 
     def encode(self):
         """ Encode a command string from message. """
-        ret = ";".join([str(f) for f in [
+        return ";".join([str(f) for f in [
             self.node_id,
             self.child_id,
-            self.type.value,
+            int(self.type),
             self.ack,
-            self.sub_type.value,
+            int(self.sub_type),
             self.payload,
         ]]) + "\n"
-        return ret

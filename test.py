@@ -1,4 +1,6 @@
 import unittest
+from unittest.mock import patch
+
 import mysensors as my
 from const import MessageType, Internal, Presentation
 
@@ -40,6 +42,13 @@ class TestGateway(unittest.TestCase):
         self.gw.metric = False
         ret = self.gw.logic("1;255;3;0;6;0\n")
         self.assertEqual(ret.encode(), "1;255;3;0;6;I\n")
+
+    def test_internal_time(self):
+        sensor = self._add_sensor(1)
+        with patch('mysensors.time') as mock_time:
+            mock_time.time.return_value = 123456789
+            ret = self.gw.logic("1;255;3;0;1;\n")
+            self.assertEqual(ret.encode(), "1;255;3;0;1;123456789\n")
 
     def test_internal_sketch_name(self):
         sensor = self._add_sensor(1)
