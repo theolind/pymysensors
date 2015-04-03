@@ -3,7 +3,9 @@ import time
 import threading
 import const
 
-class Gateway:
+class Gateway(object):
+    """ Base implementation for a MySensors Gateway. """
+
     def __init__(self, event_callback=None):
         self.eventCallback = event_callback
         self.sensors = {}
@@ -70,30 +72,38 @@ class Gateway:
             gMsg.sub_type = 'I_TIME'
             gMsg.payload = str(int(time.time()))
             return gMsg
+        elif msg.sub_type == 'I_LOG_MESSAGE' and self.debug:
+            print("n:{} c:{} t:{} s:{} p:{}".format(
+                msg.node_id,
+                msg.child_id,
+                msg.type,
+                msg.sub_type,
+                msg.payload,
+            ))
 
-    # parse the data and respond to it appropriately
-    # response is returned to the caller and has to be sent
-    # data is a mysensors command string
     def logic(self, data):
-        sMsg = Message(data)
+        """
+        Parse the data and respond to it appropriately.
+        Response is returned to the caller and has to be sent
+        data is a mysensors command string
+        """
+        msg = Message(data)
 
-        if sMsg.sub_type != 'I_LOG_MESSAGE' and self.debug:
-            print(str(sMsg.node_id)+ " " + str(sMsg.child_id) + " " + sMsg.type + " " + sMsg.sub_type + " " + sMsg.payload)
-
-        if sMsg.type == 'presentation':
-            self._handle_presentation(sMsg)
-        elif sMsg.type == 'set':
-            self._handle_set(sMsg)
-        elif sMsg.type == 'internal':
-            return self._handle_internal(sMsg)
+        if msg.type == 'presentation':
+            self._handle_presentation(msg)
+        elif msg.type == 'set':
+            self._handle_set(msg)
+        elif msg.type == 'internal':
+            return self._handle_internal(msg)
         return None
 
-    # tell anyone who wants to know that a sensor was updated
     def alert(self, nid):
+        """ Tell anyone who wants to know that a sensor was updated. """
         if self.eventCallback is not None:
             self.eventCallback("sensor_update", nid)
 
-    def addSensor(self, id = None):
+    def addSensor(self, id=None):
+        """ Adds a sensor to the gateway. """
         if id is None:
             for i in range(1, 254):
                 if i not in self.sensors:
@@ -107,8 +117,8 @@ class Gateway:
             else:
                 return None
 
-    # Check if a sensor and its child exist
     def isSensor(self, id, child_id = None):
+        """ Returns True if a sensor and its child exists. """
         if id in self.sensors:
             if child_id is not None:
                 if child_id in self.sensors[id].children:
@@ -118,23 +128,32 @@ class Gateway:
         return False
 
 
-# serial gateway
 class SerialGateway(Gateway, threading.Thread):
-    # provide the serial port
-    def __init__(self, port, event_callback = None):
+    """ MySensors serial gateway. """
+
+    def __init__(self, port, event_callback=None, baud=115200):
         threading.Thread.__init__(self)
         Gateway.__init__(self, event_callback)
         self.port = port
+        self.baud = baud
+        self._stop_event = threading.Event()
 
-    # preferably start this in a new thread
     def listen(self):
-        self.serial = serial.Serial(self.port, 115200)
+        # preferably start this in a new thread
+        self.serial = serial.Serial(self.port, self.baud)
         self.start()
 
+    def stop(self):
+        self._stop_event.set()
+
     def run(self):
-        while True:
+        while not self._stop_event.is_set():
             s = self.serial.readline()
-            r = self.logic(s.decode('utf-8'))
+            try:
+                msg = s.decode('utf-8')
+            except Exception as ex:
+                pass #TODO log it
+            r = self.logic(msg)
             if r is not None:
                 self.send(r.encode())
 
@@ -142,41 +161,41 @@ class SerialGateway(Gateway, threading.Thread):
         self.serial.write(message.encode())
 
 
-#represents a sensor
 class Sensor:
-    children = {}
-    id = None
-    type = None
-    sketch_name = None
-    sketch_version = None
-    battery_level = 0
+    """ Represents a sensor. """
 
     def __init__(self, id):
         self.id = id
+        self.children = {}
+        self.type = None
+        self.sketch_name = None
+        self.sketch_version = None
+        self.battery_level = 0
 
     def addChildSensor(self, id, type):
+        """ Creates and adds a child sensor. """
         self.children[id] = ChildSensor(id, type)
 
     def setChildValue(self, id, value):
+        """ Set's a child sensor's value. """
         if id in self.children:
             self.children[id].value = value
         #TODO: Handle error
 
 
-
 class ChildSensor:
-    id = None
-    type = None
-    value = None
+    """ Represents a child sensor. """
 
     def __init__(self, id, type):
         self.id = id
         self.type = type
+        self.value = None
 
 
-#receives and parses a message, just provide the string
 class Message:
-    def __init__(self, data = None):
+    """ Represents a message from the gateway. """
+
+    def __init__(self, data=None):
         self.node_id = 0
         self.child_id = 0
         self.type = ""
@@ -186,30 +205,32 @@ class Message:
         if data is not None:
             self.decode(data)
 
-    # decode a message from command string
     def decode(self, data):
-        # Try, because we might get garbage from the serial port
-        try:
-            data = data[:-1].split(';')
-            self.node_id = int(data[0])
-            self.child_id = int(data[1])
-            self.type = const.message_type[int(data[2])]
-            self.ack = int(data[3])
-            if self.type == 'presentation':
-                self.sub_type = const.sensor_type[int(data[4])]
-            elif self.type == 'set' or self.type == 'req':
-                self.sub_type = const.value_type[int(data[4])]
-            elif self.type == 'internal':
-                self.sub_type = const.internal_type[int(data[4])]
-            self.payload = data[5]
-        except:
-            pass
+        """ Decode a message from command string. """
+        data = data.rstrip().split(';')
+        self.payload = data.pop()
+        data = [int(f) for f in data]
 
-    # encode a command string from message
+        self.node_id = data[0]
+        self.child_id = data[1]
+        self.type = const.message_type[data[2]]
+        self.ack = data[3]
+        if self.type == 'presentation':
+            self.sub_type = const.sensor_type[data[4]]
+        elif self.type == 'set' or self.type == 'req':
+            self.sub_type = const.value_type[data[4]]
+        elif self.type == 'internal':
+            self.sub_type = const.internal_type[data[4]]
+
     def encode(self):
-        ret = str(self.node_id) + ";" + str(self.child_id) + ";"
-        ret += str(const.message_type.index(self.type)) + ";"
-        ret += str(self.ack) + ";"
+        """ Encode a command string from message. """
+        ret = ";".join([str(f) for f in [
+            self.node_id,
+            self.child_id,
+            const.message_type.index(self.type),
+            self.ack
+        ]])
+        ret += ";"
         if self.type == 'presentation':
             ret += str(const.sensor_type.index(self.sub_type)) + ";"
         elif self.type == 'set' or self.type == 'req':
