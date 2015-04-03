@@ -10,6 +10,67 @@ class Gateway:
         self.metric = True   # if true - use metric, if false - use imperial
         self.debug = False   # if true - print all received messages
 
+    def _handle_presentation(self, msg):
+        """ Processes a presentation message. """
+        if msg.child_id == 255:
+            # this is a presentation of the sensor platform
+            self.addSensor(msg.node_id)
+            self.sensors[msg.node_id].type = msg.sub_type
+            self.sensors[msg.node_id].version = msg.payload
+            self.alert(msg.node_id)
+        else:
+            # this is a presentation of a child sensor
+            self.sensors[msg.node_id].addChildSensor(msg.child_id, msg.sub_type)
+            self.alert(msg.node_id)
+
+    def _handle_set(self, msg):
+        """ Processes a set message. """
+        if self.isSensor(msg.node_id, msg.child_id):
+            self.sensors[msg.node_id].children[msg.child_id].value = msg.payload
+            self.alert(msg.node_id)
+
+    def _handle_internal(self, msg):
+        """ Processes an internal protocol message. """
+        if msg.sub_type == 'I_ID_REQUEST':
+            gMsg = Message()
+            gMsg.node_id = msg.node_id
+            gMsg.child_id = msg.child_id
+            gMsg.type = 'internal'
+            gMsg.ack = 0
+            gMsg.sub_type = 'I_ID_RESPONSE'
+            gMsg.payload = self.addSensor()
+            return gMsg
+        elif msg.sub_type == 'I_SKETCH_NAME':
+            if self.isSensor(msg.node_id):
+                self.sensors[msg.node_id].sketch_name = msg.payload
+                self.alert(msg.node_id)
+        elif msg.sub_type == 'I_SKETCH_VERSION':
+            if self.isSensor(msg.node_id):
+                self.sensors[msg.node_id].sketch_version = msg.payload
+                self.alert(msg.node_id)
+        elif msg.sub_type == 'I_CONFIG':
+            gMsg = Message()
+            gMsg.node_id = msg.node_id
+            gMsg.child_id = msg.child_id
+            gMsg.type = 'internal'
+            gMsg.ack = 0
+            gMsg.sub_type = 'I_CONFIG'
+            gMsg.payload = 'M' if self.metric else 'I'
+            return gMsg
+        elif msg.sub_type == 'I_BATTERY_LEVEL':
+            if self.isSensor(msg.node_id):
+                self.sensors[msg.node_id].battery_level = int(msg.payload)
+                self.alert(msg.node_id)
+        elif msg.sub_type == 'I_TIME':
+            gMsg = Message()
+            gMsg.node_id = msg.node_id
+            gMsg.child_id = msg.child_id
+            gMsg.type = 'internal'
+            gMsg.ack = 0
+            gMsg.sub_type = 'I_TIME'
+            gMsg.payload = str(int(time.time()))
+            return gMsg
+
     # parse the data and respond to it appropriately
     # response is returned to the caller and has to be sent
     # data is a mysensors command string
@@ -20,60 +81,11 @@ class Gateway:
             print(str(sMsg.node_id)+ " " + str(sMsg.child_id) + " " + sMsg.type + " " + sMsg.sub_type + " " + sMsg.payload)
 
         if sMsg.type == 'presentation':
-            if sMsg.child_id == 255:
-                # this is a presentation of the sensor platform
-                self.addSensor(sMsg.node_id)
-                self.sensors[sMsg.node_id].type = sMsg.sub_type
-                self.sensors[sMsg.node_id].version = sMsg.payload
-                self.alert(sMsg.node_id)
-            else:
-                # this is a presentation of a child sensor
-                self.sensors[sMsg.node_id].addChildSensor(sMsg.child_id, sMsg.sub_type)
-                self.alert(sMsg.node_id)
+            self._handle_presentation(sMsg)
         elif sMsg.type == 'set':
-            if self.isSensor(sMsg.node_id, sMsg.child_id):
-                self.sensors[sMsg.node_id].children[sMsg.child_id].value = sMsg.payload
-                self.alert(sMsg.node_id)
+            self._handle_set(sMsg)
         elif sMsg.type == 'internal':
-            if sMsg.sub_type == 'I_ID_REQUEST':
-                gMsg = Message()
-                gMsg.node_id = sMsg.node_id
-                gMsg.child_id = sMsg.child_id
-                gMsg.type = 'internal'
-                gMsg.ack = 0
-                gMsg.sub_type = 'I_ID_RESPONSE'
-                gMsg.payload = self.addSensor()
-                return gMsg
-            elif sMsg.sub_type == 'I_SKETCH_NAME':
-                if self.isSensor(sMsg.node_id):
-                    self.sensors[sMsg.node_id].sketch_name = sMsg.payload
-                    self.alert(sMsg.node_id)
-            elif sMsg.sub_type == 'I_SKETCH_VERSION':
-                if self.isSensor(sMsg.node_id):
-                    self.sensors[sMsg.node_id].sketch_version = sMsg.payload
-                    self.alert(sMsg.node_id)
-            elif sMsg.sub_type == 'I_CONFIG':
-                gMsg = Message()
-                gMsg.node_id = sMsg.node_id
-                gMsg.child_id = sMsg.child_id
-                gMsg.type = 'internal'
-                gMsg.ack = 0
-                gMsg.sub_type = 'I_CONFIG'
-                gMsg.payload = 'M' if self.metric else 'I'
-                return gMsg
-            elif sMsg.sub_type == 'I_BATTERY_LEVEL':
-                if self.isSensor(sMsg.node_id):
-                    self.sensors[sMsg.node_id].battery_level = int(sMsg.payload)
-                    self.alert(sMsg.node_id)
-            elif sMsg.sub_type == 'I_TIME':
-                gMsg = Message()
-                gMsg.node_id = sMsg.node_id
-                gMsg.child_id = sMsg.child_id
-                gMsg.type = 'internal'
-                gMsg.ack = 0
-                gMsg.sub_type = 'I_TIME'
-                gMsg.payload = str(int(time.time()))
-                return gMsg
+            return self._handle_internal(sMsg)
         return None
 
     # tell anyone who wants to know that a sensor was updated
