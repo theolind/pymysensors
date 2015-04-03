@@ -1,5 +1,6 @@
 import unittest
 import mysensors as my
+from const import MessageType, Internal, Presentation
 
 class TestGateway(unittest.TestCase):
     """ Test the Gateway logic function """
@@ -29,7 +30,7 @@ class TestGateway(unittest.TestCase):
     def test_presenation_arduino_node(self):
         sensor = self._add_sensor(1)
         self.gw.logic("1;255;0;0;17;1.4.1\n")
-        self.assertEqual(sensor.type, 'S_ARDUINO_NODE')
+        self.assertEqual(sensor.type, Presentation.S_ARDUINO_NODE)
 
     def test_internal_config(self):
         # metric
@@ -54,23 +55,23 @@ class TestGateway(unittest.TestCase):
         sensor = self._add_sensor(1)
         self.gw.logic("1;0;0;0;16;1.4.1\n")
         self.assertIn(0, sensor.children)
-        self.assertEqual(sensor.children[0].type, "S_LIGHT_LEVEL")
+        self.assertEqual(sensor.children[0].type, Presentation.S_LIGHT_LEVEL)
 
     def test_presentation_humidity_sensor(self):
         sensor = self._add_sensor(1)
         self.gw.logic("1;0;0;0;7;1.4.1\n")
         self.assertEqual(0 in sensor.children, True)
-        self.assertEqual(sensor.children[0].type, "S_HUM")
+        self.assertEqual(sensor.children[0].type, Presentation.S_HUM)
 
     def test_set_light_level(self):
         sensor = self._add_sensor(1)
-        sensor.children[0] = my.ChildSensor(0, "S_LIGHT_LEVEL")
+        sensor.children[0] = my.ChildSensor(0, Presentation.S_LIGHT_LEVEL)
         self.gw.logic("1;0;1;0;23;43\n")
         self.assertEqual(sensor.children[0].value, '43')
 
     def test_humidity_level(self):
         sensor = self._add_sensor(1)
-        sensor.children[1] = my.ChildSensor(1, "S_HUM")
+        sensor.children[1] = my.ChildSensor(1, Presentation.S_HUM)
         self.gw.logic("1;1;1;0;1;75\n")
         self.assertEqual(sensor.children[1].value, '75')
 
@@ -87,8 +88,8 @@ class TestMessage(unittest.TestCase):
         m = my.Message()
         m.node_id = 255
         m.child_id = 255
-        m.type = 'internal'
-        m.sub_type = 'I_BATTERY_LEVEL'
+        m.type = MessageType.internal
+        m.sub_type = Internal.I_BATTERY_LEVEL
         m.ack = 0
         m.payload = 57
 
@@ -99,8 +100,8 @@ class TestMessage(unittest.TestCase):
         m = my.Message("255;255;3;0;0;57\n")
         self.assertEqual(m.node_id, 255)
         self.assertEqual(m.child_id, 255)
-        self.assertEqual(m.type, 'internal')
-        self.assertEqual(m.sub_type, 'I_BATTERY_LEVEL')
+        self.assertEqual(m.type, MessageType.internal)
+        self.assertEqual(m.sub_type, Internal.I_BATTERY_LEVEL)
         self.assertEqual(m.ack, 0)
         self.assertEqual(m.payload, '57')
 

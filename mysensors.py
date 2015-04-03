@@ -1,7 +1,7 @@
 import serial
 import time
 import threading
-import const
+from const import Internal, SetReq, Presentation, MessageType
 
 class Gateway(object):
     """ Base implementation for a MySensors Gateway. """
@@ -33,46 +33,46 @@ class Gateway(object):
 
     def _handle_internal(self, msg):
         """ Processes an internal protocol message. """
-        if msg.sub_type == 'I_ID_REQUEST':
+        if msg.sub_type == Internal.I_ID_REQUEST:
             gMsg = Message()
             gMsg.node_id = msg.node_id
             gMsg.child_id = msg.child_id
-            gMsg.type = 'internal'
+            gMsg.type = MessageType.internal
             gMsg.ack = 0
-            gMsg.sub_type = 'I_ID_RESPONSE'
+            gMsg.sub_type = Internal.I_ID_RESPONSE
             gMsg.payload = self.addSensor()
             return gMsg
-        elif msg.sub_type == 'I_SKETCH_NAME':
+        elif msg.sub_type == Internal.I_SKETCH_NAME:
             if self.isSensor(msg.node_id):
                 self.sensors[msg.node_id].sketch_name = msg.payload
                 self.alert(msg.node_id)
-        elif msg.sub_type == 'I_SKETCH_VERSION':
+        elif msg.sub_type == Internal.I_SKETCH_VERSION:
             if self.isSensor(msg.node_id):
                 self.sensors[msg.node_id].sketch_version = msg.payload
                 self.alert(msg.node_id)
-        elif msg.sub_type == 'I_CONFIG':
+        elif msg.sub_type == Internal.I_CONFIG:
             gMsg = Message()
             gMsg.node_id = msg.node_id
             gMsg.child_id = msg.child_id
-            gMsg.type = 'internal'
+            gMsg.type = MessageType.internal
             gMsg.ack = 0
-            gMsg.sub_type = 'I_CONFIG'
+            gMsg.sub_type = Internal.I_CONFIG
             gMsg.payload = 'M' if self.metric else 'I'
             return gMsg
-        elif msg.sub_type == 'I_BATTERY_LEVEL':
+        elif msg.sub_type == Internal.I_BATTERY_LEVEL:
             if self.isSensor(msg.node_id):
                 self.sensors[msg.node_id].battery_level = int(msg.payload)
                 self.alert(msg.node_id)
-        elif msg.sub_type == 'I_TIME':
+        elif msg.sub_type == Internal.I_TIME:
             gMsg = Message()
             gMsg.node_id = msg.node_id
             gMsg.child_id = msg.child_id
-            gMsg.type = 'internal'
+            gMsg.type = MessageType.internal
             gMsg.ack = 0
-            gMsg.sub_type = 'I_TIME'
+            gMsg.sub_type = Internal.I_TIME
             gMsg.payload = str(int(time.time()))
             return gMsg
-        elif msg.sub_type == 'I_LOG_MESSAGE' and self.debug:
+        elif msg.sub_type == Internal.I_LOG_MESSAGE and self.debug:
             print("n:{} c:{} t:{} s:{} p:{}".format(
                 msg.node_id,
                 msg.child_id,
@@ -89,11 +89,11 @@ class Gateway(object):
         """
         msg = Message(data)
 
-        if msg.type == 'presentation':
+        if msg.type == MessageType.presentation:
             self._handle_presentation(msg)
-        elif msg.type == 'set':
+        elif msg.type == MessageType.set:
             self._handle_set(msg)
-        elif msg.type == 'internal':
+        elif msg.type == MessageType.internal:
             return self._handle_internal(msg)
         return None
 
@@ -209,33 +209,17 @@ class Message:
         """ Decode a message from command string. """
         data = data.rstrip().split(';')
         self.payload = data.pop()
-        data = [int(f) for f in data]
-
-        self.node_id = data[0]
-        self.child_id = data[1]
-        self.type = const.message_type[data[2]]
-        self.ack = data[3]
-        if self.type == 'presentation':
-            self.sub_type = const.sensor_type[data[4]]
-        elif self.type == 'set' or self.type == 'req':
-            self.sub_type = const.value_type[data[4]]
-        elif self.type == 'internal':
-            self.sub_type = const.internal_type[data[4]]
+        (self.node_id, self.child_id, self.type, self.ack, self.sub_type) = \
+            [int(f) for f in data]
 
     def encode(self):
         """ Encode a command string from message. """
         ret = ";".join([str(f) for f in [
             self.node_id,
             self.child_id,
-            const.message_type.index(self.type),
-            self.ack
-        ]])
-        ret += ";"
-        if self.type == 'presentation':
-            ret += str(const.sensor_type.index(self.sub_type)) + ";"
-        elif self.type == 'set' or self.type == 'req':
-            ret += str(const.value_type.index(self.sub_type)) + ";"
-        elif self.type == 'internal':
-            ret += str(const.internal_type.index(self.sub_type)) + ";"
-        ret += str(self.payload) + "\n"
+            self.type.value,
+            self.ack,
+            self.sub_type.value,
+            self.payload,
+        ]]) + "\n"
         return ret
