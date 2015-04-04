@@ -125,23 +125,36 @@ class Gateway(object):
 
 class SerialGateway(Gateway, threading.Thread):
     """ MySensors serial gateway. """
+    # pylint: disable=too-many-arguments
 
-    def __init__(self, port, event_callback=None, baud=115200, timeout=1.0):
+    def __init__(self, port, event_callback=None, baud=115200, timeout=1.0,
+                 reconnect_timeout=10.0):
         threading.Thread.__init__(self)
         Gateway.__init__(self, event_callback)
         self.serial = None
         self.port = port
         self.baud = baud
         self.timeout = timeout
+        self.reconnect_timeout = reconnect_timeout
         self._stop_event = threading.Event()
 
-    def listen(self):
-        """
-        Opens the serial port and starts a background thread to read
-        messages from the gateway.
-        """
-        self.serial = serial.Serial(self.port, self.baud, timeout=self.timeout)
-        self.start()
+    def connect(self):
+        """ Connects to the serial port. """
+        if self.serial:
+            return True
+        try:
+            self.serial = serial.Serial(self.port, self.baud,
+                                        timeout=self.timeout)
+        except serial.SerialException:
+            LOGGER.exception()
+            return False
+        return True
+
+    def disconnect(self):
+        """ Disconnects from the serial port. """
+        if self.serial is not None:
+            self.serial.close()
+            self.serial = None
 
     def stop(self):
         """ Stops the background thread. """
@@ -150,7 +163,19 @@ class SerialGateway(Gateway, threading.Thread):
     def run(self):
         """ Background thread that reads messages from the gateway. """
         while not self._stop_event.is_set():
-            line = self.serial.readline()
+            if self.serial is None and not self.connect():
+                time.sleep(self.reconnect_timeout)
+                continue
+            try:
+                line = self.serial.readline()
+            except serial.SerialException:
+                LOGGER.exception()
+                continue
+            except TypeError:
+                # pyserial has a bug that causes a TypeError to be thrown when
+                # the port disconnects instead of a SerialException
+                self.disconnect()
+                continue
             try:
                 msg = line.decode('utf-8')
             except ValueError:
