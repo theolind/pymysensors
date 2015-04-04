@@ -4,7 +4,7 @@ pymysensors - Python implementation of the MySensors SerialGateway
 import serial
 import time
 import threading
-from const import Internal, MessageType
+from .const import Internal, MessageType
 import logging
 
 LOGGER = logging.getLogger(__name__)

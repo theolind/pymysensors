@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import patch
 
-import mysensors as my
-from const import MessageType, Internal, Presentation
+import mysensors.mysensors as my
+from mysensors.const import MessageType, Internal, Presentation
 
 class TestGateway(unittest.TestCase):
     """ Test the Gateway logic function """
@@ -45,7 +45,7 @@ class TestGateway(unittest.TestCase):
 
     def test_internal_time(self):
         sensor = self._add_sensor(1)
-        with patch('mysensors.time') as mock_time:
+        with patch('mysensors.mysensors.time') as mock_time:
             mock_time.time.return_value = 123456789
             ret = self.gw.logic("1;255;3;0;1;\n")
             self.assertEqual(ret.encode(), "1;255;3;0;1;123456789\n")
