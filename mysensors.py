@@ -126,12 +126,13 @@ class Gateway(object):
 class SerialGateway(Gateway, threading.Thread):
     """ MySensors serial gateway. """
 
-    def __init__(self, port, event_callback=None, baud=115200):
+    def __init__(self, port, event_callback=None, baud=115200, timeout=1.0):
         threading.Thread.__init__(self)
         Gateway.__init__(self, event_callback)
         self.serial = None
         self.port = port
         self.baud = baud
+        self.timeout = timeout
         self._stop_event = threading.Event()
 
     def listen(self):
@@ -139,7 +140,7 @@ class SerialGateway(Gateway, threading.Thread):
         Opens the serial port and starts a background thread to read
         messages from the gateway.
         """
-        self.serial = serial.Serial(self.port, self.baud)
+        self.serial = serial.Serial(self.port, self.baud, timeout=self.timeout)
         self.start()
 
     def stop(self):
