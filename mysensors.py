@@ -2,6 +2,10 @@ import serial
 import time
 import threading
 from const import Internal, SetReq, Presentation, MessageType
+import logging
+
+LOGGER = logging.getLogger(__name__)
+
 
 class Gateway(object):
     """ Base implementation for a MySensors Gateway. """
@@ -54,7 +58,7 @@ class Gateway(object):
         elif msg.sub_type == Internal.I_TIME:
             return msg.copy(ack=0, payload=int(time.time()))
         elif msg.sub_type == Internal.I_LOG_MESSAGE and self.debug:
-            print("n:{} c:{} t:{} s:{} p:{}".format(
+            LOGGER.debug("n:{} c:{} t:{} s:{} p:{}".format(
                 msg.node_id,
                 msg.child_id,
                 msg.type,
