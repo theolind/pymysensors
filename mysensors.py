@@ -16,7 +16,7 @@ class Gateway(object):
         """ Processes a presentation message. """
         if msg.child_id == 255:
             # this is a presentation of the sensor platform
-            self.addSensor(msg.node_id)
+            self.add_sensor(msg.node_id)
             self.sensors[msg.node_id].type = msg.sub_type
             self.sensors[msg.node_id].version = msg.payload
             self.alert(msg.node_id)
@@ -27,7 +27,7 @@ class Gateway(object):
 
     def _handle_set(self, msg):
         """ Processes a set message. """
-        if self.isSensor(msg.node_id, msg.child_id):
+        if self.is_sensor(msg.node_id, msg.child_id):
             self.sensors[msg.node_id].children[msg.child_id].value = msg.payload
             self.alert(msg.node_id)
 
@@ -36,19 +36,19 @@ class Gateway(object):
         if msg.sub_type == Internal.I_ID_REQUEST:
             return msg.copy(ack=0,
                             sub_type=Internal.I_ID_RESPONSE,
-                            payload=self.addSensor())
+                            payload=self.add_sensor())
         elif msg.sub_type == Internal.I_SKETCH_NAME:
-            if self.isSensor(msg.node_id):
+            if self.is_sensor(msg.node_id):
                 self.sensors[msg.node_id].sketch_name = msg.payload
                 self.alert(msg.node_id)
         elif msg.sub_type == Internal.I_SKETCH_VERSION:
-            if self.isSensor(msg.node_id):
+            if self.is_sensor(msg.node_id):
                 self.sensors[msg.node_id].sketch_version = msg.payload
                 self.alert(msg.node_id)
         elif msg.sub_type == Internal.I_CONFIG:
             return msg.copy(ack=0, payload='M' if self.metric else 'I')
         elif msg.sub_type == Internal.I_BATTERY_LEVEL:
-            if self.isSensor(msg.node_id):
+            if self.is_sensor(msg.node_id):
                 self.sensors[msg.node_id].battery_level = int(msg.payload)
                 self.alert(msg.node_id)
         elif msg.sub_type == Internal.I_TIME:
@@ -83,30 +83,33 @@ class Gateway(object):
         if self.eventCallback is not None:
             self.eventCallback("sensor_update", nid)
 
-    def addSensor(self, id=None):
-        """ Adds a sensor to the gateway. """
-        if id is None:
-            for i in range(1, 254):
-                if i not in self.sensors:
-                    self.sensors[i] = Sensor(i)
-                    return i
-            return None
+    def _get_next_id(self):
+        """ Returns the next available sensor id. """
+        if len(self.sensors):
+            next_id = max(self.sensors.keys()) + 1
         else:
-            if id not in self.sensors:
-                self.sensors[id] = Sensor(id)
-                return id
-            else:
-                return None
+            next_id = 1
+        if next_id <= 254:
+            return next_id
+        return None
 
-    def isSensor(self, id, child_id = None):
+    def add_sensor(self, sensorid=None):
+        """ Adds a sensor to the gateway. """
+        if sensorid is None:
+            sensorid = self._get_next_id()
+
+        if sensorid is not None and sensorid not in self.sensors:
+            self.sensors[sensorid] = Sensor(sensorid)
+            return sensorid
+        return None
+
+    def is_sensor(self, sensorid, child_id=None):
         """ Returns True if a sensor and its child exists. """
-        if id in self.sensors:
-            if child_id is not None:
-                if child_id in self.sensors[id].children:
-                    return True
-                return False
-            return True
-        return False
+        if sensorid not in self.sensors:
+            return False
+        if child_id is not None:
+            return child_id in self.sensors[sensorid].children
+        return True
 
 
 class SerialGateway(Gateway, threading.Thread):
