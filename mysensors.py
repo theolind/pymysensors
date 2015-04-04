@@ -1,7 +1,10 @@
+"""
+pymysensors - Python implementation of the MySensors SerialGateway
+"""
 import serial
 import time
 import threading
-from const import Internal, SetReq, Presentation, MessageType
+from const import Internal, MessageType
 import logging
 
 LOGGER = logging.getLogger(__name__)
@@ -11,7 +14,7 @@ class Gateway(object):
     """ Base implementation for a MySensors Gateway. """
 
     def __init__(self, event_callback=None):
-        self.eventCallback = event_callback
+        self.event_callback = event_callback
         self.sensors = {}
         self.metric = True   # if true - use metric, if false - use imperial
         self.debug = False   # if true - print all received messages
@@ -26,7 +29,8 @@ class Gateway(object):
             self.alert(msg.node_id)
         else:
             # this is a presentation of a child sensor
-            self.sensors[msg.node_id].addChildSensor(msg.child_id, msg.sub_type)
+            self.sensors[msg.node_id].add_child_sensor(msg.child_id,
+                                                       msg.sub_type)
             self.alert(msg.node_id)
 
     def _handle_set(self, msg):
@@ -58,13 +62,12 @@ class Gateway(object):
         elif msg.sub_type == Internal.I_TIME:
             return msg.copy(ack=0, payload=int(time.time()))
         elif msg.sub_type == Internal.I_LOG_MESSAGE and self.debug:
-            LOGGER.debug("n:{} c:{} t:{} s:{} p:{}".format(
-                msg.node_id,
-                msg.child_id,
-                msg.type,
-                msg.sub_type,
-                msg.payload,
-            ))
+            LOGGER.debug("n:%s c:%s t:%s s:%s p:%s",
+                         msg.node_id,
+                         msg.child_id,
+                         msg.type,
+                         msg.sub_type,
+                         msg.payload)
 
     def send(self, message):
         """ Should be implemented by a child class. """
@@ -88,8 +91,8 @@ class Gateway(object):
 
     def alert(self, nid):
         """ Tell anyone who wants to know that a sensor was updated. """
-        if self.eventCallback is not None:
-            self.eventCallback("sensor_update", nid)
+        if self.event_callback is not None:
+            self.event_callback("sensor_update", nid)
 
     def _get_next_id(self):
         """ Returns the next available sensor id. """
@@ -126,6 +129,7 @@ class SerialGateway(Gateway, threading.Thread):
     def __init__(self, port, event_callback=None, baud=115200):
         threading.Thread.__init__(self)
         Gateway.__init__(self, event_callback)
+        self.serial = None
         self.port = port
         self.baud = baud
         self._stop_event = threading.Event()
@@ -145,15 +149,19 @@ class SerialGateway(Gateway, threading.Thread):
     def run(self):
         """ Background thread that reads messages from the gateway. """
         while not self._stop_event.is_set():
-            s = self.serial.readline()
+            line = self.serial.readline()
             try:
-                msg = s.decode('utf-8')
-            except Exception as ex:
+                msg = line.decode('utf-8')
+            except ValueError:
                 LOGGER.exception()
                 continue
-            r = self.logic(msg)
-            if r is not None:
-                self.send(r.encode())
+            response = self.logic(msg)
+            if response is not None:
+                try:
+                    self.send(response.encode())
+                except ValueError:
+                    LOGGER.exception()
+                    continue
 
     def send(self, message):
         """ Writes a Message to the gateway. """
@@ -163,31 +171,32 @@ class SerialGateway(Gateway, threading.Thread):
 class Sensor:
     """ Represents a sensor. """
 
-    def __init__(self, id):
-        self.id = id
+    def __init__(self, sensor_id):
+        self.sensor_id = sensor_id
         self.children = {}
         self.type = None
         self.sketch_name = None
         self.sketch_version = None
         self.battery_level = 0
 
-    def addChildSensor(self, id, type):
+    def add_child_sensor(self, child_id, child_type):
         """ Creates and adds a child sensor. """
-        self.children[id] = ChildSensor(id, type)
+        self.children[child_id] = ChildSensor(child_id, child_type)
 
-    def setChildValue(self, id, value):
-        """ Set's a child sensor's value. """
-        if id in self.children:
-            self.children[id].value = value
+    def set_child_value(self, child_id, value):
+        """ Sets a child sensor's value. """
+        if child_id in self.children:
+            self.children[child_id].value = value
         #TODO: Handle error
 
 
 class ChildSensor:
     """ Represents a child sensor. """
+    # pylint: disable=too-few-public-methods
 
-    def __init__(self, id, type):
-        self.id = id
-        self.type = type
+    def __init__(self, child_id, child_type):
+        self.id = child_id
+        self.type = child_type
         self.value = None
 
 
@@ -210,16 +219,19 @@ class Message:
         arguments.
         """
         msg = Message(self.encode())
-        for k,v in kwargs.items():
-            setattr(msg, k, v)
+        for key, val in kwargs.items():
+            setattr(msg, key, val)
         return msg
 
     def decode(self, data):
         """ Decode a message from command string. """
         data = data.rstrip().split(';')
         self.payload = data.pop()
-        (self.node_id, self.child_id, self.type, self.ack, self.sub_type) = \
-            [int(f) for f in data]
+        (self.node_id,
+         self.child_id,
+         self.type,
+         self.ack,
+         self.sub_type) = [int(f) for f in data]
 
     def encode(self):
         """ Encode a command string from message. """
