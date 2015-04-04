@@ -66,6 +66,10 @@ class Gateway(object):
                 msg.payload,
             ))
 
+    def send(self, message):
+        """ Should be implemented by a child class. """
+        pass
+
     def logic(self, data):
         """
         Parse the data and respond to it appropriately.
@@ -127,25 +131,32 @@ class SerialGateway(Gateway, threading.Thread):
         self._stop_event = threading.Event()
 
     def listen(self):
-        # preferably start this in a new thread
+        """
+        Opens the serial port and starts a background thread to read
+        messages from the gateway.
+        """
         self.serial = serial.Serial(self.port, self.baud)
         self.start()
 
     def stop(self):
+        """ Stops the background thread. """
         self._stop_event.set()
 
     def run(self):
+        """ Background thread that reads messages from the gateway. """
         while not self._stop_event.is_set():
             s = self.serial.readline()
             try:
                 msg = s.decode('utf-8')
             except Exception as ex:
-                pass #TODO log it
+                LOGGER.exception()
+                continue
             r = self.logic(msg)
             if r is not None:
                 self.send(r.encode())
 
     def send(self, message):
+        """ Writes a Message to the gateway. """
         self.serial.write(message.encode())
 
 
