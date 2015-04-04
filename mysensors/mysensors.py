@@ -168,6 +168,8 @@ class SerialGateway(Gateway, threading.Thread):
                 continue
             try:
                 line = self.serial.readline()
+                if not line:
+                    continue
             except serial.SerialException:
                 LOGGER.exception()
                 continue
