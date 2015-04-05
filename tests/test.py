@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 
 import mysensors.mysensors as my
-from mysensors.const import MessageType, Internal, Presentation
+from mysensors.const import MessageType, Internal, Presentation, SetReq
 
 class TestGateway(unittest.TestCase):
     """ Test the Gateway logic function """
@@ -76,13 +76,13 @@ class TestGateway(unittest.TestCase):
         sensor = self._add_sensor(1)
         sensor.children[0] = my.ChildSensor(0, Presentation.S_LIGHT_LEVEL)
         self.gw.logic("1;0;1;0;23;43\n")
-        self.assertEqual(sensor.children[0].value, '43')
+        self.assertEqual(sensor.children[0].values[SetReq.V_LIGHT_LEVEL], '43')
 
     def test_humidity_level(self):
         sensor = self._add_sensor(1)
         sensor.children[1] = my.ChildSensor(1, Presentation.S_HUM)
         self.gw.logic("1;1;1;0;1;75\n")
-        self.assertEqual(sensor.children[1].value, '75')
+        self.assertEqual(sensor.children[1].values[SetReq.V_HUM], '75')
 
     def test_battery_level(self):
         sensor = self._add_sensor(1)
