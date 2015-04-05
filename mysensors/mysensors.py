@@ -216,7 +216,7 @@ class Sensor:
         """ Sets a child sensor's value. """
         if child_id in self.children:
             self.children[child_id].values[value_type] = value
-        #TODO: Handle error
+        # TODO: Handle error
 
 
 class ChildSensor:

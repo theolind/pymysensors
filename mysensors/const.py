@@ -3,6 +3,7 @@ MySensors Constants
 """
 from enum import IntEnum
 
+
 class MessageType(IntEnum):
     """ MySensors message types """
     # pylint: disable=too-few-public-methods
