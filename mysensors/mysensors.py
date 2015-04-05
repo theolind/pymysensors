@@ -147,7 +147,7 @@ class SerialGateway(Gateway, threading.Thread):
             self.serial = serial.Serial(self.port, self.baud,
                                         timeout=self.timeout)
         except serial.SerialException:
-            LOGGER.exception()
+            LOGGER.exception('Unable to connect to %s', self.port)
             return False
         return True
 
@@ -172,7 +172,7 @@ class SerialGateway(Gateway, threading.Thread):
                 if not line:
                     continue
             except serial.SerialException:
-                LOGGER.exception()
+                LOGGER.exception('Serial exception')
                 continue
             except TypeError:
                 # pyserial has a bug that causes a TypeError to be thrown when
@@ -189,7 +189,7 @@ class SerialGateway(Gateway, threading.Thread):
                 try:
                     self.send(response.encode())
                 except ValueError:
-                    LOGGER.exception()
+                    LOGGER.exception('Invalid response')
                     continue
 
     def send(self, message):
