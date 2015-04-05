@@ -36,7 +36,8 @@ class Gateway(object):
     def _handle_set(self, msg):
         """ Processes a set message. """
         if self.is_sensor(msg.node_id, msg.child_id):
-            self.sensors[msg.node_id].children[msg.child_id].value = msg.payload
+            self.sensors[msg.node_id].set_child_value(
+                msg.child_id, msg.sub_type, msg.payload)
             self.alert(msg.node_id)
 
     def _handle_internal(self, msg):
@@ -211,10 +212,10 @@ class Sensor:
         """ Creates and adds a child sensor. """
         self.children[child_id] = ChildSensor(child_id, child_type)
 
-    def set_child_value(self, child_id, value):
+    def set_child_value(self, child_id, value_type, value):
         """ Sets a child sensor's value. """
         if child_id in self.children:
-            self.children[child_id].value = value
+            self.children[child_id].values[value_type] = value
         #TODO: Handle error
 
 
@@ -225,7 +226,7 @@ class ChildSensor:
     def __init__(self, child_id, child_type):
         self.id = child_id
         self.type = child_type
-        self.value = None
+        self.values = {}
 
 
 class Message:
