@@ -4,13 +4,13 @@ Python API for talking to a MySensors gateway
 # Usage
 Currently the API is best used by implementing a callback handler
 ```python
-import pymysensors.mysensors as mysensors
+import pymysensors.mysensors.mysensors as mysensors
 
 def event(type, nid):
     print(type+" "+str(nid))
 
 gw = mysensors.SerialGateway('/dev/ttyACM0', event)
-gw.listen()
+gw.start()
 ```
 
 In the above example PyMysensors will call "event" whenever a node in the Mysensors network has been updated.
@@ -31,11 +31,11 @@ Sensor - a sensor node
 ChildSensor - a child sensor
     id - Child id on the parent node
     type - Data type, S_HUM, S_TEMP etc.
-    value - the value
+    values - a dictionary of values (V_HUM, V_TEMP, etc.)
 ```
 
-Getting the type and value of node 23, child sensor 4 would be performed as follows:
+Getting the type and values of node 23, child sensor 4 would be performed as follows:
 ```
 type = gw.sensors[23].children[4].type
-value = gw.sensors[23].children[4].value
+values = gw.sensors[23].children[4].values
 ```
