@@ -6,6 +6,7 @@ import time
 import threading
 from .const import Internal, MessageType
 import logging
+import pickle
 
 LOGGER = logging.getLogger(__name__)
 
@@ -13,11 +14,14 @@ LOGGER = logging.getLogger(__name__)
 class Gateway(object):
     """ Base implementation for a MySensors Gateway. """
 
-    def __init__(self, event_callback=None):
+    def __init__(self, persistence = False, event_callback=None):
         self.event_callback = event_callback
         self.sensors = {}
         self.metric = True   # if true - use metric, if false - use imperial
         self.debug = False   # if true - print all received messages
+        self.persistence = persistence # if true - save sensors to disk
+        if persistence:
+            self._load_sensors()
 
     def _handle_presentation(self, msg):
         """ Processes a presentation message. """
@@ -89,6 +93,20 @@ class Gateway(object):
         elif msg.type == MessageType.internal:
             return self._handle_internal(msg)
         return None
+
+    def _save_sensors(self):
+        """ Save sensors to file """
+        with open('mysensors.pickle', 'wb') as f:
+            pickle.dump(self.sensors, f, pickle.HIGHEST_PROTOCOL)
+
+
+    def _load_sensors(self):
+        """ Load sensors from file """
+        try:
+            with open('mysensors.pickle', 'rb') as f:
+                self.sensors = pickle.load(f)
+        except IOError:
+            pass
 
     def alert(self, nid):
         """ Tell anyone who wants to know that a sensor was updated. """

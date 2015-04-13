@@ -89,6 +89,21 @@ class TestGateway(unittest.TestCase):
         self.gw.logic("1;255;3;0;0;79\n")
         self.assertEqual(sensor.battery_level, 79)
 
+    def test_persistence(self):
+        self._add_sensor(1)
+        self.gw.sensors[1].type = Presentation.S_ARDUINO_NODE
+        self.gw.sensors[1].sketch_name = "testsketch"
+        self.gw.sensors[1].sketch_version = "1.0"
+        self.gw.sensors[1].battery_level = 78
+
+        sensor = self.gw.sensors[1]
+        self.gw._save_sensors()
+        del self.gw.sensors[1]
+        self.gw._load_sensors()
+        self.assertEqual(self.gw.sensors[1].sketch_name, sensor.sketch_name)
+        self.assertEqual(self.gw.sensors[1].sketch_version, sensor.sketch_version)
+        self.assertEqual(self.gw.sensors[1].battery_level, sensor.battery_level)
+        self.assertEqual(self.gw.sensors[1].type, sensor.type)
 
 class TestMessage(unittest.TestCase):
     """ Test the Message class and it's encode/decode functions """
