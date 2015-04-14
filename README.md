@@ -39,3 +39,12 @@ Getting the type and values of node 23, child sensor 4 would be performed as fol
 type = gw.sensors[23].children[4].type
 values = gw.sensors[23].children[4].values
 ```
+
+PyMysensors also supports two other settings. Debug mode, which prints debug information and persistence mode, which saves the sensor network between runs. With persistence mode on, you can restart the gateway without having to restart each individual node in your sensor network. To enable persistance mode, the third argument in the constructor should be True. Debug mode is enabled by setting SerialGateway.debug = True. 
+
+```
+import pymysensors.mysensors.mysensors as mysensors
+
+gw = mysensors.SerialGateway('/dev/ttyACM0', None, True)
+gw.debug = True
+gw.start()
