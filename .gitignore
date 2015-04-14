@@ -55,3 +55,6 @@ docs/_build/
 
 # PyBuilder
 target/
+
+# pickle files (serialized python object)
+*.pickle
