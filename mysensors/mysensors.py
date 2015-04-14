@@ -200,7 +200,7 @@ class SerialGateway(Gateway, threading.Thread):
             try:
                 msg = line.decode('utf-8')
             except ValueError:
-                LOGGER.exception()
+                LOGGER.exception('')
                 continue
             response = self.logic(msg)
             if response is not None:
