@@ -14,12 +14,12 @@ LOGGER = logging.getLogger(__name__)
 class Gateway(object):
     """ Base implementation for a MySensors Gateway. """
 
-    def __init__(self, event_callback=None, persistence = False):
+    def __init__(self, event_callback=None, persistence=False):
         self.event_callback = event_callback
         self.sensors = {}
         self.metric = True   # if true - use metric, if false - use imperial
         self.debug = False   # if true - print all received messages
-        self.persistence = persistence # if true - save sensors to disk
+        self.persistence = persistence  # if true - save sensors to disk
         if persistence:
             self._load_sensors()
 
@@ -96,6 +96,7 @@ class Gateway(object):
 
     def _save_sensors(self):
         """ Save sensors to file """
+        f = open('mysensors.pickle', 'wb')
         with open('mysensors.pickle', 'wb') as f:
             pickle.dump(self.sensors, f, pickle.HIGHEST_PROTOCOL)
 
@@ -109,9 +110,15 @@ class Gateway(object):
             pass
 
     def alert(self, nid):
-        """ Tell anyone who wants to know that a sensor was updated. """
+        """
+        Tell anyone who wants to know that a sensor was updated. Also save
+        sensors if persistence is enabled
+        """
         if self.event_callback is not None:
             self.event_callback("sensor_update", nid)
+
+        if self.persistence:
+            self._save_sensors()
 
     def _get_next_id(self):
         """ Returns the next available sensor id. """
@@ -146,10 +153,10 @@ class SerialGateway(Gateway, threading.Thread):
     """ MySensors serial gateway. """
     # pylint: disable=too-many-arguments
 
-    def __init__(self, port, event_callback=None, baud=115200, timeout=1.0,
-                 reconnect_timeout=10.0):
+    def __init__(self, port, event_callback=None, persistence=False, baud=115200,
+                 timeout=1.0, reconnect_timeout=10.0):
         threading.Thread.__init__(self)
-        Gateway.__init__(self, event_callback)
+        Gateway.__init__(self, event_callback, persistence)
         self.serial = None
         self.port = port
         self.baud = baud
@@ -199,6 +206,7 @@ class SerialGateway(Gateway, threading.Thread):
                 continue
             try:
                 msg = line.decode('utf-8')
+                print(msg)
             except ValueError:
                 LOGGER.exception('')
                 continue
