@@ -14,7 +14,7 @@ LOGGER = logging.getLogger(__name__)
 class Gateway(object):
     """ Base implementation for a MySensors Gateway. """
 
-    def __init__(self, persistence = False, event_callback=None):
+    def __init__(self, event_callback=None, persistence = False):
         self.event_callback = event_callback
         self.sensors = {}
         self.metric = True   # if true - use metric, if false - use imperial
