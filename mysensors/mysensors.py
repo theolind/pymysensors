@@ -206,7 +206,6 @@ class SerialGateway(Gateway, threading.Thread):
                 continue
             try:
                 msg = line.decode('utf-8')
-                print(msg)
             except ValueError:
                 LOGGER.exception('')
                 continue
