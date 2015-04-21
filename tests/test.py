@@ -97,6 +97,7 @@ class TestGateway(unittest.TestCase):
         self.gw.sensors[1].battery_level = 78
 
         sensor = self.gw.sensors[1]
+        self.gw.persistence_file = "persistance.file.pickle"
         self.gw._save_sensors()
         del self.gw.sensors[1]
         self.gw._load_sensors()
