@@ -14,12 +14,13 @@ LOGGER = logging.getLogger(__name__)
 class Gateway(object):
     """ Base implementation for a MySensors Gateway. """
 
-    def __init__(self, event_callback=None, persistence=False):
+    def __init__(self, event_callback=None, persistence=False, persistence_file="mysensors.pickle"):
         self.event_callback = event_callback
         self.sensors = {}
         self.metric = True   # if true - use metric, if false - use imperial
         self.debug = False   # if true - print all received messages
         self.persistence = persistence  # if true - save sensors to disk
+        self.persistence_file = persistence_file    # path to persistance file
         if persistence:
             self._load_sensors()
 
@@ -96,15 +97,15 @@ class Gateway(object):
 
     def _save_sensors(self):
         """ Save sensors to file """
-        f = open('mysensors.pickle', 'wb')
-        with open('mysensors.pickle', 'wb') as f:
+        f = open(self.persistence_file, 'wb')
+        with open(self.persistence_file, 'wb') as f:
             pickle.dump(self.sensors, f, pickle.HIGHEST_PROTOCOL)
 
 
     def _load_sensors(self):
         """ Load sensors from file """
         try:
-            with open('mysensors.pickle', 'rb') as f:
+            with open(self.persistence_file, 'rb') as f:
                 self.sensors = pickle.load(f)
         except IOError:
             pass
@@ -153,10 +154,10 @@ class SerialGateway(Gateway, threading.Thread):
     """ MySensors serial gateway. """
     # pylint: disable=too-many-arguments
 
-    def __init__(self, port, event_callback=None, persistence=False, baud=115200,
-                 timeout=1.0, reconnect_timeout=10.0):
+    def __init__(self, port, event_callback=None, persistence=False, persistence_file="mysensors.pickle",
+                 baud=115200, timeout=1.0, reconnect_timeout=10.0):
         threading.Thread.__init__(self)
-        Gateway.__init__(self, event_callback, persistence)
+        Gateway.__init__(self, event_callback, persistence, persistence_file)
         self.serial = None
         self.port = port
         self.baud = baud
