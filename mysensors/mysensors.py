@@ -207,10 +207,10 @@ class SerialGateway(Gateway, threading.Thread):
                 continue
             try:
                 msg = line.decode('utf-8')
+                response = self.logic(msg)
             except ValueError:
-                LOGGER.exception('')
+                LOGGER.exception('Error decoding message from gateway')
                 continue
-            response = self.logic(msg)
             if response is not None:
                 try:
                     self.send(response.encode())
