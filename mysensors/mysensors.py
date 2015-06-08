@@ -209,7 +209,11 @@ class SerialGateway(Gateway, threading.Thread):
             except ValueError:
                 LOGGER.exception('')
                 continue
-            response = self.logic(msg)
+            try:
+                response = self.logic(msg)
+            except ValueError:
+                response = None
+                LOGGER.exception('Not valid message')
             if response is not None:
                 try:
                     self.send(response.encode())
