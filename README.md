@@ -1,5 +1,7 @@
 # pymysensors
-Python API for talking to a MySensors gateway
+Python API for talking to a MySensors gateway (http://www.mysensors.org/). Currently supports serial protocol v1.4.
+
+Support for serial protocol v1.5 is under development.
 
 # Usage
 Currently the API is best used by implementing a callback handler
