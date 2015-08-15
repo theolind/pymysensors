@@ -28,6 +28,8 @@ class Gateway(object):
             self._load_sensors()
         if protocol_version == "1.4":
             _const = __import__("mysensors.const_14", globals(), locals(), ['Internal', 'MessageType'], 0)
+        elif protocol_version == "1.5":
+            _const = __import__("mysensors.const_15", globals(), locals(), ['Internal', 'MessageType'], 0)
         global Internal, MessageType
         Internal = _const.Internal
         MessageType = _const.MessageType
