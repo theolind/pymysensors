@@ -1,7 +1,7 @@
 # pymysensors
-Python API for talking to a MySensors gateway (http://www.mysensors.org/). Currently supports serial protocol v1.4.
+Python API for talking to a MySensors gateway (http://www.mysensors.org/). Currently supports serial protocol v1.4 and v1.5.
 
-Support for serial protocol v1.5 is under development.
+Does not support OTA updates.
 
 # Usage
 Currently the API is best used by implementing a callback handler
@@ -42,11 +42,15 @@ type = gw.sensors[23].children[4].type
 values = gw.sensors[23].children[4].values
 ```
 
-PyMysensors also supports two other settings. Debug mode, which prints debug information and persistence mode, which saves the sensor network between runs. With persistence mode on, you can restart the gateway without having to restart each individual node in your sensor network. To enable persistance mode, the third argument in the constructor should be True. Debug mode is enabled by setting SerialGateway.debug = True. 
+PyMysensors also supports three other settings. Debug mode, which prints debug information, persistence mode,
+which saves the sensor network between runs. With persistence mode on, you can restart the gateway without
+having to restart each individual node in your sensor network. To enable persistance mode, the third argument
+in the constructor should be True. Debug mode is enabled by setting SerialGateway.debug = True. A path to the config file
+can be specified as a fourth argument.
 
 ```
 import pymysensors.mysensors.mysensors as mysensors
 
-gw = mysensors.SerialGateway('/dev/ttyACM0', None, True)
+gw = mysensors.SerialGateway('/dev/ttyACM0', None, True, 'somefolder/mysensors.pickle')
 gw.debug = True
 gw.start()

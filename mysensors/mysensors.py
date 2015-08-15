@@ -4,25 +4,35 @@ pymysensors - Python implementation of the MySensors SerialGateway
 import serial
 import time
 import threading
-from .const import Internal, MessageType
 import logging
 import pickle
 
+# Correct versions will be dynamically imported when creating a gateway
+global Internal, MessageType
+
 LOGGER = logging.getLogger(__name__)
+
 
 
 class Gateway(object):
     """ Base implementation for a MySensors Gateway. """
 
-    def __init__(self, event_callback=None, persistence=False, persistence_file="mysensors.pickle"):
+    def __init__(self, event_callback=None, persistence=False, persistence_file="mysensors.pickle", protocol_version="1.4"):
         self.event_callback = event_callback
         self.sensors = {}
         self.metric = True   # if true - use metric, if false - use imperial
         self.debug = False   # if true - print all received messages
         self.persistence = persistence  # if true - save sensors to disk
-        self.persistence_file = persistence_file    # path to persistance file
+        self.persistence_file = persistence_file    # path to persistence file
         if persistence:
             self._load_sensors()
+        if protocol_version == "1.4":
+            _const = __import__("mysensors.const_14", globals(), locals(), ['Internal', 'MessageType'], 0)
+        elif protocol_version == "1.5":
+            _const = __import__("mysensors.const_15", globals(), locals(), ['Internal', 'MessageType'], 0)
+        global Internal, MessageType
+        Internal = _const.Internal
+        MessageType = _const.MessageType
 
     def _handle_presentation(self, msg):
         """ Processes a presentation message. """
@@ -207,10 +217,10 @@ class SerialGateway(Gateway, threading.Thread):
                 continue
             try:
                 msg = line.decode('utf-8')
+                response = self.logic(msg)
             except ValueError:
-                LOGGER.exception('')
+                LOGGER.exception('Error decoding message from gateway')
                 continue
-            response = self.logic(msg)
             if response is not None:
                 try:
                     self.send(response.encode())

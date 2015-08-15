@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 
 import mysensors.mysensors as my
-from mysensors.const import MessageType, Internal, Presentation, SetReq
+from mysensors.const_14 import MessageType, Internal, Presentation, SetReq
 
 class TestGateway(unittest.TestCase):
     """ Test the Gateway logic function """
@@ -97,6 +97,7 @@ class TestGateway(unittest.TestCase):
         self.gw.sensors[1].battery_level = 78
 
         sensor = self.gw.sensors[1]
+        self.gw.persistence_file = "persistance.file.pickle"
         self.gw._save_sensors()
         del self.gw.sensors[1]
         self.gw._load_sensors()
