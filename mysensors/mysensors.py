@@ -219,7 +219,7 @@ class SerialGateway(Gateway, threading.Thread):
                 msg = line.decode('utf-8')
                 response = self.logic(msg)
             except ValueError:
-                LOGGER.exception('Error decoding message from gateway')
+                LOGGER.warning('Error decoding message from gateway, probably received bad byte.')
                 continue
             if response is not None:
                 try:
