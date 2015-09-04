@@ -102,7 +102,27 @@ class TestGateway(unittest.TestCase):
         del self.gw.sensors[1]
         self.gw._load_sensors()
         self.assertEqual(self.gw.sensors[1].sketch_name, sensor.sketch_name)
-        self.assertEqual(self.gw.sensors[1].sketch_version, sensor.sketch_version)
+        self.assertEqual(self.gw.sensors[1].sketch_version,
+                         sensor.sketch_version)
+        self.assertEqual(self.gw.sensors[1].battery_level, sensor.battery_level)
+        self.assertEqual(self.gw.sensors[1].type, sensor.type)
+
+    def test_json_persistence(self):
+        sensor = self._add_sensor(1)
+        sensor.children[0] = my.ChildSensor(0, Presentation.S_LIGHT_LEVEL)
+        self.gw.sensors[1].type = Presentation.S_ARDUINO_NODE
+        self.gw.sensors[1].sketch_name = "testsketch"
+        self.gw.sensors[1].sketch_version = "1.0"
+        self.gw.sensors[1].battery_level = 78
+
+        sensor = self.gw.sensors[1]
+        self.gw.persistence_file = "persistance.file.json"
+        self.gw._save_sensors()
+        del self.gw.sensors[1]
+        self.gw._load_sensors()
+        self.assertEqual(self.gw.sensors[1].sketch_name, sensor.sketch_name)
+        self.assertEqual(self.gw.sensors[1].sketch_version,
+                         sensor.sketch_version)
         self.assertEqual(self.gw.sensors[1].battery_level, sensor.battery_level)
         self.assertEqual(self.gw.sensors[1].type, sensor.type)
 
