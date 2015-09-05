@@ -206,10 +206,11 @@ class SerialGateway(Gateway, threading.Thread):
     # pylint: disable=too-many-arguments
 
     def __init__(self, port, event_callback=None, persistence=False,
-                 persistence_file="mysensors.pickle",
+                 persistence_file="mysensors.pickle", protocol_version="1.4",
                  baud=115200, timeout=1.0, reconnect_timeout=10.0):
         threading.Thread.__init__(self)
-        Gateway.__init__(self, event_callback, persistence, persistence_file)
+        Gateway.__init__(self, event_callback, persistence, persistence_file,
+                         protocol_version)
         self.serial = None
         self.port = port
         self.baud = baud
