@@ -16,6 +16,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 class Gateway(object):
+
     """ Base implementation for a MySensors Gateway. """
 
     def __init__(self, event_callback=None, persistence=False,
@@ -29,9 +30,11 @@ class Gateway(object):
         if persistence:
             self._load_sensors()
         if protocol_version == "1.4":
-            _const = __import__("mysensors.const_14", globals(), locals(), ['Internal', 'MessageType'], 0)
+            _const = __import__("mysensors.const_14", globals(), locals(),
+                                ['Internal', 'MessageType'], 0)
         elif protocol_version == "1.5":
-            _const = __import__("mysensors.const_15", globals(), locals(), ['Internal', 'MessageType'], 0)
+            _const = __import__("mysensors.const_15", globals(), locals(),
+                                ['Internal', 'MessageType'], 0)
         global Internal, MessageType
         Internal = _const.Internal
         MessageType = _const.MessageType
@@ -42,7 +45,7 @@ class Gateway(object):
             # this is a presentation of the sensor platform
             self.add_sensor(msg.node_id)
             self.sensors[msg.node_id].type = msg.sub_type
-            self.sensors[msg.node_id].version = msg.payload
+            self.sensors[msg.node_id].protocol_version = msg.payload
             self.alert(msg.node_id)
         else:
             # this is a presentation of a child sensor
@@ -202,6 +205,7 @@ class Gateway(object):
 
 
 class SerialGateway(Gateway, threading.Thread):
+
     """ MySensors serial gateway. """
     # pylint: disable=too-many-arguments
 
@@ -262,7 +266,9 @@ class SerialGateway(Gateway, threading.Thread):
                 msg = line.decode('utf-8')
                 response = self.logic(msg)
             except ValueError:
-                LOGGER.warning('Error decoding message from gateway, probably received bad byte.')
+                LOGGER.warning(
+                    'Error decoding message from gateway, '
+                    'probably received bad byte.')
                 continue
             if response is not None:
                 try:
@@ -277,6 +283,7 @@ class SerialGateway(Gateway, threading.Thread):
 
 
 class Sensor:
+
     """ Represents a sensor. """
 
     def __init__(self, sensor_id):
@@ -286,6 +293,7 @@ class Sensor:
         self.sketch_name = None
         self.sketch_version = None
         self.battery_level = 0
+        self.protocol_version = None  # Add missing attribute
 
     def add_child_sensor(self, child_id, child_type):
         """ Creates and adds a child sensor. """
@@ -299,6 +307,7 @@ class Sensor:
 
 
 class ChildSensor:
+
     """ Represents a child sensor. """
     # pylint: disable=too-few-public-methods
 
@@ -309,15 +318,16 @@ class ChildSensor:
 
 
 class Message:
+
     """ Represents a message from the gateway. """
 
     def __init__(self, data=None):
         self.node_id = 0
         self.child_id = 0
-        self.type = ""
+        self.type = 0
         self.ack = 0
-        self.sub_type = ""
-        self.payload = ""
+        self.sub_type = 0
+        self.payload = ""  # All data except payload are integers
         if data is not None:
             self.decode(data)
 
@@ -346,14 +356,15 @@ class Message:
         return ";".join([str(f) for f in [
             self.node_id,
             self.child_id,
-            int(self.type),
+            self.type,
             self.ack,
-            int(self.sub_type),
+            self.sub_type,
             self.payload,
         ]]) + "\n"
 
 
 class MySensorsJSONEncoder(json.JSONEncoder):
+
     def default(self, o):
         if isinstance(o, Sensor):
             return {
@@ -374,6 +385,7 @@ class MySensorsJSONEncoder(json.JSONEncoder):
 
 
 class MySensorsJSONDecoder(json.JSONDecoder):
+
     def __init__(self):
         json.JSONDecoder.__init__(self, object_hook=self.dict_to_object)
 
@@ -389,5 +401,5 @@ class MySensorsJSONDecoder(json.JSONDecoder):
             child.values = o['values']
             return child
         elif all(k.isdigit() for k in o.keys()):
-            return {int(k): v for k,v in o.items()}
+            return {int(k): v for k, v in o.items()}
         return o
