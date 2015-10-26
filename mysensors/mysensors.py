@@ -356,9 +356,9 @@ class Message:
         return ";".join([str(f) for f in [
             self.node_id,
             self.child_id,
-            self.type,
+            int(self.type),
             self.ack,
-            self.sub_type,
+            int(self.sub_type),
             self.payload,
         ]]) + "\n"
 
