@@ -8,6 +8,7 @@ import logging
 import pickle
 import os
 import json
+from queue import Queue
 
 # Correct versions will be dynamically imported when creating a gateway
 global Internal, MessageType
@@ -16,10 +17,12 @@ LOGGER = logging.getLogger(__name__)
 
 
 class Gateway(object):
+
     """ Base implementation for a MySensors Gateway. """
 
     def __init__(self, event_callback=None, persistence=False,
                  persistence_file="mysensors.pickle", protocol_version="1.4"):
+        self.queue = Queue()
         self.event_callback = event_callback
         self.sensors = {}
         self.metric = True   # if true - use metric, if false - use imperial
@@ -29,9 +32,17 @@ class Gateway(object):
         if persistence:
             self._load_sensors()
         if protocol_version == "1.4":
-            _const = __import__("mysensors.const_14", globals(), locals(), ['Internal', 'MessageType'], 0)
+            _const = __import__("mysensors.const_14",
+                                globals(),
+                                locals(),
+                                ['Internal', 'MessageType'],
+                                0)
         elif protocol_version == "1.5":
-            _const = __import__("mysensors.const_15", globals(), locals(), ['Internal', 'MessageType'], 0)
+            _const = __import__("mysensors.const_15",
+                                globals(),
+                                locals(),
+                                ['Internal', 'MessageType'],
+                                0)
         global Internal, MessageType
         Internal = _const.Internal
         MessageType = _const.MessageType
@@ -200,17 +211,49 @@ class Gateway(object):
             return child_id in self.sensors[sensorid].children
         return True
 
+    def handle_queue(self, queue=None):
+        """If queue is not empy, get the function and any args and kwargs
+        from the queue. Run the function and return output."""
+        if queue is None:
+            queue = self.queue
+        if not queue.empty():
+            func, args, kwargs = queue.get()
+            reply = func(*args, **kwargs)
+            queue.task_done()
+            return reply
+        return None
+
+    def fill_queue(self, func, args=None, kwargs=None, queue=None):
+        """Put the function 'f', a tuple of arguments 'args' and a dict
+        of keyword arguments 'kwargs', as a tuple in the queue."""
+        if args is None:
+            args = ()
+        if kwargs is None:
+            kwargs = {}
+        if queue is None:
+            queue = self.queue
+        queue.put((func, args, kwargs))
+
+    def set_child_value(self, sensor_id, child_id, value_type, value):
+        """Add a command to set a sensor value, to the queue.
+        A queued command will be sent to the sensor, when the gateway
+        thread has sent all previously queued commands to the FIFO queue."""
+        self.fill_queue(self.sensors[sensor_id].set_child_value,
+                        (child_id, value_type, value))
+
 
 class SerialGateway(Gateway, threading.Thread):
+
     """ MySensors serial gateway. """
     # pylint: disable=too-many-arguments
 
-    def __init__(self, port, event_callback=None, persistence=False,
-                 persistence_file="mysensors.pickle", protocol_version="1.4",
-                 baud=115200, timeout=1.0, reconnect_timeout=10.0):
+    def __init__(self, port, event_callback=None,
+                 persistence=False, persistence_file="mysensors.pickle",
+                 protocol_version="1.4", baud=115200, timeout=1.0,
+                 reconnect_timeout=10.0):
         threading.Thread.__init__(self)
-        Gateway.__init__(self, event_callback, persistence, persistence_file,
-                         protocol_version)
+        Gateway.__init__(self, event_callback, persistence,
+                         persistence_file, protocol_version)
         self.serial = None
         self.port = port
         self.baud = baud
@@ -221,10 +264,13 @@ class SerialGateway(Gateway, threading.Thread):
     def connect(self):
         """ Connects to the serial port. """
         if self.serial:
+            LOGGER.debug('Already connected to %s', self.port)
             return True
         try:
+            LOGGER.debug('Trying to connect to %s', self.port)
             self.serial = serial.Serial(self.port, self.baud,
                                         timeout=self.timeout)
+            LOGGER.debug('Connected to %s', self.port)
         except serial.SerialException:
             LOGGER.exception('Unable to connect to %s', self.port)
             return False
@@ -233,11 +279,13 @@ class SerialGateway(Gateway, threading.Thread):
     def disconnect(self):
         """ Disconnects from the serial port. """
         if self.serial is not None:
+            LOGGER.debug('Disconnecting from %s', self.port)
             self.serial.close()
             self.serial = None
 
     def stop(self):
         """ Stops the background thread. """
+        LOGGER.debug('Stopping thread')
         self._stop_event.set()
 
     def run(self):
@@ -246,6 +294,13 @@ class SerialGateway(Gateway, threading.Thread):
             if self.serial is None and not self.connect():
                 time.sleep(self.reconnect_timeout)
                 continue
+            response = self.handle_queue()
+            if response is not None:
+                try:
+                    self.send(response.encode())
+                except ValueError:
+                    LOGGER.exception('Invalid response')
+                    continue
             try:
                 line = self.serial.readline()
                 if not line:
@@ -259,17 +314,13 @@ class SerialGateway(Gateway, threading.Thread):
                 self.disconnect()
                 continue
             try:
-                msg = line.decode('utf-8')
-                response = self.logic(msg)
+                string = line.decode('utf-8')
+                self.fill_queue(self.logic, (string,))
             except ValueError:
-                LOGGER.warning('Error decoding message from gateway, probably received bad byte.')
+                LOGGER.warning(
+                    'Error decoding message from gateway,'
+                    ' probably received bad byte.')
                 continue
-            if response is not None:
-                try:
-                    self.send(response.encode())
-                except ValueError:
-                    LOGGER.exception('Invalid response')
-                    continue
 
     def send(self, message):
         """ Writes a Message to the gateway. """
@@ -277,6 +328,7 @@ class SerialGateway(Gateway, threading.Thread):
 
 
 class Sensor:
+
     """ Represents a sensor. """
 
     def __init__(self, sensor_id):
@@ -295,10 +347,16 @@ class Sensor:
         """ Sets a child sensor's value. """
         if child_id in self.children:
             self.children[child_id].values[value_type] = value
+            msg = Message()
+            return msg.copy(node_id=self.sensor_id, child_id=child_id, type=1,
+                            sub_type=value_type, payload=value)
+        return None
+
         # TODO: Handle error
 
 
 class ChildSensor:
+
     """ Represents a child sensor. """
     # pylint: disable=too-few-public-methods
 
@@ -309,14 +367,15 @@ class ChildSensor:
 
 
 class Message:
+
     """ Represents a message from the gateway. """
 
     def __init__(self, data=None):
         self.node_id = 0
         self.child_id = 0
-        self.type = ""
+        self.type = 0
         self.ack = 0
-        self.sub_type = ""
+        self.sub_type = 0
         self.payload = ""
         if data is not None:
             self.decode(data)
@@ -354,6 +413,7 @@ class Message:
 
 
 class MySensorsJSONEncoder(json.JSONEncoder):
+
     def default(self, o):
         if isinstance(o, Sensor):
             return {
@@ -374,6 +434,7 @@ class MySensorsJSONEncoder(json.JSONEncoder):
 
 
 class MySensorsJSONDecoder(json.JSONDecoder):
+
     def __init__(self):
         json.JSONDecoder.__init__(self, object_hook=self.dict_to_object)
 
@@ -389,5 +450,5 @@ class MySensorsJSONDecoder(json.JSONDecoder):
             child.values = o['values']
             return child
         elif all(k.isdigit() for k in o.keys()):
-            return {int(k): v for k,v in o.items()}
+            return {int(k): v for k, v in o.items()}
         return o
