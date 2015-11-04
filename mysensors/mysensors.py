@@ -91,12 +91,12 @@ class Gateway(object):
         elif msg.sub_type == Internal.I_TIME:
             return msg.copy(ack=0, payload=int(time.time()))
         elif msg.sub_type == Internal.I_LOG_MESSAGE and self.debug:
-            LOGGER.debug("n:%s c:%s t:%s s:%s p:%s",
-                         msg.node_id,
-                         msg.child_id,
-                         msg.type,
-                         msg.sub_type,
-                         msg.payload)
+            LOGGER.info("n:%s c:%s t:%s s:%s p:%s",
+                        msg.node_id,
+                        msg.child_id,
+                        msg.type,
+                        msg.sub_type,
+                        msg.payload)
 
     def send(self, message):
         """ Should be implemented by a child class. """
@@ -150,7 +150,7 @@ class Gateway(object):
            (not exists and os.access(dirname, os.W_OK)):
             self._perform_file_action(fname, 'save')
         else:
-            LOGGER.info('Permission denied when writing to %s' % fname)
+            LOGGER.info('Permission denied when writing to %s', fname)
 
     def _load_sensors(self):
         """ Load sensors from file """
@@ -159,7 +159,7 @@ class Gateway(object):
             self._perform_file_action(self.persistence_file, 'load')
         else:
             LOGGER.info('File does not exist or is not '
-                        'readable: %s' % self.persistence_file)
+                        'readable: %s', self.persistence_file)
 
     def _perform_file_action(self, filename, action):
         """
@@ -211,9 +211,16 @@ class Gateway(object):
             return child_id in self.sensors[sensorid].children
         return True
 
+    def setup_logging(self):
+        """ Sets the logging level to debug. """
+        if self.debug:
+            logging.basicConfig(level=logging.DEBUG)
+
     def handle_queue(self, queue=None):
-        """If queue is not empy, get the function and any args and kwargs
-        from the queue. Run the function and return output."""
+        """
+        If queue is not empty, get the function and any args and kwargs
+        from the queue. Run the function and return output.
+        """
         if queue is None:
             queue = self.queue
         if not queue.empty():
@@ -224,8 +231,10 @@ class Gateway(object):
         return None
 
     def fill_queue(self, func, args=None, kwargs=None, queue=None):
-        """Put the function 'f', a tuple of arguments 'args' and a dict
-        of keyword arguments 'kwargs', as a tuple in the queue."""
+        """
+        Put the function 'func', a tuple of arguments 'args' and a dict
+        of keyword arguments 'kwargs', as a tuple in the queue.
+        """
         if args is None:
             args = ()
         if kwargs is None:
@@ -235,9 +244,11 @@ class Gateway(object):
         queue.put((func, args, kwargs))
 
     def set_child_value(self, sensor_id, child_id, value_type, value):
-        """Add a command to set a sensor value, to the queue.
+        """
+        Add a command to set a sensor value, to the queue.
         A queued command will be sent to the sensor, when the gateway
-        thread has sent all previously queued commands to the FIFO queue."""
+        thread has sent all previously queued commands to the FIFO queue.
+        """
         self.fill_queue(self.sensors[sensor_id].set_child_value,
                         (child_id, value_type, value))
 
@@ -264,13 +275,21 @@ class SerialGateway(Gateway, threading.Thread):
     def connect(self):
         """ Connects to the serial port. """
         if self.serial:
-            LOGGER.debug('Already connected to %s', self.port)
+            LOGGER.info('Already connected to %s', self.port)
             return True
         try:
-            LOGGER.debug('Trying to connect to %s', self.port)
+            LOGGER.info('Trying to connect to %s', self.port)
             self.serial = serial.Serial(self.port, self.baud,
                                         timeout=self.timeout)
-            LOGGER.debug('Connected to %s', self.port)
+            time.sleep(3)
+            if self.serial.isOpen():
+                LOGGER.info('%s is open...', self.serial.name)
+                LOGGER.info('Connected to %s', self.port)
+            else:
+                LOGGER.info('%s is not open...', self.serial.name)
+                self.serial = None
+                return False
+
         except serial.SerialException:
             LOGGER.exception('Unable to connect to %s', self.port)
             return False
@@ -279,17 +298,19 @@ class SerialGateway(Gateway, threading.Thread):
     def disconnect(self):
         """ Disconnects from the serial port. """
         if self.serial is not None:
-            LOGGER.debug('Disconnecting from %s', self.port)
+            LOGGER.info('Disconnecting from %s', self.serial.name)
             self.serial.close()
             self.serial = None
 
     def stop(self):
         """ Stops the background thread. """
-        LOGGER.debug('Stopping thread')
+        self.disconnect()
+        LOGGER.info('Stopping thread')
         self._stop_event.set()
 
     def run(self):
         """ Background thread that reads messages from the gateway. """
+        self.setup_logging()
         while not self._stop_event.is_set():
             if self.serial is None and not self.connect():
                 time.sleep(self.reconnect_timeout)
