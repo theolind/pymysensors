@@ -4,7 +4,9 @@ from unittest.mock import patch
 import mysensors.mysensors as my
 from mysensors.const_14 import MessageType, Internal, Presentation, SetReq
 
+
 class TestGateway(unittest.TestCase):
+
     """ Test the Gateway logic function """
 
     def setUp(self):
@@ -33,6 +35,7 @@ class TestGateway(unittest.TestCase):
         sensor = self._add_sensor(1)
         self.gw.logic("1;255;0;0;17;1.4.1\n")
         self.assertEqual(sensor.type, Presentation.S_ARDUINO_NODE)
+        self.assertEqual(sensor.protocol_version, "1.4.1")
 
     def test_internal_config(self):
         # metric
@@ -44,7 +47,7 @@ class TestGateway(unittest.TestCase):
         self.assertEqual(ret.encode(), "1;255;3;0;6;I\n")
 
     def test_internal_time(self):
-        sensor = self._add_sensor(1)
+        self._add_sensor(1)
         with patch('mysensors.mysensors.time') as mock_time:
             mock_time.time.return_value = 123456789
             ret = self.gw.logic("1;255;3;0;1;\n")
@@ -97,20 +100,47 @@ class TestGateway(unittest.TestCase):
         self.gw.sensors[1].battery_level = 78
 
         sensor = self.gw.sensors[1]
-        self.gw.persistence_file = "persistance.file.pickle"
+        self.gw.persistence_file = "persistence.file.pickle"
         self.gw._save_sensors()
         del self.gw.sensors[1]
         self.gw._load_sensors()
         self.assertEqual(self.gw.sensors[1].sketch_name, sensor.sketch_name)
-        self.assertEqual(self.gw.sensors[1].sketch_version, sensor.sketch_version)
-        self.assertEqual(self.gw.sensors[1].battery_level, sensor.battery_level)
+        self.assertEqual(self.gw.sensors[1].sketch_version,
+                         sensor.sketch_version)
+        self.assertEqual(
+            self.gw.sensors[1].battery_level, sensor.battery_level)
         self.assertEqual(self.gw.sensors[1].type, sensor.type)
 
+    def test_json_persistence(self):
+        sensor = self._add_sensor(1)
+        sensor.children[0] = my.ChildSensor(0, Presentation.S_LIGHT_LEVEL)
+        self.gw.sensors[1].type = Presentation.S_ARDUINO_NODE
+        self.gw.sensors[1].sketch_name = "testsketch"
+        self.gw.sensors[1].sketch_version = "1.0"
+        self.gw.sensors[1].battery_level = 78
+
+        sensor = self.gw.sensors[1]
+        self.gw.persistence_file = "persistence.file.json"
+        self.gw._save_sensors()
+        del self.gw.sensors[1]
+        self.gw._load_sensors()
+        self.assertEqual(self.gw.sensors[1].sketch_name, sensor.sketch_name)
+        self.assertEqual(self.gw.sensors[1].sketch_version,
+                         sensor.sketch_version)
+        self.assertEqual(
+            self.gw.sensors[1].battery_level, sensor.battery_level)
+        self.assertEqual(self.gw.sensors[1].type, sensor.type)
+
+
 class TestMessage(unittest.TestCase):
+
     """ Test the Message class and it's encode/decode functions """
 
     def test_encode(self):
         m = my.Message()
+        cmd = m.encode()
+        self.assertEqual(cmd, "0;0;0;0;0;\n")
+
         m.node_id = 255
         m.child_id = 255
         m.type = MessageType.internal

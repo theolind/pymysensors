@@ -6,6 +6,8 @@ import time
 import threading
 import logging
 import pickle
+import os
+import json
 
 # Correct versions will be dynamically imported when creating a gateway
 global Internal, MessageType
@@ -13,11 +15,12 @@ global Internal, MessageType
 LOGGER = logging.getLogger(__name__)
 
 
-
 class Gateway(object):
+
     """ Base implementation for a MySensors Gateway. """
 
-    def __init__(self, event_callback=None, persistence=False, persistence_file="mysensors.pickle", protocol_version="1.4"):
+    def __init__(self, event_callback=None, persistence=False,
+                 persistence_file="mysensors.pickle", protocol_version="1.4"):
         self.event_callback = event_callback
         self.sensors = {}
         self.metric = True   # if true - use metric, if false - use imperial
@@ -27,9 +30,11 @@ class Gateway(object):
         if persistence:
             self._load_sensors()
         if protocol_version == "1.4":
-            _const = __import__("mysensors.const_14", globals(), locals(), ['Internal', 'MessageType'], 0)
+            _const = __import__("mysensors.const_14", globals(), locals(),
+                                ['Internal', 'MessageType'], 0)
         elif protocol_version == "1.5":
-            _const = __import__("mysensors.const_15", globals(), locals(), ['Internal', 'MessageType'], 0)
+            _const = __import__("mysensors.const_15", globals(), locals(),
+                                ['Internal', 'MessageType'], 0)
         global Internal, MessageType
         Internal = _const.Internal
         MessageType = _const.MessageType
@@ -40,7 +45,7 @@ class Gateway(object):
             # this is a presentation of the sensor platform
             self.add_sensor(msg.node_id)
             self.sensors[msg.node_id].type = msg.sub_type
-            self.sensors[msg.node_id].version = msg.payload
+            self.sensors[msg.node_id].protocol_version = msg.payload
             self.alert(msg.node_id)
         else:
             # this is a presentation of a child sensor
@@ -105,20 +110,59 @@ class Gateway(object):
             return self._handle_internal(msg)
         return None
 
-    def _save_sensors(self):
-        """ Save sensors to file """
-        f = open(self.persistence_file, 'wb')
-        with open(self.persistence_file, 'wb') as f:
+    def _save_pickle(self, filename):
+        """ Save sensors to pickle file """
+        with open(filename, 'wb') as f:
             pickle.dump(self.sensors, f, pickle.HIGHEST_PROTOCOL)
 
-
-    def _load_sensors(self):
-        """ Load sensors from file """
+    def _load_pickle(self, filename):
+        """ Load sensors from pickle file """
         try:
-            with open(self.persistence_file, 'rb') as f:
+            with open(filename, 'rb') as f:
                 self.sensors = pickle.load(f)
         except IOError:
             pass
+
+    def _save_json(self, filename):
+        """ Save sensors to json file """
+        with open(filename, 'w') as f:
+            json.dump(self.sensors, f, cls=MySensorsJSONEncoder)
+
+    def _load_json(self, filename):
+        """ Load sensors from json file """
+        with open(filename, 'r') as f:
+            self.sensors = json.load(f, cls=MySensorsJSONDecoder)
+
+    def _save_sensors(self):
+        """ Save sensors to file """
+        fname = os.path.realpath(self.persistence_file)
+        exists = os.path.isfile(fname)
+        dirname = os.path.dirname(fname)
+        if (exists and os.access(fname, os.W_OK)) or \
+           (not exists and os.access(dirname, os.W_OK)):
+            self._perform_file_action(fname, 'save')
+        else:
+            LOGGER.info('Permission denied when writing to %s' % fname)
+
+    def _load_sensors(self):
+        """ Load sensors from file """
+        exists = os.path.isfile(self.persistence_file)
+        if exists and os.access(self.persistence_file, os.R_OK):
+            self._perform_file_action(self.persistence_file, 'load')
+        else:
+            LOGGER.info('File does not exist or is not '
+                        'readable: %s' % self.persistence_file)
+
+    def _perform_file_action(self, filename, action):
+        """
+        Dynamic dispatch function for performing actions on
+        specific file types.
+        """
+        path, ext = os.path.splitext(filename)
+        fn = getattr(self, '_%s_%s' % (action, ext[1:]), None)
+        if fn is None:
+            raise Exception('Unsupported file type %s' % ext[1:])
+        fn(filename)
 
     def alert(self, nid):
         """
@@ -161,13 +205,16 @@ class Gateway(object):
 
 
 class SerialGateway(Gateway, threading.Thread):
+
     """ MySensors serial gateway. """
     # pylint: disable=too-many-arguments
 
-    def __init__(self, port, event_callback=None, persistence=False, persistence_file="mysensors.pickle",
+    def __init__(self, port, event_callback=None, persistence=False,
+                 persistence_file="mysensors.pickle", protocol_version="1.4",
                  baud=115200, timeout=1.0, reconnect_timeout=10.0):
         threading.Thread.__init__(self)
-        Gateway.__init__(self, event_callback, persistence, persistence_file)
+        Gateway.__init__(self, event_callback, persistence, persistence_file,
+                         protocol_version)
         self.serial = None
         self.port = port
         self.baud = baud
@@ -219,7 +266,9 @@ class SerialGateway(Gateway, threading.Thread):
                 msg = line.decode('utf-8')
                 response = self.logic(msg)
             except ValueError:
-                LOGGER.exception('Error decoding message from gateway')
+                LOGGER.warning(
+                    'Error decoding message from gateway, '
+                    'probably received bad byte.')
                 continue
             if response is not None:
                 try:
@@ -234,6 +283,7 @@ class SerialGateway(Gateway, threading.Thread):
 
 
 class Sensor:
+
     """ Represents a sensor. """
 
     def __init__(self, sensor_id):
@@ -243,6 +293,7 @@ class Sensor:
         self.sketch_name = None
         self.sketch_version = None
         self.battery_level = 0
+        self.protocol_version = None  # Add missing attribute
 
     def add_child_sensor(self, child_id, child_type):
         """ Creates and adds a child sensor. """
@@ -256,6 +307,7 @@ class Sensor:
 
 
 class ChildSensor:
+
     """ Represents a child sensor. """
     # pylint: disable=too-few-public-methods
 
@@ -266,15 +318,16 @@ class ChildSensor:
 
 
 class Message:
+
     """ Represents a message from the gateway. """
 
     def __init__(self, data=None):
         self.node_id = 0
         self.child_id = 0
-        self.type = ""
+        self.type = 0
         self.ack = 0
-        self.sub_type = ""
-        self.payload = ""
+        self.sub_type = 0
+        self.payload = ""  # All data except payload are integers
         if data is not None:
             self.decode(data)
 
@@ -308,3 +361,45 @@ class Message:
             int(self.sub_type),
             self.payload,
         ]]) + "\n"
+
+
+class MySensorsJSONEncoder(json.JSONEncoder):
+
+    def default(self, o):
+        if isinstance(o, Sensor):
+            return {
+                'sensor_id': o.sensor_id,
+                'children': o.children,
+                'type': o.type,
+                'sketch_name': o.sketch_name,
+                'sketch_version': o.sketch_version,
+                'battery_level': o.battery_level,
+            }
+        if isinstance(o, ChildSensor):
+            return {
+                'id': o.id,
+                'type': o.type,
+                'values': o.values,
+            }
+        return json.JSONEncoder.default(self, o)
+
+
+class MySensorsJSONDecoder(json.JSONDecoder):
+
+    def __init__(self):
+        json.JSONDecoder.__init__(self, object_hook=self.dict_to_object)
+
+    def dict_to_object(self, o):
+        if not isinstance(o, dict):
+            return o
+        if 'sensor_id' in o:
+            sensor = Sensor(o['sensor_id'])
+            sensor.__dict__.update(o)
+            return sensor
+        elif all(k in o for k in ['id', 'type', 'values']):
+            child = ChildSensor(o['id'], o['type'])
+            child.values = o['values']
+            return child
+        elif all(k.isdigit() for k in o.keys()):
+            return {int(k): v for k, v in o.items()}
+        return o
