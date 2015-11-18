@@ -32,17 +32,11 @@ class Gateway(object):
         if persistence:
             self._load_sensors()
         if protocol_version == "1.4":
-            _const = __import__("mysensors.const_14",
-                                globals(),
-                                locals(),
-                                ['Internal', 'MessageType'],
-                                0)
+            _const = __import__("mysensors.const_14", globals(), locals(),
+                                ['Internal', 'MessageType'], 0)
         elif protocol_version == "1.5":
-            _const = __import__("mysensors.const_15",
-                                globals(),
-                                locals(),
-                                ['Internal', 'MessageType'],
-                                0)
+            _const = __import__("mysensors.const_15", globals(), locals(),
+                                ['Internal', 'MessageType'], 0)
         global Internal, MessageType
         Internal = _const.Internal
         MessageType = _const.MessageType
@@ -53,7 +47,7 @@ class Gateway(object):
             # this is a presentation of the sensor platform
             self.add_sensor(msg.node_id)
             self.sensors[msg.node_id].type = msg.sub_type
-            self.sensors[msg.node_id].version = msg.payload
+            self.sensors[msg.node_id].protocol_version = msg.payload
             self.alert(msg.node_id)
         else:
             # this is a presentation of a child sensor
@@ -339,8 +333,8 @@ class SerialGateway(Gateway, threading.Thread):
                 self.fill_queue(self.logic, (string,))
             except ValueError:
                 LOGGER.warning(
-                    'Error decoding message from gateway,'
-                    ' probably received bad byte.')
+                    'Error decoding message from gateway, '
+                    'probably received bad byte.')
                 continue
 
     def send(self, message):
@@ -359,6 +353,7 @@ class Sensor:
         self.sketch_name = None
         self.sketch_version = None
         self.battery_level = 0
+        self.protocol_version = None  # Add missing attribute
 
     def add_child_sensor(self, child_id, child_type):
         """ Creates and adds a child sensor. """
@@ -397,7 +392,7 @@ class Message:
         self.type = 0
         self.ack = 0
         self.sub_type = 0
-        self.payload = ""
+        self.payload = ""  # All data except payload are integers
         if data is not None:
             self.decode(data)
 

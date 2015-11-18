@@ -58,3 +58,6 @@ target/
 
 # pickle files (serialized python object)
 *.pickle
+
+# json files (persistence)
+*.json
