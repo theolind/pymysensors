@@ -367,13 +367,14 @@ class Sensor:
         """Create and add a child sensor."""
         self.children[child_id] = ChildSensor(child_id, child_type)
 
-    def set_child_value(self, child_id, value_type, value):
+    def set_child_value(self, child_id, value_type, value, msg_type=1):
         """Set a child sensor's value."""
         if child_id in self.children:
             self.children[child_id].values[value_type] = value
             msg = Message()
-            return msg.copy(node_id=self.sensor_id, child_id=child_id, type=1,
-                            sub_type=value_type, payload=value)
+            return msg.copy(node_id=self.sensor_id, child_id=child_id,
+                            type=msg_type, sub_type=value_type,
+                            payload=value)
         return None
 
         # TODO: Handle error
