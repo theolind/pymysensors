@@ -1,3 +1,4 @@
+"""Setup file for mysensors package."""
 from setuptools import setup
 
 setup(name='pymysensors',

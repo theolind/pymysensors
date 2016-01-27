@@ -1,11 +1,10 @@
-"""
-MySensors Constants
-"""
+"""MySensors constants for version 1.5 of MySensors."""
 from enum import IntEnum
 
 
 class MessageType(IntEnum):
-    """ MySensors message types """
+    """MySensors message types."""
+
     # pylint: disable=too-few-public-methods
     presentation = 0        # sent by a node when presenting attached sensors
     set = 1                 # sent from/to sensor when value should be updated
@@ -15,7 +14,8 @@ class MessageType(IntEnum):
 
 
 class Presentation(IntEnum):
-    """ MySensors presentation sub-types """
+    """MySensors presentation sub-types."""
+
     # pylint: disable=too-few-public-methods
     S_DOOR = 0                      # Door and window sensors
     S_MOTION = 1                    # Motion sensors
@@ -45,7 +45,8 @@ class Presentation(IntEnum):
     S_DUST = 24                     # Dust level sensor
     S_SCENE_CONTROLLER = 25         # Scene controller device
     S_RGB_LIGHT = 26                # RGB light
-    S_RGBW_LIGHT = 27               # RGBW light (with separate white component)
+    # RGBW light (with separate white component)
+    S_RGBW_LIGHT = 27
     S_COLOR_SENSOR = 28             # Color sensor
     S_HVAC = 29                     # Thermostat/HVAC device
     S_MULTIMETER = 30               # Multimeter device
@@ -55,15 +56,19 @@ class Presentation(IntEnum):
     S_VIBRATION = 34                # Vibration sensor
     S_MOISTURE = 35                 # Moisture sensor
 
+
 class SetReq(IntEnum):
-    """ MySensors set/req sub-types """
+    """MySensors set/req sub-types."""
+
     # pylint: disable=too-few-public-methods
     V_TEMP = 0              # Temperature
     V_HUM = 1               # Humidity
     V_STATUS = 2            # Binary status, 0=off, 1=on
-    V_LIGHT = 2             # Deprecated. Alias for V_STATUS. Light Status.0=off 1=on
+    # Deprecated. Alias for V_STATUS. Light Status.0=off 1=on
+    V_LIGHT = 2
     V_PERCENTAGE = 3        # Percentage value. 0-100 (%)
-    V_DIMMER = 3            # Deprecated. Alias for V_PERCENTAGE. Dimmer value. 0-100 (%)
+    # Deprecated. Alias for V_PERCENTAGE. Dimmer value. 0-100 (%)
+    V_DIMMER = 3
     V_PRESSURE = 4          # Atmospheric Pressure
     # Weather forecast. One of "stable", "sunny", "cloudy", "unstable",
     # "thunderstorm" or "unknown"
@@ -87,8 +92,10 @@ class SetReq(IntEnum):
     V_SCENE_OFF = 20            # Turn of a scene
     # Mode of header. One of "Off", "HeatOn", "CoolOn", or "AutoChangeOver"
     V_HVAC_FLOW_STATE = 21
-    V_HVAC_SPEED = 22           # HVAC/Heater fan speed ("Min", "Normal", "Max", "Auto")
-    V_LIGHT_LEVEL = 23          # Uncalibrated light level. 0-100%. Use V_LEVEL for light level in lux.
+    # HVAC/Heater fan speed ("Min", "Normal", "Max", "Auto")
+    V_HVAC_SPEED = 22
+    # Uncalibrated light level. 0-100%. Use V_LEVEL for light level in lux.
+    V_LIGHT_LEVEL = 23
     V_VAR1 = 24                 # Custom value
     V_VAR2 = 25                 # Custom value
     V_VAR3 = 26                 # Custom value
@@ -105,19 +112,26 @@ class SetReq(IntEnum):
     V_LEVEL = 37                # Used for sending level-value
     V_VOLTAGE = 38              # Voltage level
     V_CURRENT = 39              # Current level
-    V_RGB = 40                  # RGB value transmitted as ASCII hex string (I.e "ff0000" for red)
-    V_RGBW = 41                 # RGBW value transmitted as ASCII hex string (I.e "ff0000ff" for red + full white)
-    V_ID = 42                   # Optional unique sensor id (e.g. OneWire DS1820b ids)
-    # Allows sensors to send in a string representing the unit prefix to be displayed in GUI.
+    # RGB value transmitted as ASCII hex string (I.e "ff0000" for red)
+    V_RGB = 40
+    # RGBW value transmitted as ASCII hex string (I.e "ff0000ff" for red +
+    # full white)
+    V_RGBW = 41
+    # Optional unique sensor id (e.g. OneWire DS1820b ids)
+    V_ID = 42
+    # Allows sensors to send in a string representing the unit prefix to be
+    # displayed in GUI.
     # This is not parsed by controller! E.g. cm, m, km, inch.
     V_UNIT_PREFIX = 43
     V_HVAC_SETPOINT_COOL = 44   # HVAC cold setpoint (Integer between 0-100)
     V_HVAC_SETPOINT_HEAT = 45   # HVAC/Heater setpoint (Integer between 0-100)
-    V_HVAC_FLOW_MODE = 45       # Flow mode for HVAC ("Auto", "ContinuousOn", "PeriodicOn")
+    # Flow mode for HVAC ("Auto", "ContinuousOn", "PeriodicOn")
+    V_HVAC_FLOW_MODE = 45
 
 
 class Internal(IntEnum):
-    """ MySensors internal sub-types """
+    """MySensors internal sub-types."""
+
     # pylint: disable=too-few-public-methods
     # Use this to report the battery level (in percent 0-100).
     I_BATTERY_LEVEL = 0

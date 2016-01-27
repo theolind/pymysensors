@@ -1,12 +1,14 @@
+"""Example for using pymysensors."""
 import mysensors.mysensors as mysensors
 
 
-def event(type, nid):
-    print(type + " " + str(nid))
+def event(update_type, nid):
+    """Callback for mysensors updates."""
+    print(update_type + " " + str(nid))
 
-gw = mysensors.SerialGateway('/dev/ttyACM0', event, True)
-gw.debug = True
-gw.start()
+GATEWAY = mysensors.SerialGateway('/dev/ttyACM0', event, True)
+GATEWAY.debug = True
+GATEWAY.start()
 # To set sensor 2, child 1, sub-type V_LIGHT (= 2), with value 1.
-gw.set_child_value(2, 1, 2, 1)
-gw.stop()
+GATEWAY.set_child_value(1, 1, 2, 1)
+GATEWAY.stop()
