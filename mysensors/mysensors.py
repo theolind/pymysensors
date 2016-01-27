@@ -276,7 +276,6 @@ class SerialGateway(Gateway, threading.Thread):
             LOGGER.info('Trying to connect to %s', self.port)
             self.serial = serial.Serial(self.port, self.baud,
                                         timeout=self.timeout)
-            time.sleep(3)
             if self.serial.isOpen():
                 LOGGER.info('%s is open...', self.serial.name)
                 LOGGER.info('Connected to %s', self.port)
