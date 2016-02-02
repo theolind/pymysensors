@@ -309,7 +309,13 @@ class SerialGateway(Gateway, threading.Thread):
             if self.serial is None and not self.connect():
                 time.sleep(self.reconnect_timeout)
                 continue
-            response = self.handle_queue()
+            try:
+                response = self.handle_queue()
+            except ValueError:
+                LOGGER.warning(
+                    'Error decoding message from gateway, '
+                    'probably received partial data before connection '
+                    'was complete.')
             if response is not None:
                 try:
                     self.send(response.encode())
