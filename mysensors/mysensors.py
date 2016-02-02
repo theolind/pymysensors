@@ -23,6 +23,7 @@ class Gateway(object):
     def __init__(self, event_callback=None, persistence=False,
                  persistence_file="mysensors.pickle", protocol_version="1.4"):
         self.queue = Queue()
+        self.lock = threading.Lock()
         self.event_callback = event_callback
         self.sensors = {}
         self.metric = True   # if true - use metric, if false - use imperial
@@ -345,7 +346,9 @@ class SerialGateway(Gateway, threading.Thread):
 
     def send(self, message):
         """ Writes a Message to the gateway. """
-        self.serial.write(message.encode())
+        # Lock to make sure only one thread writes at a time to serial port.
+        with self.lock:
+            self.serial.write(message.encode())
 
 
 class Sensor:
