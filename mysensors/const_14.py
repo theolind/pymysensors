@@ -1,11 +1,10 @@
-"""
-MySensors Constants
-"""
+"""MySensors constants for version 1.4 of MySensors."""
 from enum import IntEnum
 
 
 class MessageType(IntEnum):
-    """ MySensors message types """
+    """MySensors message types."""
+
     # pylint: disable=too-few-public-methods
     presentation = 0        # sent by a node when presenting attached sensors
     set = 1                 # sent from/to sensor when value should be updated
@@ -15,7 +14,8 @@ class MessageType(IntEnum):
 
 
 class Presentation(IntEnum):
-    """ MySensors presentation sub-types """
+    """MySensors presentation sub-types."""
+
     # pylint: disable=too-few-public-methods
     S_DOOR = 0                  # Door and window sensors
     S_MOTION = 1                # Motion sensors
@@ -46,7 +46,8 @@ class Presentation(IntEnum):
 
 
 class SetReq(IntEnum):
-    """ MySensors set/req sub-types """
+    """MySensors set/req sub-types."""
+
     # pylint: disable=too-few-public-methods
     V_TEMP = 0              # Temperature
     V_HUM = 1               # Humidity
@@ -96,7 +97,8 @@ class SetReq(IntEnum):
 
 
 class Internal(IntEnum):
-    """ MySensors internal sub-types """
+    """MySensors internal sub-types."""
+
     # pylint: disable=too-few-public-methods
     # Use this to report the battery level (in percent 0-100).
     I_BATTERY_LEVEL = 0
