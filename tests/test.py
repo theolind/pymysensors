@@ -106,6 +106,23 @@ class TestGateway(unittest.TestCase):
         self.gateway.logic('1;255;3;0;0;79\n')
         self.assertEqual(sensor.battery_level, 79)
 
+    def test_req(self):
+        sensor = self._add_sensor(1)
+        sensor.children[1] = my.ChildSensor(1, Presentation.S_POWER);
+        sensor.set_child_value(1, SetReq.V_VAR1, 42)
+        ret = self.gw.logic("1;1;2;0;24;\n")
+        self.assertEqual(ret.encode(), "1;1;1;0;24;42\n")
+
+    def test_req_novalue(self):
+        sensor = self._add_sensor(1)
+        sensor.children[1] = my.ChildSensor(1, Presentation.S_POWER);
+        ret = self.gw.logic("1;1;2;0;24;\n")
+        self.assertEqual(ret, None)
+
+    def test_req_notasensor(self):
+        ret = self.gw.logic("1;1;2;0;24;\n")
+        self.assertEqual(ret, None)
+
     def test_persistence(self):
         """Test persistence using pickle."""
         self._add_sensor(1)

@@ -57,6 +57,12 @@ class Gateway(object):
                 msg.child_id, msg.sub_type, msg.payload)
             self.alert(msg.node_id)
 
+    def _handle_req(self, msg):
+        if self.is_sensor(msg.node_id, msg.child_id):
+            value = self.sensors[msg.node_id].get_child_value(msg.child_id, msg.sub_type)
+            if value:
+                return msg.copy(type=MessageType.set, payload=str(value))
+
     def _handle_internal(self, msg):
         """Process an internal protocol message."""
         if msg.sub_type == self.const.Internal.I_ID_REQUEST:
@@ -103,6 +109,8 @@ class Gateway(object):
             self._handle_presentation(msg)
         elif msg.type == self.const.MessageType.set:
             self._handle_set(msg)
+        elif msg.type == self.const.MessageType.req:
+            return self._handle_req(msg)
         elif msg.type == self.const.MessageType.internal:
             return self._handle_internal(msg)
         return None
@@ -374,6 +382,12 @@ class Sensor:
             return msg.copy(node_id=self.sensor_id, child_id=child_id, type=1,
                             sub_type=value_type, payload=value)
         return None
+
+    def get_child_value(self, child_id, value_type):
+        if child_id in self.children and value_type in self.children[child_id].values:
+            return self.children[child_id].values[value_type]
+        return None
+            
 
         # TODO: Handle error
 
