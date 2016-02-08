@@ -1,3 +1,1 @@
-"""
-Python implementation of MySensors API
-"""
+"""Python implementation of MySensors API."""

@@ -1,3 +1,4 @@
+"""Test mysensors with unittest."""
 import unittest
 from unittest.mock import patch
 
@@ -6,159 +7,194 @@ from mysensors.const_14 import MessageType, Internal, Presentation, SetReq
 
 
 class TestGateway(unittest.TestCase):
-
-    """ Test the Gateway logic function """
+    """Test the Gateway logic function."""
 
     def setUp(self):
-        self.gw = my.Gateway()
+        """Setup gateway."""
+        self.gateway = my.Gateway()
 
     def _add_sensor(self, sensorid):
-        self.gw.sensors[sensorid] = my.Sensor(sensorid)
-        return self.gw.sensors[sensorid]
+        """Add sensor node. Return sensor node instance."""
+        self.gateway.sensors[sensorid] = my.Sensor(sensorid)
+        return self.gateway.sensors[sensorid]
 
     def test_non_presented_sensor(self):
-        self.gw.logic("1;0;1;0;23;43\n")
-        self.assertNotIn(1, self.gw.sensors)
+        """Test non presented sensor node."""
+        self.gateway.logic('1;0;1;0;23;43\n')
+        self.assertNotIn(1, self.gateway.sensors)
 
-        self.gw.logic("1;1;1;0;1;75\n")
-        self.assertNotIn(1, self.gw.sensors)
+        self.gateway.logic('1;1;1;0;1;75\n')
+        self.assertNotIn(1, self.gateway.sensors)
 
-        self.gw.logic("1;255;3;0;0;79\n")
-        self.assertNotIn(1, self.gw.sensors)
+        self.gateway.logic('1;255;3;0;0;79\n')
+        self.assertNotIn(1, self.gateway.sensors)
 
     def test_internal_id_request(self):
-        ret = self.gw.logic("255;255;3;0;3;\n")
-        self.assertEqual(ret.encode(), "255;255;3;0;4;1\n")
-        self.assertIn(1, self.gw.sensors)
+        """Test internal node id request."""
+        ret = self.gateway.logic('255;255;3;0;3;\n')
+        self.assertEqual(ret.encode(), '255;255;3;0;4;1\n')
+        self.assertIn(1, self.gateway.sensors)
 
-    def test_presenation_arduino_node(self):
+    def test_presentation_arduino_node(self):
+        """Test presentation of sensor node."""
         sensor = self._add_sensor(1)
-        self.gw.logic("1;255;0;0;17;1.4.1\n")
+        self.gateway.logic('1;255;0;0;17;1.4.1\n')
         self.assertEqual(sensor.type, Presentation.S_ARDUINO_NODE)
-        self.assertEqual(sensor.protocol_version, "1.4.1")
+        self.assertEqual(sensor.protocol_version, '1.4.1')
 
     def test_internal_config(self):
+        """Test internal config request, metric or imperial."""
         # metric
-        ret = self.gw.logic("1;255;3;0;6;0\n")
-        self.assertEqual(ret.encode(), "1;255;3;0;6;M\n")
+        ret = self.gateway.logic('1;255;3;0;6;0\n')
+        self.assertEqual(ret.encode(), '1;255;3;0;6;M\n')
         # imperial
-        self.gw.metric = False
-        ret = self.gw.logic("1;255;3;0;6;0\n")
-        self.assertEqual(ret.encode(), "1;255;3;0;6;I\n")
+        self.gateway.metric = False
+        ret = self.gateway.logic('1;255;3;0;6;0\n')
+        self.assertEqual(ret.encode(), '1;255;3;0;6;I\n')
 
     def test_internal_time(self):
+        """Test internal time request."""
         self._add_sensor(1)
         with patch('mysensors.mysensors.time') as mock_time:
             mock_time.time.return_value = 123456789
-            ret = self.gw.logic("1;255;3;0;1;\n")
-            self.assertEqual(ret.encode(), "1;255;3;0;1;123456789\n")
+            ret = self.gateway.logic('1;255;3;0;1;\n')
+            self.assertEqual(ret.encode(), '1;255;3;0;1;123456789\n')
 
     def test_internal_sketch_name(self):
+        """Test internal receive of sketch name."""
         sensor = self._add_sensor(1)
-        self.gw.logic("1;255;3;0;11;lighthum demo sens\n")
-        self.assertEqual(sensor.sketch_name, "lighthum demo sens")
+        self.gateway.logic('1;255;3;0;11;lighthum demo sens\n')
+        self.assertEqual(sensor.sketch_name, 'lighthum demo sens')
 
     def test_internal_sketch_version(self):
+        """Test internal receive of sketch version."""
         sensor = self._add_sensor(1)
-        self.gw.logic("1;255;3;0;12;1.0\n")
-        self.assertEqual(sensor.sketch_version, "1.0")
+        self.gateway.logic('1;255;3;0;12;1.0\n')
+        self.assertEqual(sensor.sketch_version, '1.0')
 
-    def test_presenation_light_level_sensor(self):
+    def test_present_light_level_sensor(self):
+        """Test presentation of a light level sensor."""
         sensor = self._add_sensor(1)
-        self.gw.logic("1;0;0;0;16;1.4.1\n")
+        self.gateway.logic('1;0;0;0;16;\n')
         self.assertIn(0, sensor.children)
         self.assertEqual(sensor.children[0].type, Presentation.S_LIGHT_LEVEL)
 
-    def test_presentation_humidity_sensor(self):
+    def test_present_humidity_sensor(self):
+        """Test presentation of a humidity sensor."""
         sensor = self._add_sensor(1)
-        self.gw.logic("1;0;0;0;7;1.4.1\n")
+        self.gateway.logic('1;0;0;0;7;\n')
         self.assertEqual(0 in sensor.children, True)
         self.assertEqual(sensor.children[0].type, Presentation.S_HUM)
 
     def test_set_light_level(self):
+        """Test set of light level."""
         sensor = self._add_sensor(1)
         sensor.children[0] = my.ChildSensor(0, Presentation.S_LIGHT_LEVEL)
-        self.gw.logic("1;0;1;0;23;43\n")
+        self.gateway.logic('1;0;1;0;23;43\n')
         self.assertEqual(sensor.children[0].values[SetReq.V_LIGHT_LEVEL], '43')
 
-    def test_humidity_level(self):
+    def test_set_humidity_level(self):
+        """Test set humidity level."""
         sensor = self._add_sensor(1)
         sensor.children[1] = my.ChildSensor(1, Presentation.S_HUM)
-        self.gw.logic("1;1;1;0;1;75\n")
+        self.gateway.logic('1;1;1;0;1;75\n')
         self.assertEqual(sensor.children[1].values[SetReq.V_HUM], '75')
 
     def test_battery_level(self):
+        """Test internal receive of battery level."""
         sensor = self._add_sensor(1)
-        self.gw.logic("1;255;3;0;0;79\n")
+        self.gateway.logic('1;255;3;0;0;79\n')
         self.assertEqual(sensor.battery_level, 79)
 
-    def test_persistence(self):
-        self._add_sensor(1)
-        self.gw.sensors[1].type = Presentation.S_ARDUINO_NODE
-        self.gw.sensors[1].sketch_name = "testsketch"
-        self.gw.sensors[1].sketch_version = "1.0"
-        self.gw.sensors[1].battery_level = 78
+    def test_req(self):
+        sensor = self._add_sensor(1)
+        sensor.children[1] = my.ChildSensor(1, Presentation.S_POWER);
+        sensor.set_child_value(1, SetReq.V_VAR1, 42)
+        ret = self.gateway.logic("1;1;2;0;24;\n")
+        self.assertEqual(ret.encode(), "1;1;1;0;24;42\n")
 
-        sensor = self.gw.sensors[1]
-        self.gw.persistence_file = "persistence.file.pickle"
-        self.gw._save_sensors()
-        del self.gw.sensors[1]
-        self.gw._load_sensors()
-        self.assertEqual(self.gw.sensors[1].sketch_name, sensor.sketch_name)
-        self.assertEqual(self.gw.sensors[1].sketch_version,
+    def test_req_novalue(self):
+        sensor = self._add_sensor(1)
+        sensor.children[1] = my.ChildSensor(1, Presentation.S_POWER);
+        ret = self.gateway.logic("1;1;2;0;24;\n")
+        self.assertEqual(ret, None)
+
+    def test_req_notasensor(self):
+        ret = self.gateway.logic("1;1;2;0;24;\n")
+        self.assertEqual(ret, None)
+
+    def test_persistence(self):
+        """Test persistence using pickle."""
+        self._add_sensor(1)
+        self.gateway.sensors[1].type = Presentation.S_ARDUINO_NODE
+        self.gateway.sensors[1].sketch_name = 'testsketch'
+        self.gateway.sensors[1].sketch_version = '1.0'
+        self.gateway.sensors[1].battery_level = 78
+
+        sensor = self.gateway.sensors[1]
+        self.gateway.persistence_file = 'persistence.file.pickle'
+        self.gateway._save_sensors()  # pylint: disable=protected-access
+        del self.gateway.sensors[1]
+        self.gateway._load_sensors()  # pylint: disable=protected-access
+        self.assertEqual(
+            self.gateway.sensors[1].sketch_name, sensor.sketch_name)
+        self.assertEqual(self.gateway.sensors[1].sketch_version,
                          sensor.sketch_version)
         self.assertEqual(
-            self.gw.sensors[1].battery_level, sensor.battery_level)
-        self.assertEqual(self.gw.sensors[1].type, sensor.type)
+            self.gateway.sensors[1].battery_level, sensor.battery_level)
+        self.assertEqual(self.gateway.sensors[1].type, sensor.type)
 
     def test_json_persistence(self):
+        """Test persistence using json."""
         sensor = self._add_sensor(1)
         sensor.children[0] = my.ChildSensor(0, Presentation.S_LIGHT_LEVEL)
-        self.gw.sensors[1].type = Presentation.S_ARDUINO_NODE
-        self.gw.sensors[1].sketch_name = "testsketch"
-        self.gw.sensors[1].sketch_version = "1.0"
-        self.gw.sensors[1].battery_level = 78
+        self.gateway.sensors[1].type = Presentation.S_ARDUINO_NODE
+        self.gateway.sensors[1].sketch_name = 'testsketch'
+        self.gateway.sensors[1].sketch_version = '1.0'
+        self.gateway.sensors[1].battery_level = 78
 
-        sensor = self.gw.sensors[1]
-        self.gw.persistence_file = "persistence.file.json"
-        self.gw._save_sensors()
-        del self.gw.sensors[1]
-        self.gw._load_sensors()
-        self.assertEqual(self.gw.sensors[1].sketch_name, sensor.sketch_name)
-        self.assertEqual(self.gw.sensors[1].sketch_version,
+        sensor = self.gateway.sensors[1]
+        self.gateway.persistence_file = 'persistence.file.json'
+        self.gateway._save_sensors()  # pylint: disable=protected-access
+        del self.gateway.sensors[1]
+        self.gateway._load_sensors()  # pylint: disable=protected-access
+        self.assertEqual(
+            self.gateway.sensors[1].sketch_name, sensor.sketch_name)
+        self.assertEqual(self.gateway.sensors[1].sketch_version,
                          sensor.sketch_version)
         self.assertEqual(
-            self.gw.sensors[1].battery_level, sensor.battery_level)
-        self.assertEqual(self.gw.sensors[1].type, sensor.type)
+            self.gateway.sensors[1].battery_level, sensor.battery_level)
+        self.assertEqual(self.gateway.sensors[1].type, sensor.type)
 
 
 class TestMessage(unittest.TestCase):
-
-    """ Test the Message class and it's encode/decode functions """
+    """Test the Message class and it's encode/decode functions."""
 
     def test_encode(self):
-        m = my.Message()
-        cmd = m.encode()
-        self.assertEqual(cmd, "0;0;0;0;0;\n")
+        """Test encode of message."""
+        msg = my.Message()
+        cmd = msg.encode()
+        self.assertEqual(cmd, '0;0;0;0;0;\n')
 
-        m.node_id = 255
-        m.child_id = 255
-        m.type = MessageType.internal
-        m.sub_type = Internal.I_BATTERY_LEVEL
-        m.ack = 0
-        m.payload = 57
+        msg.node_id = 255
+        msg.child_id = 255
+        msg.type = MessageType.internal
+        msg.sub_type = Internal.I_BATTERY_LEVEL
+        msg.ack = 0
+        msg.payload = 57
 
-        cmd = m.encode()
-        self.assertEqual(cmd, "255;255;3;0;0;57\n")
+        cmd = msg.encode()
+        self.assertEqual(cmd, '255;255;3;0;0;57\n')
 
     def test_decode(self):
-        m = my.Message("255;255;3;0;0;57\n")
-        self.assertEqual(m.node_id, 255)
-        self.assertEqual(m.child_id, 255)
-        self.assertEqual(m.type, MessageType.internal)
-        self.assertEqual(m.sub_type, Internal.I_BATTERY_LEVEL)
-        self.assertEqual(m.ack, 0)
-        self.assertEqual(m.payload, '57')
+        """Test decode of message."""
+        msg = my.Message('255;255;3;0;0;57\n')
+        self.assertEqual(msg.node_id, 255)
+        self.assertEqual(msg.child_id, 255)
+        self.assertEqual(msg.type, MessageType.internal)
+        self.assertEqual(msg.sub_type, Internal.I_BATTERY_LEVEL)
+        self.assertEqual(msg.ack, 0)
+        self.assertEqual(msg.payload, '57')
 
 if __name__ == '__main__':
     unittest.main()
