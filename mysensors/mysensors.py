@@ -235,15 +235,17 @@ class Gateway(object):
             queue = self.queue
         queue.put((func, args, kwargs))
 
-    def set_child_value(self, sensor_id, child_id, value_type, value):
+    def set_child_value(
+            self, sensor_id, child_id, value_type, value, **kwargs):
         """Add a command to set a sensor value, to the queue.
 
         A queued command will be sent to the sensor, when the gateway
         thread has sent all previously queued commands to the FIFO queue.
         """
+        ack = kwargs.get('ack', 0)
         if self.is_sensor(sensor_id, child_id):
             self.fill_queue(self.sensors[sensor_id].set_child_value,
-                            (child_id, value_type, value))
+                            (child_id, value_type, value), {'ack': ack})
 
 
 class SerialGateway(Gateway, threading.Thread):
@@ -367,13 +369,16 @@ class Sensor:
         """Create and add a child sensor."""
         self.children[child_id] = ChildSensor(child_id, child_type)
 
-    def set_child_value(self, child_id, value_type, value):
+    def set_child_value(self, child_id, value_type, value, **kwargs):
         """Set a child sensor's value."""
         if child_id in self.children:
             self.children[child_id].values[value_type] = value
             msg = Message()
-            return msg.copy(node_id=self.sensor_id, child_id=child_id, type=1,
-                            sub_type=value_type, payload=value)
+            msg_type = kwargs.get('msg_type', 1)
+            ack = kwargs.get('ack', 0)
+            return msg.copy(node_id=self.sensor_id, child_id=child_id,
+                            type=msg_type, ack=ack, sub_type=value_type,
+                            payload=value)
         return None
 
         # TODO: Handle error
