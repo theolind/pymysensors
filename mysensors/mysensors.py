@@ -59,9 +59,9 @@ class Gateway(object):
 
     def _handle_req(self, msg):
         if self.is_sensor(msg.node_id, msg.child_id):
-            value = self.sensors[msg.node_id].get_child_value(msg.child_id, msg.sub_type)
+            value = self.sensors[msg.node_id].children[msg.child_id].values.get(msg.sub_type)
             if value:
-                return msg.copy(type=MessageType.set, payload=str(value))
+                return msg.copy(type=self.const.MessageType.set, payload=value)
 
     def _handle_internal(self, msg):
         """Process an internal protocol message."""
@@ -382,13 +382,6 @@ class Sensor:
             return msg.copy(node_id=self.sensor_id, child_id=child_id, type=1,
                             sub_type=value_type, payload=value)
         return None
-
-    def get_child_value(self, child_id, value_type):
-        if child_id in self.children and value_type in self.children[child_id].values:
-            return self.children[child_id].values[value_type]
-        return None
-            
-
         # TODO: Handle error
 
 
