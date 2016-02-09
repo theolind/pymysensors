@@ -58,11 +58,14 @@ class Gateway(object):
             self.alert(msg.node_id)
 
     def _handle_req(self, msg):
-        """Process a req message. 
+        """Process a req message.
 
-        This will return the value if it exists. If no value exists, nothing is returned"""
+        This will return the value if it exists. If no value exists,
+        nothing is returned.
+        """
         if self.is_sensor(msg.node_id, msg.child_id):
-            value = self.sensors[msg.node_id].children[msg.child_id].values.get(msg.sub_type)
+            value = self.sensors[msg.node_id].children[
+                msg.child_id].values.get(msg.sub_type)
             if value:
                 return msg.copy(type=self.const.MessageType.set, payload=value)
 

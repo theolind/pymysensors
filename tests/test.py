@@ -109,21 +109,21 @@ class TestGateway(unittest.TestCase):
     def test_req(self):
         """Test req message in case where value exists."""
         sensor = self._add_sensor(1)
-        sensor.children[1] = my.ChildSensor(1, Presentation.S_POWER);
+        sensor.children[1] = my.ChildSensor(1, Presentation.S_POWER)
         sensor.set_child_value(1, SetReq.V_VAR1, 42)
-        ret = self.gateway.logic("1;1;2;0;24;\n")
-        self.assertEqual(ret.encode(), "1;1;1;0;24;42\n")
+        ret = self.gateway.logic('1;1;2;0;24;\n')
+        self.assertEqual(ret.encode(), '1;1;1;0;24;42\n')
 
     def test_req_novalue(self):
-        """Test req message for sensor that exists, but where there is no value."""
+        """Test req message for sensor with no value."""
         sensor = self._add_sensor(1)
-        sensor.children[1] = my.ChildSensor(1, Presentation.S_POWER);
-        ret = self.gateway.logic("1;1;2;0;24;\n")
+        sensor.children[1] = my.ChildSensor(1, Presentation.S_POWER)
+        ret = self.gateway.logic('1;1;2;0;24;\n')
         self.assertEqual(ret, None)
 
     def test_req_notasensor(self):
         """Test req message for non-existent sensor."""
-        ret = self.gateway.logic("1;1;2;0;24;\n")
+        ret = self.gateway.logic('1;1;2;0;24;\n')
         self.assertEqual(ret, None)
 
     def test_persistence(self):
