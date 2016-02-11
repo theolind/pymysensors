@@ -380,6 +380,11 @@ class Sensor:
 
     def add_child_sensor(self, child_id, child_type):
         """Create and add a child sensor."""
+        if child_id in self.children:
+            LOGGER.warning(
+                'child_id %s already exists in children, '
+                'cannot add child', child_id)
+            return
         self.children[child_id] = ChildSensor(child_id, child_type)
 
     def set_child_value(self, child_id, value_type, value, **kwargs):
