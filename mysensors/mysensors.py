@@ -182,7 +182,10 @@ class Gateway(object):
         Also save sensors if persistence is enabled.
         """
         if self.event_callback is not None:
-            self.event_callback('sensor_update', nid)
+            try:
+                self.event_callback('sensor_update', nid)
+            except Exception as e:
+                LOGGER.exception(e)
 
         if self.persistence:
             self._save_sensors()
