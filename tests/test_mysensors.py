@@ -18,6 +18,10 @@ class TestGateway(unittest.TestCase):
         self.gateway.sensors[sensorid] = my.Sensor(sensorid)
         return self.gateway.sensors[sensorid]
 
+    def test_logic_bad_message(self):
+        """Test decode of bad message in logic method."""
+        self.assertEqual(self.gateway.logic('bad;bad;bad;bad;bad;bad\n'), None)
+
     def test_non_presented_sensor(self):
         """Test non presented sensor node."""
         self.gateway.logic('1;0;1;0;23;43\n')
@@ -192,6 +196,13 @@ class TestMessage(unittest.TestCase):
         cmd = msg.encode()
         self.assertEqual(cmd, '255;255;3;0;0;57\n')
 
+    def test_encode_bad_message(self):
+        """Test encode of bad message."""
+        msg = my.Message()
+        msg.sub_type = 'bad'
+        cmd = msg.encode()
+        self.assertEqual(cmd, None)
+
     def test_decode(self):
         """Test decode of message."""
         msg = my.Message('255;255;3;0;0;57\n')
@@ -201,6 +212,11 @@ class TestMessage(unittest.TestCase):
         self.assertEqual(msg.sub_type, Internal.I_BATTERY_LEVEL)
         self.assertEqual(msg.ack, 0)
         self.assertEqual(msg.payload, '57')
+
+    def test_decode_bad_message(self):
+        """Test decode of bad message."""
+        with self.assertRaises(ValueError):
+            my.Message('bad;bad;bad;bad;bad;bad\n')
 
 if __name__ == '__main__':
     unittest.main()
