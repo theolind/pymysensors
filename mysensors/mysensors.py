@@ -473,6 +473,7 @@ class MySensorsJSONEncoder(json.JSONEncoder):
                 'sketch_name': obj.sketch_name,
                 'sketch_version': obj.sketch_version,
                 'battery_level': obj.battery_level,
+                'protocol_version': obj.protocol_version,
             }
         if isinstance(obj, ChildSensor):
             return {

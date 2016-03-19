@@ -155,6 +155,7 @@ class TestGateway(unittest.TestCase):
         self.gateway.sensors[1].sketch_name = 'testsketch'
         self.gateway.sensors[1].sketch_version = '1.0'
         self.gateway.sensors[1].battery_level = 78
+        self.gateway.sensors[1].protocol_version = '1.4.1'
 
         sensor = self.gateway.sensors[1]
         self.gateway.persistence_file = 'persistence.file.json'
@@ -168,6 +169,8 @@ class TestGateway(unittest.TestCase):
         self.assertEqual(
             self.gateway.sensors[1].battery_level, sensor.battery_level)
         self.assertEqual(self.gateway.sensors[1].type, sensor.type)
+        self.assertEqual(self.gateway.sensors[1].protocol_version,
+                         sensor.protocol_version)
 
 
 class TestMessage(unittest.TestCase):
