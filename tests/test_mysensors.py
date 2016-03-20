@@ -29,6 +29,9 @@ class TestGateway(unittest.TestCase):
         self.gateway.logic('1;255;3;0;0;79\n')
         self.assertNotIn(1, self.gateway.sensors)
 
+        self.gateway.logic('1;1;0;0;0;\n')
+        self.assertNotIn(1, self.gateway.sensors)
+
     def test_internal_id_request(self):
         """Test internal node id request."""
         ret = self.gateway.logic('255;255;3;0;3;\n')
