@@ -184,8 +184,8 @@ class Gateway(object):
         if self.event_callback is not None:
             try:
                 self.event_callback('sensor_update', nid)
-            except Exception as e:
-                LOGGER.exception(e)
+            except Exception as exception:  # pylint: disable=W0703
+                LOGGER.exception(exception)
 
         if self.persistence:
             self._save_sensors()
@@ -401,7 +401,7 @@ class Sensor:
                             type=msg_type, ack=ack, sub_type=value_type,
                             payload=value)
         return None
-        # TODO: Handle error
+        # TODO: Handle error # pylint: disable=W0511
 
 
 class ChildSensor:
