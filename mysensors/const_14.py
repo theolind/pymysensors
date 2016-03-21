@@ -73,8 +73,8 @@ class SetReq(IntEnum):
     V_WATT = 17             # Watt value for power meters
     V_KWH = 18              # Accumulated number of KWH for a power meter
     V_SCENE_ON = 19         # Turn on a scene
-    V_SCENE_OFF = 20        # Turn of a scene
-    # Mode of header. One of "Off", "HeatOn", "CoolOn", or "AutoChangeOver"
+    V_SCENE_OFF = 20        # Turn off a scene
+    # Mode of heater. One of "Off", "HeatOn", "CoolOn", or "AutoChangeOver"
     V_HEATER = 21
     V_HEATER_SW = 22        # Heater switch power. 1=On, 0=Off
     V_LIGHT_LEVEL = 23      # Light level. 0-100%
