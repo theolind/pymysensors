@@ -1,0 +1,9 @@
+[MASTER]
+reports=no
+
+# Reasons disabled:
+# locally-disabled - it spams too much
+# duplicate-code - unavoidable
+disable=
+  locally-disabled,
+  duplicate-code,
