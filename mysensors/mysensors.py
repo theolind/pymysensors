@@ -331,6 +331,10 @@ class SerialGateway(Gateway, threading.Thread):
                     'Error decoding message from gateway, '
                     'probably received partial data before connection '
                     'was complete.')
+            except:
+                LOGGER.exception(
+                    'Exception while decoding message from gateway, '
+                    'discarding message.' )
             if response is not None:
                 try:
                     self.send(response.encode())
