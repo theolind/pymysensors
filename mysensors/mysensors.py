@@ -46,6 +46,10 @@ class Gateway(object):
             self.alert(msg.node_id)
         else:
             # this is a presentation of a child sensor
+            if not self.is_sensor(msg.node_id):
+                LOGGER.error('Node %s is unknown, will not add child sensor.',
+                             msg.node_id)
+                return
             self.sensors[msg.node_id].add_child_sensor(msg.child_id,
                                                        msg.sub_type)
             self.alert(msg.node_id)
