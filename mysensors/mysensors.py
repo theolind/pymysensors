@@ -113,7 +113,10 @@ class Gateway(object):
         Response is returned to the caller and has to be sent
         data as a mysensors command string.
         """
-        msg = Message(data)
+        try:
+            msg = Message(data)
+        except ValueError:
+            return None
 
         if msg.type == self.const.MessageType.presentation:
             self._handle_presentation(msg)
@@ -331,19 +334,9 @@ class SerialGateway(Gateway, threading.Thread):
             if self.serial is None and not self.connect():
                 time.sleep(self.reconnect_timeout)
                 continue
-            try:
-                response = self.handle_queue()
-            except ValueError:
-                LOGGER.warning(
-                    'Error decoding message from gateway, '
-                    'probably received partial data before connection '
-                    'was complete.')
+            response = self.handle_queue()
             if response is not None:
-                try:
-                    self.send(response.encode())
-                except ValueError:
-                    LOGGER.exception('Invalid response')
-                    continue
+                self.send(response.encode())
             try:
                 line = self.serial.readline()
                 if not line:
@@ -358,15 +351,18 @@ class SerialGateway(Gateway, threading.Thread):
                 continue
             try:
                 string = line.decode('utf-8')
-                self.fill_queue(self.logic, (string,))
             except ValueError:
                 LOGGER.warning(
                     'Error decoding message from gateway, '
                     'probably received bad byte.')
                 continue
+            self.fill_queue(self.logic, (string,))
 
     def send(self, message):
         """Write a Message to the gateway."""
+        if not message or not isinstance(message, str):
+            LOGGER.warning('Missing string! No message sent!')
+            return
         # Lock to make sure only one thread writes at a time to serial port.
         with self.lock:
             self.serial.write(message.encode())
@@ -444,24 +440,33 @@ class Message:
 
     def decode(self, data):
         """Decode a message from command string."""
-        data = data.rstrip().split(';')
-        self.payload = data.pop()
-        (self.node_id,
-         self.child_id,
-         self.type,
-         self.ack,
-         self.sub_type) = [int(f) for f in data]
+        try:
+            list_data = data.rstrip().split(';')
+            self.payload = list_data.pop()
+            (self.node_id,
+             self.child_id,
+             self.type,
+             self.ack,
+             self.sub_type) = [int(f) for f in list_data]
+        except ValueError:
+            LOGGER.warning('Error decoding message from gateway, '
+                           'bad data received: %s', data)
+            raise ValueError
 
     def encode(self):
         """Encode a command string from message."""
-        return ';'.join([str(f) for f in [
-            self.node_id,
-            self.child_id,
-            int(self.type),
-            self.ack,
-            int(self.sub_type),
-            self.payload,
-        ]]) + '\n'
+        try:
+            return ';'.join([str(f) for f in [
+                self.node_id,
+                self.child_id,
+                int(self.type),
+                self.ack,
+                int(self.sub_type),
+                self.payload,
+            ]]) + '\n'
+        except ValueError:
+            LOGGER.exception('Error encoding message to gateway')
+            return None
 
 
 class MySensorsJSONEncoder(json.JSONEncoder):
