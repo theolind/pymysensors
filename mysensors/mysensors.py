@@ -28,8 +28,9 @@ class Gateway(object):
         self.debug = False  # if true - print all received messages
         self.persistence = persistence  # if true - save sensors to disk
         self.persistence_file = persistence_file  # path to persistence file
+        self.persistence_bak = '{}.bak'.format(self.persistence_file)
         if persistence:
-            self._load_sensors()
+            self._safe_load_sensors()
         if protocol_version == '1.4':
             _const = import_module('mysensors.const_14')
         elif protocol_version == '1.5':
@@ -132,6 +133,8 @@ class Gateway(object):
         """Save sensors to pickle file."""
         with open(filename, 'wb') as file_handle:
             pickle.dump(self.sensors, file_handle, pickle.HIGHEST_PROTOCOL)
+            file_handle.flush()
+            os.fsync(file_handle.fileno())
 
     def _load_pickle(self, filename):
         """Load sensors from pickle file."""
@@ -145,6 +148,8 @@ class Gateway(object):
         """Save sensors to json file."""
         with open(filename, 'w') as file_handle:
             json.dump(self.sensors, file_handle, cls=MySensorsJSONEncoder)
+            file_handle.flush()
+            os.fsync(file_handle.fileno())
 
     def _load_json(self, filename):
         """Load sensors from json file."""
@@ -156,20 +161,52 @@ class Gateway(object):
         fname = os.path.realpath(self.persistence_file)
         exists = os.path.isfile(fname)
         dirname = os.path.dirname(fname)
-        if (exists and os.access(fname, os.W_OK)) or \
-           (not exists and os.access(dirname, os.W_OK)):
-            self._perform_file_action(fname, 'save')
+        if exists and os.access(fname, os.W_OK) and \
+           os.access(dirname, os.W_OK) or \
+           not exists and os.access(dirname, os.W_OK):
+            split_fname = os.path.splitext(fname)
+            tmp_fname = '{}.tmp{}'.format(split_fname[0], split_fname[1])
+            self._perform_file_action(tmp_fname, 'save')
+            if exists:
+                os.rename(fname, self.persistence_bak)
+            os.rename(tmp_fname, fname)
+            if exists:
+                os.remove(self.persistence_bak)
         else:
-            LOGGER.info('Permission denied when writing to %s', fname)
+            LOGGER.error('Permission denied when writing to %s', fname)
 
-    def _load_sensors(self):
+    def _load_sensors(self, path=None):
         """Load sensors from file."""
-        exists = os.path.isfile(self.persistence_file)
-        if exists and os.access(self.persistence_file, os.R_OK):
-            self._perform_file_action(self.persistence_file, 'load')
+        if path is None:
+            path = self.persistence_file
+        exists = os.path.isfile(path)
+        if exists and os.access(path, os.R_OK):
+            if path in self.persistence_bak:
+                os.rename(path, self.persistence_file)
+                path = self.persistence_file
+            self._perform_file_action(path, 'load')
+            return True
         else:
-            LOGGER.info('File does not exist or is not '
-                        'readable: %s', self.persistence_file)
+            LOGGER.warning('File does not exist or is not readable: %s', path)
+            return False
+
+    def _safe_load_sensors(self):
+        """Load sensors safely from file."""
+        try:
+            loaded = self._load_sensors()
+        except ValueError:
+            LOGGER.error('Bad file contents: %s', self.persistence_file)
+            loaded = False
+        if not loaded:
+            LOGGER.warning('Trying backup file: %s', self.persistence_bak)
+            try:
+                if not self._load_sensors(self.persistence_bak):
+                    LOGGER.warning('Failed to load sensors from file: %s',
+                                   self.persistence_file)
+            except ValueError:
+                LOGGER.error('Bad file contents: %s', self.persistence_file)
+                LOGGER.warning('Removing file: %s', self.persistence_file)
+                os.remove(self.persistence_file)
 
     def _perform_file_action(self, filename, action):
         """Perform action on specific file types.
