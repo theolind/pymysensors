@@ -2,7 +2,7 @@
 from setuptools import setup
 
 setup(name='pymysensors',
-      version='0.5',
+      version='0.6',
       description='Python API for talking to a MySensors gateway',
       url='https://github.com/theolind/pymysensors',
       author='Theodor Lindquist',
