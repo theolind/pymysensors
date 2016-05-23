@@ -216,6 +216,29 @@ class TestGateway20(TestGateway):
         """Setup gateway."""
         self.gateway = my.Gateway(protocol_version='2.0')
 
+    def test_heartbeat(self):
+        """Test heartbeat message."""
+        sensor = self._add_sensor(1)
+        sensor.children[0] = my.ChildSensor(
+            0, self.gateway.const.Presentation.S_LIGHT_LEVEL)
+        self.gateway.logic('1;0;1;0;23;43\n')
+        ret = self.gateway.handle_queue()
+        self.assertEqual(ret, None)
+        self.gateway.logic('1;255;3;0;22;\n')
+        ret = self.gateway.handle_queue()
+        self.assertEqual(ret, None)
+        self.gateway.set_child_value(1, 0, 23, '57')
+        self.gateway.logic('1;255;3;0;22;\n')
+        ret = self.gateway.handle_queue()
+        self.assertEqual(ret, '1;0;1;0;23;57\n')
+        self.gateway.logic('1;0;2;0;23;\n')
+        self.gateway.logic('1;255;3;0;22;\n')
+        ret = self.gateway.handle_queue()
+        self.assertEqual(ret, '1;0;1;0;23;57\n')
+        self.gateway.logic('1;255;3;0;22;\n')
+        ret = self.gateway.handle_queue()
+        self.assertEqual(ret, None)
+
 
 class TestMessage(TestCase):
     """Test the Message class and it's encode/decode functions."""
