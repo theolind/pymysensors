@@ -1,14 +1,15 @@
 """pymysensors - Python implementation of the MySensors SerialGateway."""
-import time
-import threading
-import logging
-import pickle
-import os
 import json
-import socket
+import logging
+import os
+import pickle
 import select
-from queue import Queue
+import socket
+import threading
+import time
 from importlib import import_module
+from queue import Queue
+
 import serial
 
 LOGGER = logging.getLogger(__name__)
@@ -37,6 +38,8 @@ class Gateway(object):
             _const = import_module('mysensors.const_14')
         elif protocol_version == '1.5':
             _const = import_module('mysensors.const_15')
+        elif protocol_version == '2.0':
+            _const = import_module('mysensors.const_20')
         self.const = _const
 
     def _handle_presentation(self, msg):
