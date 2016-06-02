@@ -1,18 +1,15 @@
 """Test mysensors with unittest."""
-from importlib import import_module
-import unittest
-from unittest.mock import patch
+from unittest import TestCase, main, mock
 
 import mysensors.mysensors as my
-from mysensors.const_14 import MessageType, Internal
+from mysensors.const_14 import Internal, MessageType
 
 
-class TestGateway(unittest.TestCase):
+class TestGateway(TestCase):
     """Test the Gateway logic function."""
 
     def setUp(self):
         """Setup gateway."""
-        self.const = import_module('mysensors.const_14')
         self.gateway = my.Gateway()
 
     def _add_sensor(self, sensorid):
@@ -48,7 +45,8 @@ class TestGateway(unittest.TestCase):
         """Test presentation of sensor node."""
         sensor = self._add_sensor(1)
         self.gateway.logic('1;255;0;0;17;1.4.1\n')
-        self.assertEqual(sensor.type, self.const.Presentation.S_ARDUINO_NODE)
+        self.assertEqual(
+            sensor.type, self.gateway.const.Presentation.S_ARDUINO_NODE)
         self.assertEqual(sensor.protocol_version, '1.4.1')
 
     def test_internal_config(self):
@@ -64,7 +62,7 @@ class TestGateway(unittest.TestCase):
     def test_internal_time(self):
         """Test internal time request."""
         self._add_sensor(1)
-        with patch('mysensors.mysensors.time') as mock_time:
+        with mock.patch('mysensors.mysensors.time') as mock_time:
             mock_time.time.return_value = 123456789
             ret = self.gateway.logic('1;255;3;0;1;\n')
             self.assertEqual(ret.encode(), '1;255;3;0;1;123456789\n')
@@ -87,7 +85,7 @@ class TestGateway(unittest.TestCase):
         self.gateway.logic('1;0;0;0;16;\n')
         self.assertIn(0, sensor.children)
         self.assertEqual(sensor.children[0].type,
-                         self.const.Presentation.S_LIGHT_LEVEL)
+                         self.gateway.const.Presentation.S_LIGHT_LEVEL)
 
     def test_present_humidity_sensor(self):
         """Test presentation of a humidity sensor."""
@@ -95,24 +93,26 @@ class TestGateway(unittest.TestCase):
         self.gateway.logic('1;0;0;0;7;\n')
         self.assertEqual(0 in sensor.children, True)
         self.assertEqual(sensor.children[0].type,
-                         self.const.Presentation.S_HUM)
+                         self.gateway.const.Presentation.S_HUM)
 
     def test_set_light_level(self):
         """Test set of light level."""
         sensor = self._add_sensor(1)
         sensor.children[0] = my.ChildSensor(
-            0, self.const.Presentation.S_LIGHT_LEVEL)
+            0, self.gateway.const.Presentation.S_LIGHT_LEVEL)
         self.gateway.logic('1;0;1;0;23;43\n')
         self.assertEqual(
-            sensor.children[0].values[self.const.SetReq.V_LIGHT_LEVEL], '43')
+            sensor.children[0].values[self.gateway.const.SetReq.V_LIGHT_LEVEL],
+            '43')
 
     def test_set_humidity_level(self):
         """Test set humidity level."""
         sensor = self._add_sensor(1)
-        sensor.children[1] = my.ChildSensor(1, self.const.Presentation.S_HUM)
+        sensor.children[1] = my.ChildSensor(
+            1, self.gateway.const.Presentation.S_HUM)
         self.gateway.logic('1;1;1;0;1;75\n')
         self.assertEqual(
-            sensor.children[1].values[self.const.SetReq.V_HUM], '75')
+            sensor.children[1].values[self.gateway.const.SetReq.V_HUM], '75')
 
     def test_battery_level(self):
         """Test internal receive of battery level."""
@@ -123,15 +123,17 @@ class TestGateway(unittest.TestCase):
     def test_req(self):
         """Test req message in case where value exists."""
         sensor = self._add_sensor(1)
-        sensor.children[1] = my.ChildSensor(1, self.const.Presentation.S_POWER)
-        sensor.set_child_value(1, self.const.SetReq.V_VAR1, 42)
+        sensor.children[1] = my.ChildSensor(
+            1, self.gateway.const.Presentation.S_POWER)
+        sensor.set_child_value(1, self.gateway.const.SetReq.V_VAR1, 42)
         ret = self.gateway.logic('1;1;2;0;24;\n')
         self.assertEqual(ret.encode(), '1;1;1;0;24;42\n')
 
     def test_req_novalue(self):
         """Test req message for sensor with no value."""
         sensor = self._add_sensor(1)
-        sensor.children[1] = my.ChildSensor(1, self.const.Presentation.S_POWER)
+        sensor.children[1] = my.ChildSensor(
+            1, self.gateway.const.Presentation.S_POWER)
         ret = self.gateway.logic('1;1;2;0;24;\n')
         self.assertEqual(ret, None)
 
@@ -143,7 +145,8 @@ class TestGateway(unittest.TestCase):
     def test_persistence(self):
         """Test persistence using pickle."""
         self._add_sensor(1)
-        self.gateway.sensors[1].type = self.const.Presentation.S_ARDUINO_NODE
+        self.gateway.sensors[
+            1].type = self.gateway.const.Presentation.S_ARDUINO_NODE
         self.gateway.sensors[1].sketch_name = 'testsketch'
         self.gateway.sensors[1].sketch_version = '1.0'
         self.gateway.sensors[1].battery_level = 78
@@ -165,8 +168,9 @@ class TestGateway(unittest.TestCase):
         """Test persistence using json."""
         sensor = self._add_sensor(1)
         sensor.children[0] = my.ChildSensor(
-            0, self.const.Presentation.S_LIGHT_LEVEL)
-        self.gateway.sensors[1].type = self.const.Presentation.S_ARDUINO_NODE
+            0, self.gateway.const.Presentation.S_LIGHT_LEVEL)
+        self.gateway.sensors[
+            1].type = self.gateway.const.Presentation.S_ARDUINO_NODE
         self.gateway.sensors[1].sketch_name = 'testsketch'
         self.gateway.sensors[1].sketch_version = '1.0'
         self.gateway.sensors[1].battery_level = 78
@@ -193,11 +197,18 @@ class TestGateway15(TestGateway):
 
     def setUp(self):
         """Setup gateway."""
-        self.const = import_module('mysensors.const_15')
         self.gateway = my.Gateway(protocol_version='1.5')
 
 
-class TestMessage(unittest.TestCase):
+class TestGateway20(TestGateway):
+    """Use protocol_version 2.0."""
+
+    def setUp(self):
+        """Setup gateway."""
+        self.gateway = my.Gateway(protocol_version='2.0')
+
+
+class TestMessage(TestCase):
     """Test the Message class and it's encode/decode functions."""
 
     def test_encode(self):
@@ -239,4 +250,4 @@ class TestMessage(unittest.TestCase):
             my.Message('bad;bad;bad;bad;bad;bad\n')
 
 if __name__ == '__main__':
-    unittest.main()
+    main()
