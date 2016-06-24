@@ -73,7 +73,7 @@ class Gateway(object):
         if self.is_sensor(msg.node_id, msg.child_id):
             value = self.sensors[msg.node_id].children[
                 msg.child_id].values.get(msg.sub_type)
-            if value:
+            if value is not None:
                 return msg.copy(type=self.const.MessageType.set, payload=value)
 
     def _handle_internal(self, msg):
