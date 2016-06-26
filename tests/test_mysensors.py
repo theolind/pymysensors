@@ -129,7 +129,7 @@ class TestGateway(TestCase):
         ret = self.gateway.logic('1;1;2;0;24;\n')
         self.assertEqual(ret.encode(), '1;1;1;0;24;42\n')
 
-   def test_req_zerovalue(self):
+    def test_req_zerovalue(self):
         """Test req message in case where value exists but is zero."""
         sensor = self._add_sensor(1)
         sensor.children[1] = my.ChildSensor(
