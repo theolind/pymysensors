@@ -38,7 +38,7 @@ class TestGateway(TestCase):
     def test_internal_id_request(self):
         """Test internal node id request."""
         ret = self.gateway.logic('255;255;3;0;3;\n')
-        self.assertEqual(ret.encode(), '255;255;3;0;4;1\n')
+        self.assertEqual(ret, '255;255;3;0;4;1\n')
         self.assertIn(1, self.gateway.sensors)
 
     def test_presentation_arduino_node(self):
@@ -53,11 +53,11 @@ class TestGateway(TestCase):
         """Test internal config request, metric or imperial."""
         # metric
         ret = self.gateway.logic('1;255;3;0;6;0\n')
-        self.assertEqual(ret.encode(), '1;255;3;0;6;M\n')
+        self.assertEqual(ret, '1;255;3;0;6;M\n')
         # imperial
         self.gateway.metric = False
         ret = self.gateway.logic('1;255;3;0;6;0\n')
-        self.assertEqual(ret.encode(), '1;255;3;0;6;I\n')
+        self.assertEqual(ret, '1;255;3;0;6;I\n')
 
     def test_internal_time(self):
         """Test internal time request."""
@@ -65,7 +65,7 @@ class TestGateway(TestCase):
         with mock.patch('mysensors.mysensors.time') as mock_time:
             mock_time.time.return_value = 123456789
             ret = self.gateway.logic('1;255;3;0;1;\n')
-            self.assertEqual(ret.encode(), '1;255;3;0;1;123456789\n')
+            self.assertEqual(ret, '1;255;3;0;1;123456789\n')
 
     def test_internal_sketch_name(self):
         """Test internal receive of sketch name."""
@@ -127,7 +127,7 @@ class TestGateway(TestCase):
             1, self.gateway.const.Presentation.S_POWER)
         sensor.set_child_value(1, self.gateway.const.SetReq.V_VAR1, 42)
         ret = self.gateway.logic('1;1;2;0;24;\n')
-        self.assertEqual(ret.encode(), '1;1;1;0;24;42\n')
+        self.assertEqual(ret, '1;1;1;0;24;42\n')
 
     def test_req_zerovalue(self):
         """Test req message in case where value exists but is zero."""
@@ -136,7 +136,7 @@ class TestGateway(TestCase):
             1, self.gateway.const.Presentation.S_POWER)
         sensor.set_child_value(1, self.gateway.const.SetReq.V_VAR1, 0)
         ret = self.gateway.logic('1;1;2;0;24;\n')
-        self.assertEqual(ret.encode(), '1;1;1;0;24;0\n')
+        self.assertEqual(ret, '1;1;1;0;24;0\n')
 
     def test_req_novalue(self):
         """Test req message for sensor with no value."""

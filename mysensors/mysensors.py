@@ -119,20 +119,21 @@ class Gateway(object):
         Response is returned to the caller and has to be sent
         data as a mysensors command string.
         """
+        ret = None
         try:
             msg = Message(data)
         except ValueError:
-            return None
+            return ret
 
         if msg.type == self.const.MessageType.presentation:
             self._handle_presentation(msg)
         elif msg.type == self.const.MessageType.set:
             self._handle_set(msg)
         elif msg.type == self.const.MessageType.req:
-            return self._handle_req(msg)
+            ret = self._handle_req(msg)
         elif msg.type == self.const.MessageType.internal:
-            return self._handle_internal(msg)
-        return None
+            ret = self._handle_internal(msg)
+        return ret.encode() if ret else None
 
     def _save_pickle(self, filename):
         """Save sensors to pickle file."""
@@ -378,7 +379,7 @@ class SerialGateway(Gateway, threading.Thread):
                 continue
             response = self.handle_queue()
             if response is not None:
-                self.send(response.encode())
+                self.send(response)
             try:
                 line = self.serial.readline()
                 if not line:
@@ -553,7 +554,7 @@ class TCPGateway(Gateway, threading.Thread):
             if available_socks[1] and self.sock is not None:
                 response = self.handle_queue()
                 if response is not None:
-                    self.send(response.encode())
+                    self.send(response)
             if available_socks[0] and self.sock is not None:
                 string = self.recv_timeout()
                 lines = string.split('\n')
@@ -562,6 +563,126 @@ class TCPGateway(Gateway, threading.Thread):
                 for line in lines:
                     self.fill_queue(self.logic, (line,))
         self.disconnect()
+
+
+class MQTTGateway(Gateway, threading.Thread):
+    """MySensors MQTT client gateway."""
+
+    # pylint: disable=too-many-arguments
+
+    def __init__(self, pub_callback, sub_callback, event_callback=None,
+                 persistence=False, persistence_file="mysensors.pickle",
+                 protocol_version="1.4", in_prefix=None, out_prefix=None,
+                 retain=True):
+        """Setup MQTT client gateway."""
+        threading.Thread.__init__(self)
+        Gateway.__init__(self, event_callback, persistence,
+                         persistence_file, protocol_version)
+        # Should accept topic, payload, qos, retain.
+        self._pub_callback = pub_callback
+        # Should accept topic and function callback for receive.
+        self._sub_callback = sub_callback
+        self._in_prefix = in_prefix  # prefix for topics gw -> controller
+        self._out_prefix = out_prefix  # prefix for topics controller -> gw
+        self._retain = retain  # flag to publish with retain
+        self._stop_event = threading.Event()
+        self._init_topics()
+        # topic structure:
+        # prefix/node/child/type/ack/subtype : payload
+
+    def _handle_subscription(self, topics):
+        """Handle subscription of topics."""
+        if not isinstance(topics, list):
+            topics = [topics]
+        for topic in topics:
+            try:
+                self._sub_callback(topic, self.recv)
+            except Exception as exception:  # pylint: disable=W0703
+                LOGGER.exception(
+                    'Subscribe to %s failed: %s', topic, exception)
+
+    def _init_topics(self):
+        """Setup initial subscription of mysensors topics."""
+        init_topics = [
+            '{}/+/255/0/+/+'.format(self._in_prefix),
+            '{}/+/+/3/+/+'.format(self._in_prefix),
+        ]
+        self._handle_subscription(init_topics)
+
+    def _parse_mqtt_to_message(self, topic, payload, qos):
+        """Parse a MQTT topic and payload.
+
+        Return a mysensors command string.
+        """
+        topic_levels = topic.split('/')
+        prefix = topic_levels.pop(0)
+        if prefix not in self._in_prefix:
+            return
+        if qos and qos > 0:
+            ack = '1'
+        else:
+            ack = '0'
+        topic_levels[3] = ack
+        topic_levels.append(str(payload))
+        return ';'.join(topic_levels)
+
+    def _parse_message_to_mqtt(self, data):
+        """Parse a mysensors command string.
+
+        Return a MQTT topic, payload and qos-level as a tuple.
+        """
+        msg = Message(data)
+        payload = str(msg.payload)
+        msg.payload = ''
+        # prefix/node/child/type/ack/subtype : payload
+        return ('{}/{}'.format(self._out_prefix, msg.encode('/'))[:-1],
+                payload, msg.ack)
+
+    def _handle_presentation(self, msg):
+        """Process a MQTT presentation message."""
+        super()._handle_presentation(msg)
+        if msg.child_id == 255:
+            # this is a presentation of the sensor platform
+            self._handle_subscription('{}/{}/+/0/+/+'.format(
+                self._in_prefix, str(msg.node_id)))
+        else:
+            # this is a presentation of a child sensor
+            topics = [
+                '{}/{}/{}/{}/+/{}'.format(
+                    self._in_prefix, str(msg.node_id), str(msg.child_id),
+                    msg_type, str(msg.sub_type)) for msg_type in ('1', '2')
+            ]
+            self._handle_subscription(topics)
+
+    def recv(self, topic, payload, qos):
+        """Receive a MQTT message.
+
+        Call this method when a message is received from the MQTT broker.
+        """
+        data = self._parse_mqtt_to_message(topic, payload, qos)
+        LOGGER.debug('Receiving %s', data)
+        self.fill_queue(self.logic, (data,))
+
+    def send(self, message):
+        """Publish a command string to the gateway via MQTT."""
+        if not message:
+            return
+        topic, payload, qos = self._parse_message_to_mqtt(message)
+        with self.lock:
+            try:
+                LOGGER.debug('Publishing %s', message)
+                self._pub_callback(topic, payload, qos, self._retain)
+            except Exception as exception:  # pylint: disable=W0703
+                LOGGER.exception('Publish to %s failed: %s', topic, exception)
+
+    def run(self):
+        """Background thread that sends messages to the gateway via MQTT."""
+        self.setup_logging()
+        while not self._stop_event.is_set():
+            time.sleep(0.02)  # short sleep to avoid burning 100% cpu
+            response = self.handle_queue()
+            if response is not None:
+                self.send(response)
 
 
 class Sensor:
@@ -634,10 +755,10 @@ class Message:
             setattr(msg, key, val)
         return msg
 
-    def decode(self, data):
+    def decode(self, data, delimiter=';'):
         """Decode a message from command string."""
         try:
-            list_data = data.rstrip().split(';')
+            list_data = data.rstrip().split(delimiter)
             self.payload = list_data.pop()
             (self.node_id,
              self.child_id,
@@ -649,10 +770,10 @@ class Message:
                            'bad data received: %s', data)
             raise ValueError
 
-    def encode(self):
+    def encode(self, delimiter=';'):
         """Encode a command string from message."""
         try:
-            return ';'.join([str(f) for f in [
+            return delimiter.join([str(f) for f in [
                 self.node_id,
                 self.child_id,
                 int(self.type),
