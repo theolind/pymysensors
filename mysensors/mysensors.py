@@ -586,7 +586,6 @@ class MQTTGateway(Gateway, threading.Thread):
         self._out_prefix = out_prefix  # prefix for topics controller -> gw
         self._retain = retain  # flag to publish with retain
         self._stop_event = threading.Event()
-        self._init_topics()
         # topic structure:
         # prefix/node/child/type/ack/subtype : payload
 
@@ -678,6 +677,7 @@ class MQTTGateway(Gateway, threading.Thread):
     def run(self):
         """Background thread that sends messages to the gateway via MQTT."""
         self.setup_logging()
+        self._init_topics()
         while not self._stop_event.is_set():
             time.sleep(0.02)  # short sleep to avoid burning 100% cpu
             response = self.handle_queue()
