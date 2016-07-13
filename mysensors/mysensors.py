@@ -580,7 +580,7 @@ class MQTTGateway(Gateway, threading.Thread):
                          persistence_file, protocol_version)
         # Should accept topic, payload, qos, retain.
         self._pub_callback = pub_callback
-        # Should accept topic and function callback for receive.
+        # Should accept topic, function callback for receive and qos.
         self._sub_callback = sub_callback
         self._in_prefix = in_prefix  # prefix for topics gw -> controller
         self._out_prefix = out_prefix  # prefix for topics controller -> gw
@@ -594,8 +594,10 @@ class MQTTGateway(Gateway, threading.Thread):
         if not isinstance(topics, list):
             topics = [topics]
         for topic in topics:
+            topic_levels = topic.split('/')
+            qos = int(topic_levels[4])
             try:
-                self._sub_callback(topic, self.recv)
+                self._sub_callback(topic, self.recv, qos)
             except Exception as exception:  # pylint: disable=W0703
                 LOGGER.exception(
                     'Subscribe to %s failed: %s', topic, exception)
