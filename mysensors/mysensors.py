@@ -604,6 +604,7 @@ class MQTTGateway(Gateway, threading.Thread):
 
     def _init_topics(self):
         """Setup initial subscription of mysensors topics."""
+        LOGGER.info('Setting up initial MQTT topic subscription')
         init_topics = [
             '{}/+/255/0/+/+'.format(self._in_prefix),
             '{}/+/+/3/+/+'.format(self._in_prefix),
@@ -675,6 +676,11 @@ class MQTTGateway(Gateway, threading.Thread):
                 self._pub_callback(topic, payload, qos, self._retain)
             except Exception as exception:  # pylint: disable=W0703
                 LOGGER.exception('Publish to %s failed: %s', topic, exception)
+
+    def stop(self):
+        """Stop the background thread."""
+        LOGGER.info('Stopping thread')
+        self._stop_event.set()
 
     def run(self):
         """Background thread that sends messages to the gateway via MQTT."""
