@@ -595,7 +595,10 @@ class MQTTGateway(Gateway, threading.Thread):
             topics = [topics]
         for topic in topics:
             topic_levels = topic.split('/')
-            qos = int(topic_levels[4])
+            try:
+                qos = int(topic_levels[4])
+            except ValueError:
+                qos = 0
             try:
                 self._sub_callback(topic, self.recv, qos)
             except Exception as exception:  # pylint: disable=W0703
