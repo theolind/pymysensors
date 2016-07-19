@@ -653,9 +653,9 @@ class MQTTGateway(Gateway, threading.Thread):
         else:
             # this is a presentation of a child sensor
             topics = [
-                '{}/{}/{}/{}/+/{}'.format(
+                '{}/{}/{}/{}/+/+'.format(
                     self._in_prefix, str(msg.node_id), str(msg.child_id),
-                    msg_type, str(msg.sub_type)) for msg_type in ('1', '2')
+                    msg_type) for msg_type in ('1', '2')
             ]
             self._handle_subscription(topics)
 
