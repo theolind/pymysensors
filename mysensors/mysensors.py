@@ -600,6 +600,7 @@ class MQTTGateway(Gateway, threading.Thread):
             except ValueError:
                 qos = 0
             try:
+                LOGGER.debug('Subscribing to: %s', topic)
                 self._sub_callback(topic, self.recv, qos)
             except Exception as exception:  # pylint: disable=W0703
                 LOGGER.exception(
