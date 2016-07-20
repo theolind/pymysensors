@@ -728,7 +728,7 @@ class Sensor:
             ack = kwargs.get('ack', 0)
             return msg.copy(node_id=self.sensor_id, child_id=child_id,
                             type=msg_type, ack=ack, sub_type=value_type,
-                            payload=value)
+                            payload=value).encode()
         return None
         # TODO: Handle error # pylint: disable=W0511
 
