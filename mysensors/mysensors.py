@@ -41,6 +41,7 @@ class Gateway(object):
         elif protocol_version == '2.0':
             _const = import_module('mysensors.const_20')
         self.const = _const
+        self.protocol_version = float(protocol_version)
 
     def _handle_presentation(self, msg):
         """Process a presentation message."""
@@ -50,7 +51,7 @@ class Gateway(object):
             self.sensors[msg.node_id].type = msg.sub_type
             self.sensors[msg.node_id].protocol_version = msg.payload
             self.alert(msg.node_id)
-            return sensorid
+            return msg if sensorid else None
         else:
             # this is a presentation of a child sensor
             if not self.is_sensor(msg.node_id):
@@ -60,7 +61,7 @@ class Gateway(object):
             child_id = self.sensors[msg.node_id].add_child_sensor(
                 msg.child_id, msg.sub_type)
             self.alert(msg.node_id)
-            return child_id
+            return msg if child_id else None
 
     def _handle_set(self, msg):
         """Process a set message."""
@@ -128,7 +129,7 @@ class Gateway(object):
             return ret
 
         if msg.type == self.const.MessageType.presentation:
-            self._handle_presentation(msg)
+            ret = self._handle_presentation(msg)
         elif msg.type == self.const.MessageType.set:
             self._handle_set(msg)
         elif msg.type == self.const.MessageType.req:
@@ -648,15 +649,20 @@ class MQTTGateway(Gateway, threading.Thread):
 
     def _handle_presentation(self, msg):
         """Process a MQTT presentation message."""
-        ret_id = super()._handle_presentation(msg)
-        if msg.child_id != 255 and ret_id is not None:
-            # this is a presentation of a child sensor
-            topics = [
-                '{}/{}/{}/{}/+/+'.format(
-                    self._in_prefix, str(msg.node_id), str(msg.child_id),
-                    msg_type) for msg_type in ('1', '2')
-            ]
-            self._handle_subscription(topics)
+        ret_msg = super()._handle_presentation(msg)
+        if msg.child_id == 255 or ret_msg is None:
+            return
+        # this is a presentation of a child sensor
+        topics = [
+            '{}/{}/{}/{}/+/+'.format(
+                self._in_prefix, str(msg.node_id), str(msg.child_id),
+                msg_type) for msg_type in ('1', '2')
+        ]
+        self._handle_subscription(topics)
+        if self.protocol_version >= 2.0:
+            return msg.copy(
+                type=self.const.MessageType.internal,
+                sub_type=self.const.Internal.I_PRESENTATION)
 
     def recv(self, topic, payload, qos):
         """Receive a MQTT message.
