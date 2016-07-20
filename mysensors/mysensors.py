@@ -46,19 +46,21 @@ class Gateway(object):
         """Process a presentation message."""
         if msg.child_id == 255:
             # this is a presentation of the sensor platform
-            self.add_sensor(msg.node_id)
+            sensorid = self.add_sensor(msg.node_id)
             self.sensors[msg.node_id].type = msg.sub_type
             self.sensors[msg.node_id].protocol_version = msg.payload
             self.alert(msg.node_id)
+            return sensorid
         else:
             # this is a presentation of a child sensor
             if not self.is_sensor(msg.node_id):
                 LOGGER.error('Node %s is unknown, will not add child sensor.',
                              msg.node_id)
                 return
-            self.sensors[msg.node_id].add_child_sensor(msg.child_id,
-                                                       msg.sub_type)
+            child_id = self.sensors[msg.node_id].add_child_sensor(
+                msg.child_id, msg.sub_type)
             self.alert(msg.node_id)
+            return child_id
 
     def _handle_set(self, msg):
         """Process a set message."""
@@ -610,7 +612,7 @@ class MQTTGateway(Gateway, threading.Thread):
         """Setup initial subscription of mysensors topics."""
         LOGGER.info('Setting up initial MQTT topic subscription')
         init_topics = [
-            '{}/+/255/0/+/+'.format(self._in_prefix),
+            '{}/+/+/0/+/+'.format(self._in_prefix),
             '{}/+/+/3/+/+'.format(self._in_prefix),
         ]
         self._handle_subscription(init_topics)
@@ -646,12 +648,8 @@ class MQTTGateway(Gateway, threading.Thread):
 
     def _handle_presentation(self, msg):
         """Process a MQTT presentation message."""
-        super()._handle_presentation(msg)
-        if msg.child_id == 255:
-            # this is a presentation of the sensor platform
-            self._handle_subscription('{}/{}/+/0/+/+'.format(
-                self._in_prefix, str(msg.node_id)))
-        else:
+        ret_id = super()._handle_presentation(msg)
+        if msg.child_id != 255 and ret_id is not None:
             # this is a presentation of a child sensor
             topics = [
                 '{}/{}/{}/{}/+/+'.format(
@@ -718,6 +716,7 @@ class Sensor:
                 'cannot add child', child_id)
             return
         self.children[child_id] = ChildSensor(child_id, child_type)
+        return child_id
 
     def set_child_value(self, child_id, value_type, value, **kwargs):
         """Set a child sensor's value."""
