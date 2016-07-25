@@ -7,6 +7,6 @@ setup(name='pymysensors',
       url='https://github.com/theolind/pymysensors',
       author='Theodor Lindquist',
       license='MIT',
-      install_requires=['pyserial<=2.5'],
+      install_requires=['pyserial>=3.1.1'],
       packages=['mysensors'],
       zip_safe=True)
