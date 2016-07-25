@@ -150,23 +150,29 @@ class SetReq(IntEnum):
     # S_HEATER, S_HVAC. HVAC/Heater setpoint (Integer between 0-100).
     V_HVAC_SETPOINT_HEAT = 45
     # S_HVAC. Flow mode for HVAC ("Auto", "ContinuousOn", "PeriodicOn").
-    V_HVAC_FLOW_MODE = 45
+    V_HVAC_FLOW_MODE = 46
     # S_INFO. Text message to display on LCD or controller device
-    V_TEXT = 46
+    V_TEXT = 47
     # S_CUSTOM.
     # Custom messages used for controller/inter node specific commands,
     # preferably using S_CUSTOM device type.
-    V_CUSTOM = 47
+    V_CUSTOM = 48
     # S_GPS.
     # GPS position and altitude. Payload: latitude;longitude;altitude(m).
     # E.g. "55.722526;13.017972;18"
-    V_POSITION = 48
-    V_IR_RECORD = 49            # S_IR. Record IR codes for playback
-    V_PH = 50                   # S_WATER_QUALITY, water pH.
+    V_POSITION = 49
+    V_IR_RECORD = 50            # S_IR. Record IR codes for playback
+    V_PH = 51                   # S_WATER_QUALITY, water pH.
     # S_WATER_QUALITY, water ORP : redox potential in mV.
-    V_ORP = 51
+    V_ORP = 52
     # S_WATER_QUALITY, water electric conductivity μS/cm (microSiemens/cm).
-    V_EC = 52
+    V_EC = 53
+    V_VAR = 54  # S_POWER, Reactive power: volt-ampere reactive (var)
+    V_VA = 55  # S_POWER, Apparent power: volt-ampere (VA)
+    # S_POWER
+    # Ratio of real power to apparent power.
+    # Floating point value in the range [-1,..,1]
+    V_POWER_FACTOR = 56
 
 
 class Internal(IntEnum):
@@ -221,3 +227,9 @@ class Internal(IntEnum):
     I_HEARTBEAT_RESPONSE = 22
     # Node is locked (reason in string-payload).
     I_LOCKED = 23
+    I_PING = 24  # Ping sent to node, payload incremental hop counter
+    # In return to ping, sent back to sender, payload incremental hop counter
+    I_PONG = 25
+    I_REGISTRATION_REQUEST = 26  # Register request to GW
+    I_REGISTRATION_RESPONSE = 27  # Register response from GW
+    I_DEBUG = 28  # Debug message
