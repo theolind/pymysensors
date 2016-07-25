@@ -51,7 +51,7 @@ class Gateway(object):
             self.sensors[msg.node_id].type = msg.sub_type
             self.sensors[msg.node_id].protocol_version = msg.payload
             self.alert(msg.node_id)
-            return msg if sensorid else None
+            return msg if sensorid is not None else None
         else:
             # this is a presentation of a child sensor
             if not self.is_sensor(msg.node_id):
@@ -61,7 +61,7 @@ class Gateway(object):
             child_id = self.sensors[msg.node_id].add_child_sensor(
                 msg.child_id, msg.sub_type)
             self.alert(msg.node_id)
-            return msg if child_id else None
+            return msg if child_id is not None else None
 
     def _handle_set(self, msg):
         """Process a set message."""
