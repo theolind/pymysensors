@@ -9,6 +9,7 @@ import threading
 import time
 from importlib import import_module
 from queue import Queue
+from collections import deque
 
 import serial
 
@@ -34,14 +35,14 @@ class Gateway(object):
         self.persistence_bak = '{}.bak'.format(self.persistence_file)
         if persistence:
             self._safe_load_sensors()
-        if protocol_version == '1.4':
-            _const = import_module('mysensors.const_14')
-        elif protocol_version == '1.5':
-            _const = import_module('mysensors.const_15')
-        elif protocol_version == '2.0':
-            _const = import_module('mysensors.const_20')
-        self.const = _const
         self.protocol_version = float(protocol_version)
+        if 1.5 <= self.protocol_version < 2.0:
+            _const = import_module('mysensors.const_15')
+        elif self.protocol_version >= 2.0:
+            _const = import_module('mysensors.const_20')
+        else:
+            _const = import_module('mysensors.const_14')
+        self.const = _const
 
     def _handle_presentation(self, msg):
         """Process a presentation message."""
@@ -65,10 +66,15 @@ class Gateway(object):
 
     def _handle_set(self, msg):
         """Process a set message."""
-        if self.is_sensor(msg.node_id, msg.child_id):
+        if not self.is_sensor(msg.node_id, msg.child_id):
+            return
+        self.sensors[msg.node_id].set_child_value(
+            msg.child_id, msg.sub_type, msg.payload)
+        if self.sensors[msg.node_id].new_state:
             self.sensors[msg.node_id].set_child_value(
-                msg.child_id, msg.sub_type, msg.payload)
-            self.alert(msg.node_id)
+                msg.child_id, msg.sub_type, msg.payload,
+                children=self.sensors[msg.node_id].new_state)
+        self.alert(msg.node_id)
 
     def _handle_req(self, msg):
         """Process a req message.
@@ -81,6 +87,22 @@ class Gateway(object):
                 msg.child_id].values.get(msg.sub_type)
             if value is not None:
                 return msg.copy(type=self.const.MessageType.set, payload=value)
+
+    def _handle_heartbeat(self, msg):
+        """Process a heartbeat message."""
+        if not self.is_sensor(msg.node_id):
+            return
+        while self.sensors[msg.node_id].queue:
+            self.fill_queue(str, (self.sensors[msg.node_id].queue.popleft(), ))
+        for child in self.sensors[msg.node_id].children.values():
+            new_child = self.sensors[msg.node_id].new_state.get(
+                child.id, ChildSensor(child.id, child.type))
+            self.sensors[msg.node_id].new_state[child.id] = new_child
+            for value_type, value in child.values.items():
+                new_value = new_child.values.get(value_type)
+                if new_value is not None and new_value != value:
+                    self.fill_queue(self.sensors[msg.node_id].set_child_value,
+                                    (child.id, value_type, new_value))
 
     def _handle_internal(self, msg):
         """Process an internal protocol message."""
@@ -104,6 +126,9 @@ class Gateway(object):
                 self.alert(msg.node_id)
         elif msg.sub_type == self.const.Internal.I_TIME:
             return msg.copy(ack=0, payload=int(time.time()))
+        elif (self.protocol_version >= 2.0 and
+              msg.sub_type == self.const.Internal.I_HEARTBEAT_RESPONSE):
+            self._handle_heartbeat(msg)
         elif msg.sub_type == self.const.Internal.I_LOG_MESSAGE and self.debug:
             LOGGER.info('n:%s c:%s t:%s s:%s p:%s',
                         msg.node_id,
@@ -126,7 +151,7 @@ class Gateway(object):
         try:
             msg = Message(data)
         except ValueError:
-            return ret
+            return
 
         if msg.type == self.const.MessageType.presentation:
             ret = self._handle_presentation(msg)
@@ -136,7 +161,12 @@ class Gateway(object):
             ret = self._handle_req(msg)
         elif msg.type == self.const.MessageType.internal:
             ret = self._handle_internal(msg)
-        return ret.encode() if ret else None
+        ret = ret.encode() if ret else None
+        if (ret and msg.node_id in self.sensors and
+                self.sensors[msg.node_id].new_state):
+            self.sensors[msg.node_id].queue.append(ret)
+            return
+        return ret
 
     def _save_pickle(self, filename):
         """Save sensors to pickle file."""
@@ -251,7 +281,6 @@ class Gateway(object):
             next_id = 1
         if next_id <= 254:
             return next_id
-        return None
 
     def add_sensor(self, sensorid=None):
         """Add a sensor to the gateway."""
@@ -261,7 +290,6 @@ class Gateway(object):
         if sensorid is not None and sensorid not in self.sensors:
             self.sensors[sensorid] = Sensor(sensorid)
             return sensorid
-        return None
 
     def is_sensor(self, sensorid, child_id=None):
         """Return True if a sensor and its child exist."""
@@ -289,7 +317,6 @@ class Gateway(object):
             reply = func(*args, **kwargs)
             queue.task_done()
             return reply
-        return None
 
     def fill_queue(self, func, args=None, kwargs=None, queue=None):
         """Put a function in a queue.
@@ -309,13 +336,22 @@ class Gateway(object):
             self, sensor_id, child_id, value_type, value, **kwargs):
         """Add a command to set a sensor value, to the queue.
 
-        A queued command will be sent to the sensor, when the gateway
+        A queued command will be sent to the sensor when the gateway
         thread has sent all previously queued commands to the FIFO queue.
+        If the sensor attribute new_state returns True, the command will not be
+        put on the queue, but the internal sensor state will be updated. When a
+        heartbeat response is received, the internal state will be pushed to
+        the sensor, via _handle_heartbeat method.
         """
-        ack = kwargs.get('ack', 0)
-        if self.is_sensor(sensor_id, child_id):
+        if not self.is_sensor(sensor_id, child_id):
+            return
+        if self.sensors[sensor_id].new_state:
+            self.sensors[sensor_id].set_child_value(
+                child_id, value_type, value,
+                children=self.sensors[sensor_id].new_state)
+        else:
             self.fill_queue(self.sensors[sensor_id].set_child_value,
-                            (child_id, value_type, value), {'ack': ack})
+                            (child_id, value_type, value), kwargs)
 
 
 class SerialGateway(Gateway, threading.Thread):
@@ -383,6 +419,8 @@ class SerialGateway(Gateway, threading.Thread):
             response = self.handle_queue()
             if response is not None:
                 self.send(response)
+            if not self.queue.empty():
+                continue
             try:
                 line = self.serial.readline()
                 if not line:
@@ -406,8 +444,7 @@ class SerialGateway(Gateway, threading.Thread):
 
     def send(self, message):
         """Write a Message to the gateway."""
-        if not message or not isinstance(message, str):
-            LOGGER.warning('Missing string! No message sent!')
+        if not message:
             return
         # Lock to make sure only one thread writes at a time to serial port.
         with self.lock:
@@ -547,7 +584,6 @@ class TCPGateway(Gateway, threading.Thread):
                 LOGGER.info('Waiting 10 secs before trying to connect again.')
                 time.sleep(self.reconnect_timeout)
                 continue
-            time.sleep(0.02)  # short sleep to avoid burning 100% cpu
             try:
                 available_socks = self._check_socket()
             except OSError:
@@ -558,6 +594,9 @@ class TCPGateway(Gateway, threading.Thread):
                 response = self.handle_queue()
                 if response is not None:
                     self.send(response)
+            if not self.queue.empty():
+                continue
+            time.sleep(0.02)  # short sleep to avoid burning 100% cpu
             if available_socks[0] and self.sock is not None:
                 string = self.recv_timeout()
                 lines = string.split('\n')
@@ -704,6 +743,8 @@ class MQTTGateway(Gateway, threading.Thread):
 class Sensor:
     """Represent a sensor."""
 
+    # pylint: disable=too-many-instance-attributes
+
     def __init__(self, sensor_id):
         """Setup sensor."""
         self.sensor_id = sensor_id
@@ -713,6 +754,8 @@ class Sensor:
         self.sketch_version = None
         self.battery_level = 0
         self.protocol_version = None
+        self.new_state = {}
+        self.queue = deque()
 
     def add_child_sensor(self, child_id, child_type):
         """Create and add a child sensor."""
@@ -726,16 +769,21 @@ class Sensor:
 
     def set_child_value(self, child_id, value_type, value, **kwargs):
         """Set a child sensor's value."""
-        if child_id in self.children:
-            self.children[child_id].values[value_type] = value
-            msg = Message()
-            msg_type = kwargs.get('msg_type', 1)
-            ack = kwargs.get('ack', 0)
-            return msg.copy(node_id=self.sensor_id, child_id=child_id,
-                            type=msg_type, ack=ack, sub_type=value_type,
-                            payload=value).encode()
-        return None
-        # TODO: Handle error # pylint: disable=W0511
+        children = kwargs.get('children', self.children)
+        if child_id not in children:
+            return
+        msg_type = kwargs.get('msg_type', 1)
+        ack = kwargs.get('ack', 0)
+        msg_string = Message().copy(
+            node_id=self.sensor_id, child_id=child_id, type=msg_type, ack=ack,
+            sub_type=value_type, payload=value).encode()
+        try:
+            msg = Message(msg_string)  # Validate child values
+        except (ValueError, AttributeError) as exception:
+            LOGGER.error('Error validating child values: %s', exception)
+            return
+        children[child_id].values[value_type] = msg.payload
+        return msg_string
 
 
 class ChildSensor:
@@ -749,6 +797,15 @@ class ChildSensor:
         self.id = child_id
         self.type = child_type
         self.values = {}
+
+    def __repr__(self):
+        """Return the representation."""
+        return self.__str__()
+
+    def __str__(self):
+        """Return the string representation."""
+        ret = 'child_id={0!s}, child_type={1!s}, values = {2!s}'
+        return ret.format(self.id, self.type, self.values)
 
 
 class Message:
@@ -799,8 +856,7 @@ class Message:
                 self.payload,
             ]]) + '\n'
         except ValueError:
-            LOGGER.exception('Error encoding message to gateway')
-            return None
+            LOGGER.error('Error encoding message to gateway')
 
 
 class MySensorsJSONEncoder(json.JSONEncoder):
@@ -834,7 +890,7 @@ class MySensorsJSONDecoder(json.JSONDecoder):
         """Setup decoder."""
         json.JSONDecoder.__init__(self, object_hook=self.dict_to_object)
 
-    def dict_to_object(self, obj):  # pylint: disable=R0201
+    def dict_to_object(self, obj):  # pylint: disable=no-self-use
         """Return object from dict."""
         if not isinstance(obj, dict):
             return obj
