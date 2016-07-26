@@ -36,8 +36,11 @@ class TestGateway(TestCase):
         self.gateway.logic('1;255;3;0;0;79\n')
         self.assertNotIn(1, self.gateway.sensors)
 
-        self.gateway.logic('1;1;0;0;0;\n')
+    def test_present_to_non_sensor(self):
+        """Test presenting a child to a non presented sensor node."""
+        ret = self.gateway.logic('1;1;0;0;0;\n')
         self.assertNotIn(1, self.gateway.sensors)
+        self.assertEqual(ret, None)
 
     def test_internal_id_request(self):
         """Test internal node id request."""
@@ -107,7 +110,7 @@ class TestGateway(TestCase):
             self.gateway.logic(data)
             self.assertEqual(
                 test_handle.output,
-                ['INFO:mysensors.mysensors:n:0 c:255 t:3 s:9 p:{}'.format(
+                ['DEBUG:mysensors.mysensors:n:0 c:255 t:3 s:9 p:{}'.format(
                     payload[:-1])])
 
     def test_present_light_level_sensor(self):
@@ -388,8 +391,8 @@ class TestGateway(TestCase):
         ret = self.gateway.handle_queue()
         self.assertEqual(ret, None)
 
-    def test_set_child_value_no_child(self):
-        """Test Gateway method set_child_value with no child in children."""
+    def test_set_child_no_children(self):
+        """Test Gateway method set_child_value without child in children."""
         sensor = self._add_sensor(1)
         sensor.children[0] = my.ChildSensor(
             0, self.gateway.const.Presentation.S_LIGHT)
@@ -433,6 +436,50 @@ class TestGateway20(TestGateway):
     def setUp(self):
         """Setup gateway."""
         self.gateway = my.Gateway(protocol_version='2.0')
+
+    def test_non_presented_sensor(self):
+        """Test non presented sensor node."""
+        self.gateway.logic('1;0;1;0;23;43\n')
+        self.assertNotIn(1, self.gateway.sensors)
+        ret = self.gateway.handle_queue()
+        self.assertEqual(ret, '1;255;3;0;19;\n')
+
+        self.gateway.logic('1;1;1;0;1;75\n')
+        self.assertNotIn(1, self.gateway.sensors)
+        ret = self.gateway.handle_queue()
+        self.assertEqual(ret, '1;255;3;0;19;\n')
+
+        self.gateway.logic('1;255;3;0;0;79\n')
+        self.assertNotIn(1, self.gateway.sensors)
+        ret = self.gateway.handle_queue()
+        self.assertEqual(ret, '1;255;3;0;19;\n')
+
+    def test_present_to_non_sensor(self):
+        """Test presenting a child to a non presented sensor node."""
+        ret = self.gateway.logic('1;1;0;0;0;\n')
+        self.assertNotIn(1, self.gateway.sensors)
+        ret = self.gateway.handle_queue()
+        self.assertEqual(ret, '1;255;3;0;19;\n')
+
+    def test_non_presented_child(self):
+        """Test non presented sensor child."""
+        self._add_sensor(1)
+        self.gateway.logic('1;0;1;0;23;43\n')
+        self.assertNotIn(0, self.gateway.sensors[1].children)
+        ret = self.gateway.handle_queue()
+        self.assertEqual(ret, '1;255;3;0;19;\n')
+
+        self.gateway.logic('1;1;2;0;1;75\n')
+        self.assertNotIn(1, self.gateway.sensors[1].children)
+        ret = self.gateway.handle_queue()
+        self.assertEqual(ret, '1;255;3;0;19;\n')
+
+    def test_set_child_value_no_sensor(self):
+        """Test Gateway method set_child_value with no sensor."""
+        self.gateway.set_child_value(
+            1, 0, self.gateway.const.SetReq.V_LIGHT, '1')
+        ret = self.gateway.handle_queue()
+        self.assertEqual(ret, '1;255;3;0;19;\n')
 
     def test_heartbeat(self):
         """Test heartbeat message."""
@@ -478,7 +525,7 @@ class TestGateway20(TestGateway):
         """Test heartbeat message from unknown node."""
         self.gateway.logic('1;255;3;0;22;\n')
         ret = self.gateway.handle_queue()
-        self.assertEqual(ret, None)
+        self.assertEqual(ret, '1;255;3;0;19;\n')
 
     def test_set_with_new_state(self):
         """Test set message with populated new_state."""
