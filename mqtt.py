@@ -1,5 +1,5 @@
 """Example for using pymysensors with mqtt."""
-import paho.mqtt.client as mqtt  # pylint: disable=E0401
+import paho.mqtt.client as mqtt  # pylint: disable=import-error
 
 import mysensors.mysensors as mysensors
 
