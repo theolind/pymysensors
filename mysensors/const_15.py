@@ -174,3 +174,16 @@ class Internal(IntEnum):
     I_GET_NONCE = 16
     # Used between sensors for nonce response.
     I_GET_NONCE_RESPONSE = 17
+
+
+class Stream(IntEnum):
+    """MySensors stream sub-types."""
+
+    # Request new FW, payload contains current FW details
+    ST_FIRMWARE_CONFIG_REQUEST = 0
+    # New FW details to initiate OTA FW update
+    ST_FIRMWARE_CONFIG_RESPONSE = 1
+    ST_FIRMWARE_REQUEST = 2  # Request FW block
+    ST_FIRMWARE_RESPONSE = 3  # Response FW block
+    ST_SOUND = 4  # Sound
+    ST_IMAGE = 5  # Image
