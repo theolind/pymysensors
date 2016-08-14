@@ -13,7 +13,9 @@ from collections import deque
 
 import serial
 
-LOGGER = logging.getLogger(__name__)
+from mysensors.ota import OTAFirmware
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class Gateway(object):
@@ -43,6 +45,7 @@ class Gateway(object):
         else:
             _const = import_module('mysensors.const_14')
         self.const = _const
+        self.ota = OTAFirmware(self.sensors, self.const)
 
     def _handle_presentation(self, msg):
         """Process a presentation message."""
@@ -51,13 +54,14 @@ class Gateway(object):
             sensorid = self.add_sensor(msg.node_id)
             self.sensors[msg.node_id].type = msg.sub_type
             self.sensors[msg.node_id].protocol_version = msg.payload
+            self.sensors[msg.node_id].reboot = False
             self.alert(msg.node_id)
             return msg if sensorid is not None else None
         else:
             # this is a presentation of a child sensor
             if not self.is_sensor(msg.node_id):
-                LOGGER.error('Node %s is unknown, will not add child sensor.',
-                             msg.node_id)
+                _LOGGER.error('Node %s is unknown, will not add child sensor.',
+                              msg.node_id)
                 return
             child_id = self.sensors[msg.node_id].add_child_sensor(
                 msg.child_id, msg.sub_type)
@@ -75,6 +79,11 @@ class Gateway(object):
                 msg.child_id, msg.sub_type, msg.payload,
                 children=self.sensors[msg.node_id].new_state)
         self.alert(msg.node_id)
+        # Check if reboot is true
+        if self.sensors[msg.node_id].reboot:
+            return msg.copy(
+                type=self.const.MessageType.internal, ack=0,
+                sub_type=self.const.Internal.I_REBOOT, payload='')
 
     def _handle_req(self, msg):
         """Process a req message.
@@ -130,12 +139,21 @@ class Gateway(object):
               msg.sub_type == self.const.Internal.I_HEARTBEAT_RESPONSE):
             self._handle_heartbeat(msg)
         elif msg.sub_type == self.const.Internal.I_LOG_MESSAGE and self.debug:
-            LOGGER.info('n:%s c:%s t:%s s:%s p:%s',
-                        msg.node_id,
-                        msg.child_id,
-                        msg.type,
-                        msg.sub_type,
-                        msg.payload)
+            _LOGGER.info('n:%s c:%s t:%s s:%s p:%s',
+                         msg.node_id,
+                         msg.child_id,
+                         msg.type,
+                         msg.sub_type,
+                         msg.payload)
+
+    def _handle_stream(self, msg):
+        """Process a stream type message."""
+        if not self.is_sensor(msg.node_id):
+            return
+        if msg.sub_type == self.const.Stream.ST_FIRMWARE_CONFIG_REQUEST:
+            return self.ota.respond_fw_config(msg)
+        elif msg.sub_type == self.const.Stream.ST_FIRMWARE_REQUEST:
+            return self.ota.respond_fw(msg)
 
     def send(self, message):
         """Should be implemented by a child class."""
@@ -156,11 +174,13 @@ class Gateway(object):
         if msg.type == self.const.MessageType.presentation:
             ret = self._handle_presentation(msg)
         elif msg.type == self.const.MessageType.set:
-            self._handle_set(msg)
+            ret = self._handle_set(msg)
         elif msg.type == self.const.MessageType.req:
             ret = self._handle_req(msg)
         elif msg.type == self.const.MessageType.internal:
             ret = self._handle_internal(msg)
+        elif msg.type == self.const.MessageType.stream:
+            ret = self._handle_stream(msg)
         ret = ret.encode() if ret else None
         if (ret and msg.node_id in self.sensors and
                 self.sensors[msg.node_id].new_state):
@@ -212,7 +232,7 @@ class Gateway(object):
             if exists:
                 os.remove(self.persistence_bak)
         else:
-            LOGGER.error('Permission denied when writing to %s', fname)
+            _LOGGER.error('Permission denied when writing to %s', fname)
 
     def _load_sensors(self, path=None):
         """Load sensors from file."""
@@ -226,7 +246,7 @@ class Gateway(object):
             self._perform_file_action(path, 'load')
             return True
         else:
-            LOGGER.warning('File does not exist or is not readable: %s', path)
+            _LOGGER.warning('File does not exist or is not readable: %s', path)
             return False
 
     def _safe_load_sensors(self):
@@ -234,17 +254,17 @@ class Gateway(object):
         try:
             loaded = self._load_sensors()
         except ValueError:
-            LOGGER.error('Bad file contents: %s', self.persistence_file)
+            _LOGGER.error('Bad file contents: %s', self.persistence_file)
             loaded = False
         if not loaded:
-            LOGGER.warning('Trying backup file: %s', self.persistence_bak)
+            _LOGGER.warning('Trying backup file: %s', self.persistence_bak)
             try:
                 if not self._load_sensors(self.persistence_bak):
-                    LOGGER.warning('Failed to load sensors from file: %s',
-                                   self.persistence_file)
+                    _LOGGER.warning('Failed to load sensors from file: %s',
+                                    self.persistence_file)
             except ValueError:
-                LOGGER.error('Bad file contents: %s', self.persistence_file)
-                LOGGER.warning('Removing file: %s', self.persistence_file)
+                _LOGGER.error('Bad file contents: %s', self.persistence_file)
+                _LOGGER.warning('Removing file: %s', self.persistence_file)
                 os.remove(self.persistence_file)
 
     def _perform_file_action(self, filename, action):
@@ -268,7 +288,7 @@ class Gateway(object):
             try:
                 self.event_callback('sensor_update', nid)
             except Exception as exception:  # pylint: disable=W0703
-                LOGGER.exception(exception)
+                _LOGGER.exception(exception)
 
         if self.persistence:
             self._save_sensors()
@@ -298,11 +318,6 @@ class Gateway(object):
         if child_id is not None:
             return child_id in self.sensors[sensorid].children
         return True
-
-    def setup_logging(self):
-        """Set the logging level to debug."""
-        if self.debug:
-            logging.basicConfig(level=logging.DEBUG)
 
     def handle_queue(self, queue=None):
         """Handle queue.
@@ -353,6 +368,10 @@ class Gateway(object):
             self.fill_queue(self.sensors[sensor_id].set_child_value,
                             (child_id, value_type, value), kwargs)
 
+    def update_fw(self, nids, fw_type, fw_ver, fw_path=None):
+        """Update firwmare of all node_ids in nids."""
+        self.ota.make_update(nids, fw_type, fw_ver, fw_path)
+
 
 class SerialGateway(Gateway, threading.Thread):
     """Serial gateway for MySensors."""
@@ -377,41 +396,40 @@ class SerialGateway(Gateway, threading.Thread):
     def connect(self):
         """Connect to the serial port."""
         if self.serial:
-            LOGGER.info('Already connected to %s', self.port)
+            _LOGGER.info('Already connected to %s', self.port)
             return True
         try:
-            LOGGER.info('Trying to connect to %s', self.port)
+            _LOGGER.info('Trying to connect to %s', self.port)
             self.serial = serial.Serial(self.port, self.baud,
                                         timeout=self.timeout)
             if self.serial.isOpen():
-                LOGGER.info('%s is open...', self.serial.name)
-                LOGGER.info('Connected to %s', self.port)
+                _LOGGER.info('%s is open...', self.serial.name)
+                _LOGGER.info('Connected to %s', self.port)
             else:
-                LOGGER.info('%s is not open...', self.serial.name)
+                _LOGGER.info('%s is not open...', self.serial.name)
                 self.serial = None
                 return False
 
         except serial.SerialException:
-            LOGGER.error('Unable to connect to %s', self.port)
+            _LOGGER.error('Unable to connect to %s', self.port)
             return False
         return True
 
     def disconnect(self):
         """Disconnect from the serial port."""
         if self.serial is not None:
-            LOGGER.info('Disconnecting from %s', self.serial.name)
+            _LOGGER.info('Disconnecting from %s', self.serial.name)
             self.serial.close()
             self.serial = None
 
     def stop(self):
         """Stop the background thread."""
         self.disconnect()
-        LOGGER.info('Stopping thread')
+        _LOGGER.info('Stopping thread')
         self._stop_event.set()
 
     def run(self):
         """Background thread that reads messages from the gateway."""
-        self.setup_logging()
         while not self._stop_event.is_set():
             if self.serial is None and not self.connect():
                 time.sleep(self.reconnect_timeout)
@@ -426,7 +444,7 @@ class SerialGateway(Gateway, threading.Thread):
                 if not line:
                     continue
             except serial.SerialException:
-                LOGGER.exception('Serial exception')
+                _LOGGER.exception('Serial exception')
                 continue
             except TypeError:
                 # pyserial has a bug that causes a TypeError to be thrown when
@@ -436,7 +454,7 @@ class SerialGateway(Gateway, threading.Thread):
             try:
                 string = line.decode('utf-8')
             except ValueError:
-                LOGGER.warning(
+                _LOGGER.warning(
                     'Error decoding message from gateway, '
                     'probably received bad byte.')
                 continue
@@ -473,23 +491,23 @@ class TCPGateway(Gateway, threading.Thread):
     def connect(self):
         """Connect to the socket object, on host and port."""
         if self.sock:
-            LOGGER.info('Already connected to %s', self.sock)
+            _LOGGER.info('Already connected to %s', self.sock)
             return True
         try:
             # Connect to the server at the port
-            LOGGER.info(
+            _LOGGER.info(
                 'Trying to connect to %s', self.server_address)
             self.sock = socket.create_connection(
                 self.server_address, self.reconnect_timeout)
-            LOGGER.info('Connected to %s', self.server_address)
+            _LOGGER.info('Connected to %s', self.server_address)
             return True
 
         except TimeoutError:
-            LOGGER.error(
+            _LOGGER.error(
                 'Connecting to socket timed out for %s.', self.server_address)
             return False
         except OSError:
-            LOGGER.error(
+            _LOGGER.error(
                 'Failed to connect to socket at %s.', self.server_address)
             return False
 
@@ -497,15 +515,15 @@ class TCPGateway(Gateway, threading.Thread):
         """Close the socket."""
         if not self.sock:
             return
-        LOGGER.info('Closing socket at %s.', self.server_address)
+        _LOGGER.info('Closing socket at %s.', self.server_address)
         self.sock.shutdown(socket.SHUT_WR)
         self.sock.close()
         self.sock = None
-        LOGGER.info('Socket closed at %s.', self.server_address)
+        _LOGGER.info('Socket closed at %s.', self.server_address)
 
     def stop(self):
         """Stop the background thread."""
-        LOGGER.info('Stopping thread')
+        _LOGGER.info('Stopping thread')
         self._stop_event.set()
 
     def _check_socket(self, sock=None, timeout=None):
@@ -540,7 +558,7 @@ class TCPGateway(Gateway, threading.Thread):
                 data_bytes = self.sock.recv(120)
                 if data_bytes:
                     data_string = data_bytes.decode('utf-8')
-                    LOGGER.debug('Received %s', data_string)
+                    _LOGGER.debug('Received %s', data_string)
                     total_data.append(data_string)
                     # reset start time
                     begin = time.time()
@@ -550,11 +568,11 @@ class TCPGateway(Gateway, threading.Thread):
                     # sleep to add time difference
                     time.sleep(0.1)
             except OSError:
-                LOGGER.error('Receive from server failed.')
+                _LOGGER.error('Receive from server failed.')
                 self.disconnect()
                 break
             except ValueError:
-                LOGGER.warning(
+                _LOGGER.warning(
                     'Error decoding message from gateway, '
                     'probably received bad byte.')
                 break
@@ -568,26 +586,25 @@ class TCPGateway(Gateway, threading.Thread):
         with self.lock:
             try:
                 # Send data
-                LOGGER.debug('Sending %s', message)
+                _LOGGER.debug('Sending %s', message)
                 self.sock.sendall(message.encode())
 
             except OSError:
                 # Send failed
-                LOGGER.error('Send to server failed.')
+                _LOGGER.error('Send to server failed.')
                 self.disconnect()
 
     def run(self):
         """Background thread that reads messages from the gateway."""
-        self.setup_logging()
         while not self._stop_event.is_set():
             if self.sock is None and not self.connect():
-                LOGGER.info('Waiting 10 secs before trying to connect again.')
+                _LOGGER.info('Waiting 10 secs before trying to connect again.')
                 time.sleep(self.reconnect_timeout)
                 continue
             try:
                 available_socks = self._check_socket()
             except OSError:
-                LOGGER.error('Server socket %s has an error.', self.sock)
+                _LOGGER.error('Server socket %s has an error.', self.sock)
                 self.disconnect()
                 continue
             if available_socks[1] and self.sock is not None:
@@ -642,15 +659,15 @@ class MQTTGateway(Gateway, threading.Thread):
             except ValueError:
                 qos = 0
             try:
-                LOGGER.debug('Subscribing to: %s', topic)
+                _LOGGER.debug('Subscribing to: %s', topic)
                 self._sub_callback(topic, self.recv, qos)
             except Exception as exception:  # pylint: disable=W0703
-                LOGGER.exception(
+                _LOGGER.exception(
                     'Subscribe to %s failed: %s', topic, exception)
 
     def _init_topics(self):
         """Setup initial subscription of mysensors topics."""
-        LOGGER.info('Setting up initial MQTT topic subscription')
+        _LOGGER.info('Setting up initial MQTT topic subscription')
         init_topics = [
             '{}/+/+/0/+/+'.format(self._in_prefix),
             '{}/+/+/3/+/+'.format(self._in_prefix),
@@ -709,7 +726,7 @@ class MQTTGateway(Gateway, threading.Thread):
         Call this method when a message is received from the MQTT broker.
         """
         data = self._parse_mqtt_to_message(topic, payload, qos)
-        LOGGER.debug('Receiving %s', data)
+        _LOGGER.debug('Receiving %s', data)
         self.fill_queue(self.logic, (data,))
 
     def send(self, message):
@@ -719,19 +736,18 @@ class MQTTGateway(Gateway, threading.Thread):
         topic, payload, qos = self._parse_message_to_mqtt(message)
         with self.lock:
             try:
-                LOGGER.debug('Publishing %s', message)
+                _LOGGER.debug('Publishing %s', message)
                 self._pub_callback(topic, payload, qos, self._retain)
             except Exception as exception:  # pylint: disable=W0703
-                LOGGER.exception('Publish to %s failed: %s', topic, exception)
+                _LOGGER.exception('Publish to %s failed: %s', topic, exception)
 
     def stop(self):
         """Stop the background thread."""
-        LOGGER.info('Stopping thread')
+        _LOGGER.info('Stopping thread')
         self._stop_event.set()
 
     def run(self):
         """Background thread that sends messages to the gateway via MQTT."""
-        self.setup_logging()
         self._init_topics()
         while not self._stop_event.is_set():
             time.sleep(0.02)  # short sleep to avoid burning 100% cpu
@@ -756,11 +772,12 @@ class Sensor:
         self.protocol_version = None
         self.new_state = {}
         self.queue = deque()
+        self.reboot = False
 
     def add_child_sensor(self, child_id, child_type):
         """Create and add a child sensor."""
         if child_id in self.children:
-            LOGGER.warning(
+            _LOGGER.warning(
                 'child_id %s already exists in children, '
                 'cannot add child', child_id)
             return
@@ -780,7 +797,7 @@ class Sensor:
         try:
             msg = Message(msg_string)  # Validate child values
         except (ValueError, AttributeError) as exception:
-            LOGGER.error('Error validating child values: %s', exception)
+            _LOGGER.error('Error validating child values: %s', exception)
             return
         children[child_id].values[value_type] = msg.payload
         return msg_string
@@ -840,8 +857,8 @@ class Message:
              self.ack,
              self.sub_type) = [int(f) for f in list_data]
         except ValueError:
-            LOGGER.warning('Error decoding message from gateway, '
-                           'bad data received: %s', data)
+            _LOGGER.warning('Error decoding message from gateway, '
+                            'bad data received: %s', data)
             raise ValueError
 
     def encode(self, delimiter=';'):
@@ -856,7 +873,7 @@ class Message:
                 self.payload,
             ]]) + '\n'
         except ValueError:
-            LOGGER.error('Error encoding message to gateway')
+            _LOGGER.error('Error encoding message to gateway')
 
 
 class MySensorsJSONEncoder(json.JSONEncoder):

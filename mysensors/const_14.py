@@ -135,3 +135,16 @@ class Internal(IntEnum):
     I_REBOOT = 13
     # Send by gateway to controller when startup is complete
     I_GATEWAY_READY = 14
+
+
+class Stream(IntEnum):
+    """MySensors stream sub-types."""
+
+    # Request new FW, payload contains current FW details
+    ST_FIRMWARE_CONFIG_REQUEST = 0
+    # New FW details to initiate OTA FW update
+    ST_FIRMWARE_CONFIG_RESPONSE = 1
+    ST_FIRMWARE_REQUEST = 2  # Request FW block
+    ST_FIRMWARE_RESPONSE = 3  # Response FW block
+    ST_SOUND = 4  # Sound
+    ST_IMAGE = 5  # Image
