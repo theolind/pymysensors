@@ -897,6 +897,7 @@ class MySensorsJSONEncoder(json.JSONEncoder):
             return {
                 'id': obj.id,
                 'type': obj.type,
+                'description': obj.description,
                 'values': obj.values,
             }
         return json.JSONEncoder.default(self, obj)
