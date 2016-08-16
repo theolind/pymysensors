@@ -1,4 +1,6 @@
 """Test mysensors with unittest."""
+import os
+import tempfile
 from unittest import TestCase, main, mock
 
 import mysensors.mysensors as my
@@ -7,6 +9,8 @@ from mysensors.const_14 import Internal, MessageType
 
 class TestGateway(TestCase):
     """Test the Gateway logic function."""
+
+    # pylint: disable=too-many-public-methods
 
     def setUp(self):
         """Setup gateway."""
@@ -37,6 +41,21 @@ class TestGateway(TestCase):
 
     def test_internal_id_request(self):
         """Test internal node id request."""
+        ret = self.gateway.logic('255;255;3;0;3;\n')
+        self.assertEqual(ret, '255;255;3;0;4;1\n')
+        self.assertIn(1, self.gateway.sensors)
+        ret = self.gateway.logic('255;255;3;0;3;\n')
+        self.assertEqual(ret, '255;255;3;0;4;2\n')
+        self.assertIn(2, self.gateway.sensors)
+        self._add_sensor(254)
+        self.assertIn(254, self.gateway.sensors)
+        ret = self.gateway.logic('255;255;3;0;3;\n')
+        self.assertEqual(ret, None)
+        self.assertNotIn(255, self.gateway.sensors)
+
+    def test_id_request_with_node_zero(self):
+        """Test internal node id request with node 0 already assigned."""
+        self._add_sensor(0)
         ret = self.gateway.logic('255;255;3;0;3;\n')
         self.assertEqual(ret, '255;255;3;0;4;1\n')
         self.assertIn(1, self.gateway.sensors)
@@ -79,6 +98,18 @@ class TestGateway(TestCase):
         self.gateway.logic('1;255;3;0;12;1.0\n')
         self.assertEqual(sensor.sketch_version, '1.0')
 
+    def test_internal_log_message(self):
+        """Test internal receive of log message."""
+        self.gateway.debug = True
+        payload = 'read: 1-1-0 s=0,c=1,t=1,pt=7,l=5,sg=0:22.0\n'
+        data = '0;255;3;0;9;{}'.format(payload)
+        with self.assertLogs(level='DEBUG') as test_handle:
+            self.gateway.logic(data)
+            self.assertEqual(
+                test_handle.output,
+                ['INFO:mysensors.mysensors:n:0 c:255 t:3 s:9 p:{}'.format(
+                    payload[:-1])])
+
     def test_present_light_level_sensor(self):
         """Test presentation of a light level sensor."""
         sensor = self._add_sensor(1)
@@ -94,6 +125,18 @@ class TestGateway(TestCase):
         self.assertEqual(0 in sensor.children, True)
         self.assertEqual(sensor.children[0].type,
                          self.gateway.const.Presentation.S_HUM)
+
+    def test_present_same_child(self):
+        """Test presentation of the same child id again."""
+        sensor = self._add_sensor(1)
+        self.gateway.logic('1;0;0;0;16;\n')
+        self.assertIn(0, sensor.children)
+        self.assertEqual(sensor.children[0].type,
+                         self.gateway.const.Presentation.S_LIGHT_LEVEL)
+        self.gateway.logic('1;0;0;0;7;\n')
+        self.assertIn(0, sensor.children)
+        self.assertEqual(sensor.children[0].type,
+                         self.gateway.const.Presentation.S_LIGHT_LEVEL)
 
     def test_set_light_level(self):
         """Test set of light level."""
@@ -151,33 +194,13 @@ class TestGateway(TestCase):
         ret = self.gateway.logic('1;1;2;0;24;\n')
         self.assertEqual(ret, None)
 
-    def test_persistence(self):
-        """Test persistence using pickle."""
-        self._add_sensor(1)
-        self.gateway.sensors[
-            1].type = self.gateway.const.Presentation.S_ARDUINO_NODE
-        self.gateway.sensors[1].sketch_name = 'testsketch'
-        self.gateway.sensors[1].sketch_version = '1.0'
-        self.gateway.sensors[1].battery_level = 78
-
-        sensor = self.gateway.sensors[1]
-        self.gateway.persistence_file = 'persistence.file.pickle'
-        self.gateway._save_sensors()  # pylint: disable=protected-access
-        del self.gateway.sensors[1]
-        self.gateway._load_sensors()  # pylint: disable=protected-access
-        self.assertEqual(
-            self.gateway.sensors[1].sketch_name, sensor.sketch_name)
-        self.assertEqual(self.gateway.sensors[1].sketch_version,
-                         sensor.sketch_version)
-        self.assertEqual(
-            self.gateway.sensors[1].battery_level, sensor.battery_level)
-        self.assertEqual(self.gateway.sensors[1].type, sensor.type)
-
-    def test_json_persistence(self):
-        """Test persistence using json."""
+    def _test_persistence(self, filename):
+        """Test persistence."""
         sensor = self._add_sensor(1)
         sensor.children[0] = my.ChildSensor(
-            0, self.gateway.const.Presentation.S_LIGHT_LEVEL)
+            0, self.gateway.const.Presentation.S_LIGHT_LEVEL, 'test')
+        sensor.children[0].values[
+            self.gateway.const.SetReq.V_LIGHT_LEVEL] = '43'
         self.gateway.sensors[
             1].type = self.gateway.const.Presentation.S_ARDUINO_NODE
         self.gateway.sensors[1].sketch_name = 'testsketch'
@@ -185,20 +208,215 @@ class TestGateway(TestCase):
         self.gateway.sensors[1].battery_level = 78
         self.gateway.sensors[1].protocol_version = '1.4.1'
 
-        sensor = self.gateway.sensors[1]
-        self.gateway.persistence_file = 'persistence.file.json'
-        self.gateway._save_sensors()  # pylint: disable=protected-access
-        del self.gateway.sensors[1]
-        self.gateway._load_sensors()  # pylint: disable=protected-access
-        self.assertEqual(
-            self.gateway.sensors[1].sketch_name, sensor.sketch_name)
-        self.assertEqual(self.gateway.sensors[1].sketch_version,
-                         sensor.sketch_version)
-        self.assertEqual(
-            self.gateway.sensors[1].battery_level, sensor.battery_level)
-        self.assertEqual(self.gateway.sensors[1].type, sensor.type)
-        self.assertEqual(self.gateway.sensors[1].protocol_version,
-                         sensor.protocol_version)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            self.gateway.persistence_file = os.path.join(temp_dir, filename)
+            self.gateway.persistence_bak = os.path.join(
+                temp_dir, '{}.bak'.format(filename))
+            # pylint: disable=protected-access
+            self.gateway._save_sensors()
+            del self.gateway.sensors[1]
+            self.assertNotIn(1, self.gateway.sensors)
+            self.gateway._safe_load_sensors()
+            self.assertEqual(
+                self.gateway.sensors[1].sketch_name, sensor.sketch_name)
+            self.assertEqual(self.gateway.sensors[1].sketch_version,
+                             sensor.sketch_version)
+            self.assertEqual(
+                self.gateway.sensors[1].battery_level,
+                sensor.battery_level)
+            self.assertEqual(self.gateway.sensors[1].type, sensor.type)
+            self.assertEqual(self.gateway.sensors[1].protocol_version,
+                             sensor.protocol_version)
+            self.assertEqual(
+                self.gateway.sensors[1].children[0].id,
+                sensor.children[0].id)
+            self.assertEqual(
+                self.gateway.sensors[1].children[0].type,
+                sensor.children[0].type)
+            self.assertEqual(
+                self.gateway.sensors[1].children[0].description,
+                sensor.children[0].description)
+            self.assertEqual(
+                self.gateway.sensors[1].children[0].values,
+                sensor.children[0].values)
+            self.gateway._save_sensors()
+            del self.gateway.sensors[1]
+            self.assertNotIn(1, self.gateway.sensors)
+            self.gateway._safe_load_sensors()
+            self.assertIn(1, self.gateway.sensors)
+
+    def test_pickle_persistence(self):
+        """Test persistence using pickle."""
+        self._test_persistence('file.pickle')
+
+    def test_json_persistence(self):
+        """Test persistence using JSON."""
+        self._test_persistence('file.json')
+
+    def test_bad_file_name(self):
+        """Test persistence with bad file name."""
+        self._add_sensor(1)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            self.gateway.persistence_file = os.path.join(temp_dir, 'file.bad')
+            self.gateway.persistence_bak = os.path.join(
+                temp_dir, 'file.bad.bak')
+            with self.assertRaises(Exception):
+                # pylint: disable=protected-access
+                self.gateway._save_sensors()
+
+    def test_json_no_files(self):
+        """Test json persistence with no files existing."""
+        self.assertFalse(self.gateway.sensors)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            self.gateway.persistence_file = os.path.join(temp_dir, 'file.json')
+            self.gateway.persistence_bak = os.path.join(
+                temp_dir, 'file.json.bak')
+            # pylint: disable=protected-access
+            self.gateway._safe_load_sensors()
+        self.assertFalse(self.gateway.sensors)
+
+    def _test_empty_files(self, filename):
+        """Test persistence with empty files."""
+        self.assertFalse(self.gateway.sensors)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            self.gateway.persistence_file = os.path.join(temp_dir, filename)
+            self.gateway.persistence_bak = os.path.join(
+                temp_dir, '{}.bak'.format(filename))
+            with open(self.gateway.persistence_file, 'w') as file_handle:
+                file_handle.write('')
+            with open(self.gateway.persistence_bak, 'w') as file_handle:
+                file_handle.write('')
+            # pylint: disable=protected-access
+            self.gateway._safe_load_sensors()
+        self.assertFalse(self.gateway.sensors)
+
+    def test_pickle_empty_files(self):
+        """Test persistence with empty pickle files."""
+        self._test_empty_files('file.pickle')
+
+    def test_json_empty_files(self):
+        """Test persistence with empty JSON files."""
+        self._test_empty_files('file.json')
+
+    def test_json_empty_file_good_bak(self):
+        """Test json persistence with empty file but good backup."""
+        self._add_sensor(1)
+        self.assertIn(1, self.gateway.sensors)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            self.gateway.persistence_file = os.path.join(temp_dir, 'file.json')
+            self.gateway.persistence_bak = os.path.join(
+                temp_dir, 'file.json.bak')
+            # pylint: disable=protected-access
+            self.gateway._save_sensors()
+            del self.gateway.sensors[1]
+            os.rename(
+                self.gateway.persistence_file, self.gateway.persistence_bak)
+            with open(self.gateway.persistence_file, 'w') as json_file:
+                json_file.write('')
+            # pylint: disable=protected-access
+            self.gateway._safe_load_sensors()
+        self.assertIn(1, self.gateway.sensors)
+
+    @mock.patch('mysensors.mysensors.Gateway._safe_load_sensors')
+    def test_persistence_at_init(self, mock_load_sensors):
+        """Test call to load persistence_file at init of Gateway."""
+        self.gateway = my.Gateway(persistence=True)
+        assert mock_load_sensors.called
+
+    def _callback(self, update_type, nid):
+        """Callback for test of callback."""
+        self.gateway.test_callback_update = update_type
+        self.gateway.test_callback_node_id = nid
+
+    @mock.patch('mysensors.mysensors.Gateway._save_sensors')
+    def test_callback(self, mock_save_sensors):
+        """Test gateway callback function."""
+        self.gateway.event_callback = self._callback
+        self.gateway.persistence = True
+        self.gateway.test_callback_node_id = None
+        self.gateway.test_callback_update = None
+        sensor = self._add_sensor(1)
+        sensor.children[0] = my.ChildSensor(
+            0, self.gateway.const.Presentation.S_LIGHT_LEVEL)
+        self.gateway.logic('1;0;1;0;23;43\n')
+        self.assertEqual(1, self.gateway.test_callback_node_id)
+        self.assertEqual('sensor_update', self.gateway.test_callback_update)
+        assert mock_save_sensors.called
+
+    def test_callback_exception(self):
+        """Test gateway callback with exception."""
+        side_effect = ValueError('test')
+        self.gateway = my.Gateway(event_callback=self._callback)
+        with mock.patch.object(self.gateway, 'event_callback',
+                               side_effect=side_effect) as mock_callback:
+            with self.assertLogs(level='ERROR') as test_handle:
+                self.gateway.alert(1)
+                assert mock_callback.called
+                self.assertEqual(
+                    # only check first line of error log
+                    test_handle.output[0].split('\n', 1)[0],
+                    'ERROR:mysensors.mysensors:test')
+
+    def test_set_and_reboot(self):
+        """Test set message with reboot attribute true."""
+        sensor = self._add_sensor(1)
+        sensor.children[0] = my.ChildSensor(
+            0, self.gateway.const.Presentation.S_LIGHT_LEVEL)
+        sensor.reboot = True
+        ret = self.gateway.logic('1;0;1;0;23;43\n')
+        self.assertEqual(ret, '1;255;3;0;13;\n')
+
+    def test_set_child_value(self):
+        """Test Gateway method set_child_value."""
+        sensor = self._add_sensor(1)
+        sensor.children[0] = my.ChildSensor(
+            0, self.gateway.const.Presentation.S_LIGHT)
+        self.gateway.set_child_value(
+            1, 0, self.gateway.const.SetReq.V_LIGHT, '1')
+        ret = self.gateway.handle_queue()
+        self.assertEqual(ret, '1;0;1;0;2;1\n')
+        # test integer value
+        self.gateway.set_child_value(
+            1, 0, self.gateway.const.SetReq.V_LIGHT, 0)
+        ret = self.gateway.handle_queue()
+        self.assertEqual(ret, '1;0;1;0;2;0\n')
+
+    def test_set_child_value_no_sensor(self):
+        """Test Gateway method set_child_value with no sensor."""
+        self.gateway.set_child_value(
+            1, 0, self.gateway.const.SetReq.V_LIGHT, '1')
+        ret = self.gateway.handle_queue()
+        self.assertEqual(ret, None)
+
+    def test_set_child_value_no_child(self):
+        """Test Gateway method set_child_value with no child in children."""
+        sensor = self._add_sensor(1)
+        sensor.children[0] = my.ChildSensor(
+            0, self.gateway.const.Presentation.S_LIGHT)
+        self.gateway.set_child_value(
+            1, 0, self.gateway.const.SetReq.V_LIGHT, 1, children={})
+        ret = self.gateway.handle_queue()
+        self.assertEqual(ret, None)
+
+    def test_set_child_value_bad_type(self):
+        """Test Gateway method set_child_value with bad type."""
+        sensor = self._add_sensor(1)
+        sensor.children[0] = my.ChildSensor(
+            0, self.gateway.const.Presentation.S_LIGHT)
+        self.gateway.set_child_value(
+            1, 0, self.gateway.const.SetReq.V_LIGHT, 1, msg_type='one')
+        ret = self.gateway.handle_queue()
+        self.assertEqual(ret, None)
+
+    def test_set_child_value_bad_ack(self):
+        """Test Gateway method set_child_value with bad ack."""
+        sensor = self._add_sensor(1)
+        sensor.children[0] = my.ChildSensor(
+            0, self.gateway.const.Presentation.S_LIGHT)
+        self.gateway.set_child_value(
+            1, 0, self.gateway.const.SetReq.V_LIGHT, 1, ack='one')
+        ret = self.gateway.handle_queue()
+        self.assertEqual(ret, None)
 
 
 class TestGateway15(TestGateway):
@@ -224,20 +442,56 @@ class TestGateway20(TestGateway):
         self.gateway.logic('1;0;1;0;23;43\n')
         ret = self.gateway.handle_queue()
         self.assertEqual(ret, None)
+        # heartbeat
         self.gateway.logic('1;255;3;0;22;\n')
         ret = self.gateway.handle_queue()
+        # nothing has changed
         self.assertEqual(ret, None)
-        self.gateway.set_child_value(1, 0, 23, '57')
+        # change from controller side
+        self.gateway.set_child_value(
+            1, 0, self.gateway.const.SetReq.V_LIGHT_LEVEL, '57')
+        ret = self.gateway.handle_queue()
+        # no heartbeat
+        self.assertEqual(ret, None)
+        # heartbeat comes in
         self.gateway.logic('1;255;3;0;22;\n')
         ret = self.gateway.handle_queue()
+        # instance responds with new values
         self.assertEqual(ret, '1;0;1;0;23;57\n')
+        # request from node
         self.gateway.logic('1;0;2;0;23;\n')
+        ret = self.gateway.handle_queue()
+        # no heartbeat
+        self.assertEqual(ret, None)
+        # heartbeat
         self.gateway.logic('1;255;3;0;22;\n')
         ret = self.gateway.handle_queue()
+        # instance responds to request with current value
         self.assertEqual(ret, '1;0;1;0;23;57\n')
+        # heartbeat
+        self.gateway.logic('1;255;3;0;22;\n')
+        ret = self.gateway.handle_queue()
+        # nothing has changed
+        self.assertEqual(ret, None)
+
+    def test_heartbeat_from_unknown(self):
+        """Test heartbeat message from unknown node."""
         self.gateway.logic('1;255;3;0;22;\n')
         ret = self.gateway.handle_queue()
         self.assertEqual(ret, None)
+
+    def test_set_with_new_state(self):
+        """Test set message with populated new_state."""
+        sensor = self._add_sensor(1)
+        sensor.children[0] = my.ChildSensor(
+            0, self.gateway.const.Presentation.S_LIGHT_LEVEL)
+        self.gateway.logic('1;0;1;0;23;43\n')
+        self.gateway.logic('1;255;3;0;22;\n')
+        self.gateway.logic('1;0;1;0;23;57\n')
+        self.assertEqual(
+            sensor.children[0].values[self.gateway.const.SetReq.V_LIGHT_LEVEL],
+            sensor.new_state[0].values[
+                self.gateway.const.SetReq.V_LIGHT_LEVEL])
 
 
 class TestMessage(TestCase):

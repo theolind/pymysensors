@@ -81,7 +81,7 @@ class Gateway(object):
         # Check if reboot is true
         if self.sensors[msg.node_id].reboot:
             return msg.copy(
-                type=self.const.MessageType.internal, ack=0,
+                child_id=255, type=self.const.MessageType.internal, ack=0,
                 sub_type=self.const.Internal.I_REBOOT, payload='')
 
     def _handle_req(self, msg):
@@ -115,9 +115,10 @@ class Gateway(object):
     def _handle_internal(self, msg):
         """Process an internal protocol message."""
         if msg.sub_type == self.const.Internal.I_ID_REQUEST:
+            node_id = self.add_sensor()
             return msg.copy(ack=0,
                             sub_type=self.const.Internal.I_ID_RESPONSE,
-                            payload=self.add_sensor())
+                            payload=node_id) if node_id is not None else None
         elif msg.sub_type == self.const.Internal.I_SKETCH_NAME:
             if self.is_sensor(msg.node_id):
                 self.sensors[msg.node_id].sketch_name = msg.payload
@@ -196,11 +197,8 @@ class Gateway(object):
 
     def _load_pickle(self, filename):
         """Load sensors from pickle file."""
-        try:
-            with open(filename, 'rb') as file_handle:
-                self.sensors = pickle.load(file_handle)
-        except IOError:
-            pass
+        with open(filename, 'rb') as file_handle:
+            self.sensors = pickle.load(file_handle)
 
     def _save_json(self, filename):
         """Save sensors to json file."""
@@ -239,7 +237,7 @@ class Gateway(object):
             path = self.persistence_file
         exists = os.path.isfile(path)
         if exists and os.access(path, os.R_OK):
-            if path in self.persistence_bak:
+            if path == self.persistence_bak:
                 os.rename(path, self.persistence_file)
                 path = self.persistence_file
             self._perform_file_action(path, 'load')
@@ -252,7 +250,7 @@ class Gateway(object):
         """Load sensors safely from file."""
         try:
             loaded = self._load_sensors()
-        except ValueError:
+        except (EOFError, ValueError):
             _LOGGER.error('Bad file contents: %s', self.persistence_file)
             loaded = False
         if not loaded:
@@ -261,7 +259,7 @@ class Gateway(object):
                 if not self._load_sensors(self.persistence_bak):
                     _LOGGER.warning('Failed to load sensors from file: %s',
                                     self.persistence_file)
-            except ValueError:
+            except (EOFError, ValueError):
                 _LOGGER.error('Bad file contents: %s', self.persistence_file)
                 _LOGGER.warning('Removing file: %s', self.persistence_file)
                 os.remove(self.persistence_file)
@@ -294,7 +292,7 @@ class Gateway(object):
 
     def _get_next_id(self):
         """Return the next available sensor id."""
-        if len(self.sensors):
+        if self.sensors:
             next_id = max(self.sensors.keys()) + 1
         else:
             next_id = 1
@@ -787,13 +785,19 @@ class Sensor:
     def set_child_value(self, child_id, value_type, value, **kwargs):
         """Set a child sensor's value."""
         children = kwargs.get('children', self.children)
-        if child_id not in children:
+        if not isinstance(children, dict) or child_id not in children:
             return
         msg_type = kwargs.get('msg_type', 1)
         ack = kwargs.get('ack', 0)
         msg_string = Message().copy(
             node_id=self.sensor_id, child_id=child_id, type=msg_type, ack=ack,
             sub_type=value_type, payload=value).encode()
+        if msg_string is None:
+            _LOGGER.error(
+                'Not a valid message: node %s, child %s, type %s, ack %s, '
+                'sub_type %s, payload %s',
+                self.sensor_id, child_id, msg_type, ack, value_type, value)
+            return
         try:
             msg = Message(msg_string)  # Validate child values
         except (ValueError, AttributeError) as exception:
