@@ -55,17 +55,17 @@ class Gateway(object):
             self.sensors[msg.node_id].protocol_version = msg.payload
             self.sensors[msg.node_id].reboot = False
             self.alert(msg.node_id)
-            return msg if sensorid is not None else None
+            return sensorid if sensorid is not None else None
         else:
             # this is a presentation of a child sensor
             if not self.is_sensor(msg.node_id):
-                _LOGGER.error('Node %s is unknown, will not add child sensor.',
-                              msg.node_id)
+                _LOGGER.error('Node %s is unknown, will not add child %s.',
+                              msg.node_id, msg.child_id)
                 return
             child_id = self.sensors[msg.node_id].add_child_sensor(
                 msg.child_id, msg.sub_type, msg.payload)
             self.alert(msg.node_id)
-            return msg if child_id is not None else None
+            return child_id if child_id is not None else None
 
     def _handle_set(self, msg):
         """Process a set message."""
@@ -139,12 +139,12 @@ class Gateway(object):
               msg.sub_type == self.const.Internal.I_HEARTBEAT_RESPONSE):
             self._handle_heartbeat(msg)
         elif msg.sub_type == self.const.Internal.I_LOG_MESSAGE and self.debug:
-            _LOGGER.info('n:%s c:%s t:%s s:%s p:%s',
-                         msg.node_id,
-                         msg.child_id,
-                         msg.type,
-                         msg.sub_type,
-                         msg.payload)
+            _LOGGER.debug('n:%s c:%s t:%s s:%s p:%s',
+                          msg.node_id,
+                          msg.child_id,
+                          msg.type,
+                          msg.sub_type,
+                          msg.payload)
 
     def _handle_stream(self, msg):
         """Process a stream type message."""
@@ -181,11 +181,8 @@ class Gateway(object):
             ret = self._handle_internal(msg)
         elif msg.type == self.const.MessageType.stream:
             ret = self._handle_stream(msg)
+        ret = self._route_message(ret)
         ret = ret.encode() if ret else None
-        if (ret and msg.node_id in self.sensors and
-                self.sensors[msg.node_id].new_state):
-            self.sensors[msg.node_id].queue.append(ret)
-            return
         return ret
 
     def _save_pickle(self, filename):
@@ -310,11 +307,32 @@ class Gateway(object):
 
     def is_sensor(self, sensorid, child_id=None):
         """Return True if a sensor and its child exist."""
-        if sensorid not in self.sensors:
-            return False
-        if child_id is not None:
-            return child_id in self.sensors[sensorid].children
-        return True
+        ret = sensorid in self.sensors
+        if not ret:
+            _LOGGER.warning('Node %s is unknown', sensorid)
+        if ret and child_id is not None:
+            ret = child_id in self.sensors[sensorid].children
+            if not ret:
+                _LOGGER.warning('Child %s is unknown', child_id)
+        if not ret and self.protocol_version >= 2.0:
+            _LOGGER.info('Requesting new presentation for node %s',
+                         sensorid)
+            msg = Message().copy(
+                node_id=sensorid, child_id=255,
+                type=self.const.MessageType.internal,
+                sub_type=self.const.Internal.I_PRESENTATION)
+            if self._route_message(msg):
+                self.fill_queue(msg.encode)
+        return ret
+
+    def _route_message(self, msg):
+        if not isinstance(msg, Message):
+            return
+        if (msg.node_id not in self.sensors or
+                msg.type == self.const.MessageType.stream or
+                not self.sensors[msg.node_id].new_state):
+            return msg
+        self.sensors[msg.node_id].queue.append(msg.encode())
 
     def handle_queue(self, queue=None):
         """Handle queue.
@@ -714,10 +732,6 @@ class MQTTGateway(Gateway, threading.Thread):
                 msg_type) for msg_type in ('1', '2')
         ]
         self._handle_subscription(topics)
-        if self.protocol_version >= 2.0:
-            return msg.copy(
-                type=self.const.MessageType.internal,
-                sub_type=self.const.Internal.I_PRESENTATION)
 
     def recv(self, topic, payload, qos):
         """Receive a MQTT message.
@@ -777,8 +791,8 @@ class Sensor:
         """Create and add a child sensor."""
         if child_id in self.children:
             _LOGGER.warning(
-                'child_id %s already exists in children, '
-                'cannot add child', child_id)
+                'child_id %s already exists in children of node %s, '
+                'cannot add child', child_id, self.sensor_id)
             return
         self.children[child_id] = ChildSensor(
             child_id, child_type, description)
