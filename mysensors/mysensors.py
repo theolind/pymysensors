@@ -7,12 +7,11 @@ import select
 import socket
 import threading
 import time
+from collections import deque
 from importlib import import_module
 from queue import Queue
-from collections import deque
 
 import serial
-
 from mysensors.ota import OTAFirmware
 
 _LOGGER = logging.getLogger(__name__)
@@ -64,7 +63,7 @@ class Gateway(object):
                               msg.node_id)
                 return
             child_id = self.sensors[msg.node_id].add_child_sensor(
-                msg.child_id, msg.sub_type)
+                msg.child_id, msg.sub_type, msg.payload)
             self.alert(msg.node_id)
             return msg if child_id is not None else None
 
@@ -105,7 +104,7 @@ class Gateway(object):
             self.fill_queue(str, (self.sensors[msg.node_id].queue.popleft(), ))
         for child in self.sensors[msg.node_id].children.values():
             new_child = self.sensors[msg.node_id].new_state.get(
-                child.id, ChildSensor(child.id, child.type))
+                child.id, ChildSensor(child.id, child.type, child.description))
             self.sensors[msg.node_id].new_state[child.id] = new_child
             for value_type, value in child.values.items():
                 new_value = new_child.values.get(value_type)
@@ -774,14 +773,15 @@ class Sensor:
         self.queue = deque()
         self.reboot = False
 
-    def add_child_sensor(self, child_id, child_type):
+    def add_child_sensor(self, child_id, child_type, description=''):
         """Create and add a child sensor."""
         if child_id in self.children:
             _LOGGER.warning(
                 'child_id %s already exists in children, '
                 'cannot add child', child_id)
             return
-        self.children[child_id] = ChildSensor(child_id, child_type)
+        self.children[child_id] = ChildSensor(
+            child_id, child_type, description)
         return child_id
 
     def set_child_value(self, child_id, value_type, value, **kwargs):
@@ -808,11 +808,12 @@ class ChildSensor:
 
     # pylint: disable=too-few-public-methods
 
-    def __init__(self, child_id, child_type):
+    def __init__(self, child_id, child_type, description=''):
         """Setup child sensor."""
         # pylint: disable=invalid-name
         self.id = child_id
         self.type = child_type
+        self.description = description
         self.values = {}
 
     def __repr__(self):
@@ -821,8 +822,9 @@ class ChildSensor:
 
     def __str__(self):
         """Return the string representation."""
-        ret = 'child_id={0!s}, child_type={1!s}, values = {2!s}'
-        return ret.format(self.id, self.type, self.values)
+        ret = ('child_id={0!s}, child_type={1!s}, description={2!s}, '
+               'values = {3!s}')
+        return ret.format(self.id, self.type, self.description, self.values)
 
 
 class Message:
@@ -895,6 +897,7 @@ class MySensorsJSONEncoder(json.JSONEncoder):
             return {
                 'id': obj.id,
                 'type': obj.type,
+                'description': obj.description,
                 'values': obj.values,
             }
         return json.JSONEncoder.default(self, obj)
@@ -915,8 +918,8 @@ class MySensorsJSONDecoder(json.JSONDecoder):
             sensor = Sensor(obj['sensor_id'])
             sensor.__dict__.update(obj)
             return sensor
-        elif all(k in obj for k in ['id', 'type', 'values']):
-            child = ChildSensor(obj['id'], obj['type'])
+        elif all(k in obj for k in ['id', 'type', 'description', 'values']):
+            child = ChildSensor(obj['id'], obj['type'], obj['description'])
             child.values = obj['values']
             return child
         elif all(k.isdigit() for k in obj.keys()):
