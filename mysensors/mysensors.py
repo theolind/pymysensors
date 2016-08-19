@@ -415,13 +415,14 @@ class SerialGateway(Gateway, threading.Thread):
     def disconnect(self):
         """Disconnect from the serial port."""
         if self.serial is not None:
-            _LOGGER.info('Disconnecting from %s', self.serial.name)
+            name = self.serial.name
+            _LOGGER.info('Disconnecting from %s', name)
             self.serial.close()
             self.serial = None
+            _LOGGER.info('Disconnected from %s', name)
 
     def stop(self):
         """Stop the background thread."""
-        self.disconnect()
         _LOGGER.info('Stopping thread')
         self._stop_event.set()
 
@@ -456,6 +457,7 @@ class SerialGateway(Gateway, threading.Thread):
                     'probably received bad byte.')
                 continue
             self.fill_queue(self.logic, (string,))
+        self.disconnect()  # Disconnect after stop event is set
 
     def send(self, message):
         """Write a Message to the gateway."""
