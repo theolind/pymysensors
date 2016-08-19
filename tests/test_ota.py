@@ -5,7 +5,7 @@ import tempfile
 from unittest import TestCase, main
 
 import mysensors.mysensors as my
-from mysensors.ota import compute_crc, FIRMWARE_BLOCK_SIZE
+from mysensors.ota import FIRMWARE_BLOCK_SIZE
 
 FW_TYPE = 1
 FW_VER = 1
@@ -15,6 +15,7 @@ PADDED_HEX_STR = (
     'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
     'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
     'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')
+CRC = 362
 BLOCKS = int(len(PADDED_HEX_STR) / (2 * FIRMWARE_BLOCK_SIZE))
 BAD_HEX_FILE = 'badcontent'
 
@@ -89,9 +90,8 @@ class TestOTA(TestCase):
         """Test respond to firmware config request."""
         self._setup_firmware(1, HEX_FILE_STR)
         ret = self.gateway.logic('1;255;4;0;0;01000200B00626E80300\n')
-        crc = compute_crc(binascii.unhexlify(PADDED_HEX_STR.encode('utf-8')))
         payload = binascii.hexlify(struct.pack(
-            '<4H', FW_TYPE, FW_VER, BLOCKS, crc)).decode('utf-8')
+            '<4H', FW_TYPE, FW_VER, BLOCKS, CRC)).decode('utf-8')
         self.assertEqual(ret, '1;255;4;0;1;{}\n'.format(payload))
 
     def test_respond_fw(self):
@@ -190,9 +190,8 @@ class TestOTA(TestCase):
         """Test respond to fw config request for a different firmware type."""
         self._setup_firmware(1, HEX_FILE_STR)
         ret = self.gateway.logic('1;255;4;0;0;02000200B00626E80300\n')
-        crc = compute_crc(binascii.unhexlify(PADDED_HEX_STR.encode('utf-8')))
         payload = binascii.hexlify(struct.pack(
-            '<4H', FW_TYPE, FW_VER, BLOCKS, crc)).decode('utf-8')
+            '<4H', FW_TYPE, FW_VER, BLOCKS, CRC)).decode('utf-8')
         self.assertEqual(ret, '1;255;4;0;1;{}\n'.format(payload))
 
 
