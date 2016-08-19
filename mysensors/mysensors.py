@@ -492,8 +492,8 @@ class TCPGateway(Gateway, threading.Thread):
     # pylint: disable=too-many-arguments
 
     def __init__(self, host, event_callback=None,
-                 persistence=False, persistence_file="mysensors.pickle",
-                 protocol_version="1.4", port=5003, timeout=1.0,
+                 persistence=False, persistence_file='mysensors.pickle',
+                 protocol_version='1.4', port=5003, timeout=1.0,
                  reconnect_timeout=10.0):
         """Setup TCP ethernet gateway."""
         threading.Thread.__init__(self)
@@ -647,8 +647,8 @@ class MQTTGateway(Gateway, threading.Thread):
     # pylint: disable=too-many-arguments
 
     def __init__(self, pub_callback, sub_callback, event_callback=None,
-                 persistence=False, persistence_file="mysensors.pickle",
-                 protocol_version="1.4", in_prefix=None, out_prefix=None,
+                 persistence=False, persistence_file='mysensors.pickle',
+                 protocol_version='1.4', in_prefix='', out_prefix='',
                  retain=True):
         """Setup MQTT client gateway."""
         threading.Thread.__init__(self)
@@ -698,7 +698,7 @@ class MQTTGateway(Gateway, threading.Thread):
         """
         topic_levels = topic.split('/')
         prefix = topic_levels.pop(0)
-        if prefix not in self._in_prefix:
+        if prefix != self._in_prefix:
             return
         if qos and qos > 0:
             ack = '1'
@@ -722,8 +722,8 @@ class MQTTGateway(Gateway, threading.Thread):
 
     def _handle_presentation(self, msg):
         """Process a MQTT presentation message."""
-        ret_msg = super()._handle_presentation(msg)
-        if msg.child_id == 255 or ret_msg is None:
+        node_child_id = super()._handle_presentation(msg)
+        if msg.child_id == 255 or node_child_id is None:
             return
         # this is a presentation of a child sensor
         topics = [
