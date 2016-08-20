@@ -1,7 +1,9 @@
 # pymysensors [![Build Status][build-badge]][build]
-Python API for talking to a MySensors gateway (http://www.mysensors.org/). Currently supports serial protocol v1.4 and v1.5.
+Python API for talking to a MySensors gateway (http://www.mysensors.org/). Currently supports serial protocol v1.4, v1.5 and v2.0. Not all features of v2.0 are implemented yet.
 
-Does not support OTA updates.
+- Supports smartsleep with serial API v2.0.
+- Supports the MQTT client gateway with serial API v2.0.
+- Supports OTA updates, for DualOptiboot bootloader.
 
 # Usage
 Currently the API is best used by implementing a callback handler
@@ -20,7 +22,7 @@ In the above example PyMysensors will call "event" whenever a node in the Mysens
 
 The data structure of a gateway and it's network is described below.
 ```
-SerialGateway
+SerialGateway/TCPGateway/MQTTGateway
     sensors - a dict containing all nodes for the gateway; node is of type Sensor
 
 Sensor - a sensor node
@@ -49,21 +51,66 @@ To update a node child sensor value and send it to the node, use the set_child_v
 GATEWAY.set_child_value(1, 1, 2, 1)
 ```
 
-PyMysensors also supports three other settings. Debug mode, which prints debug information, persistence mode,
-which saves the sensor network between runs and persistence file path, which sets the type and path of the persistence file.
+PyMysensors also supports four other settings. Debug mode, which prints debug information, persistence mode,
+which saves the sensor network between runs, persistence file path, which sets the type and path of the persistence file and protocol version which sets the MySensors serial API version.
 
 Debug mode is enabled by setting SerialGateway.debug = True. With persistence mode on, you can restart the gateway without
 having to restart each individual node in your sensor network. To enable persistance mode, the third argument
 in the constructor should be True. A path to the config file
 can be specified as a fourth argument. The file type (.pickle or .json) will set which persistence protocol to use, pickle or json. JSON files can be read using a normal text editor.
 
+The serial gateway also supports setting the baudrate, read timeout and reconnect timeout.
+
 ```python
 import mysensors.mysensors as mysensors
 
-GATEWAY = mysensors.SerialGateway('/dev/ttyACM0', None, True, 'somefolder/mysensors.pickle')
+def event(update_type, nid):
+    """Callback for mysensors updates."""
+    print(update_type + " " + str(nid))
+
+GATEWAY = mysensors.SerialGateway(
+  '/dev/ttyACM0', event_callback=event, persistence=True,
+  persistence_file='somefolder/mysensors.pickle', protocol_version='1.4', baud=115200,
+  timeout=1.0, reconnect_timeout=10.0)
 GATEWAY.debug = True
 GATEWAY.start()
 ```
+
+There are two other gateway types supported besides the serial gateway: the tcp-ethernet gateway and the MQTT gateway.
+
+The ethernet gateway is initialized similar to the serial gateway. The ethernet gateway supports setting the tcp host port, receive timeout and reconnect timeout, besides the common settings and the host ip address.
+
+```python
+GATEWAY = mysensors.TCPGateway(
+  '127.0.0.1', event_callback=event, persistence=True,
+  persistence_file='somefolder/mysensors.pickle', protocol_version='1.4',
+  port=5003, timeout=1.0, reconnect_timeout=10.0)
+```
+
+The MQTT gateway requires MySensors serial API v2.0 and the MQTT client gateway example sketch loaded in the gateway Arduino. The gateway also requires an MQTT broker and a python MQTT client interface to the broker. See [mqtt.py](mqtt.py) for an example of how to implement this and initialize the MQTT gateway.
+
+## Over the air (OTA) firmware updates
+Call `Gateway` method `update_fw` to set one or more nodes for OTA
+firmware update. The method takes three positional arguments and one
+keyword arguement. The first argument should be the node id of the node to
+update. This can also be a list of many node ids. The next two arguments should
+be integers representing the firwmare type and version. The keyword argument is
+optional and should be a path to a hex file with the new firmware.
+
+```python
+GATEWAY.update_fw([1, 2], 1, 2, fw_path='/path/to/firmware.hex')
+```
+
+After the `update_fw` method has been called the node(s) will be requested
+to restart when pymysensors Gateway receives the next set message. After
+restart and during the MySensors `begin` method, the node will send a firmware
+config request. The pymysensors library will respond to the config request. If
+the node receives a proper firmware config response it will send a firmware
+request for a block of firmware. The pymysensors library will handle this and
+send a firmware response message. The latter request-response conversation will
+continue until all blocks of firmware are sent. If the CRC of the transmitted
+firmware match the CRC of the firmware config response, the node will restart
+and load the new firmware.
 
 [build-badge]: https://travis-ci.org/theolind/pymysensors.svg?branch=master
 [build]: https://travis-ci.org/theolind/pymysensors
