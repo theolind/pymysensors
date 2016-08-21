@@ -1,6 +1,8 @@
 """Test mysensors with unittest."""
+import json
 import os
 import tempfile
+from collections import deque
 from unittest import TestCase, main, mock
 
 import mysensors.mysensors as my
@@ -326,6 +328,65 @@ class TestGateway(TestCase):
         self.gateway = my.Gateway(persistence=True)
         assert mock_load_sensors.called
 
+    def _save_json_upgrade(self, filename):
+        """Save sensors to json file.
+
+        Only used for testing upgrade with missing attributes.
+        """
+        with open(filename, 'w') as file_handle:
+            json.dump(
+                self.gateway.sensors, file_handle,
+                cls=MySensorsJSONEncoderTestUpgrade)
+            file_handle.flush()
+            os.fsync(file_handle.fileno())
+
+    @mock.patch('mysensors.mysensors.Gateway._save_json')
+    def _test_persistence_upgrade(self, filename, mock_save_json):
+        """Test that all attributes are present after persistence upgrade."""
+        # pylint: disable=protected-access
+        mock_save_json.side_effect = self._save_json_upgrade
+        sensor = self._add_sensor(1)
+        sensor.children[0] = my.ChildSensor(
+            0, self.gateway.const.Presentation.S_LIGHT_LEVEL)
+        del self.gateway.sensors[1].__dict__['new_state']
+        self.assertNotIn('new_state', self.gateway.sensors[1].__dict__)
+        del self.gateway.sensors[1].__dict__['queue']
+        self.assertNotIn('queue', self.gateway.sensors[1].__dict__)
+        del self.gateway.sensors[1].__dict__['reboot']
+        self.assertNotIn('reboot', self.gateway.sensors[1].__dict__)
+        del self.gateway.sensors[1].children[0].__dict__['description']
+        self.assertNotIn(
+            'description', self.gateway.sensors[1].children[0].__dict__)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            self.gateway.persistence_file = os.path.join(temp_dir, filename)
+            self.gateway.persistence_bak = os.path.join(
+                temp_dir, '{}.bak'.format(filename))
+            self.gateway._save_sensors()
+            del self.gateway.sensors[1]
+            self.assertNotIn(1, self.gateway.sensors)
+            self.gateway._safe_load_sensors()
+            self.assertEqual(self.gateway.sensors[1].new_state, {})
+            self.assertEqual(self.gateway.sensors[1].queue, deque())
+            self.assertEqual(self.gateway.sensors[1].reboot, False)
+            self.assertEqual(
+                self.gateway.sensors[1].children[0].description, '')
+            self.assertEqual(
+                self.gateway.sensors[1].children[0].id,
+                sensor.children[0].id)
+            self.assertEqual(
+                self.gateway.sensors[1].children[0].type,
+                sensor.children[0].type)
+
+    def test_pickle_upgrade(self):
+        """Test that all attributes are present after pickle upgrade."""
+        # pylint: disable=no-value-for-parameter
+        self._test_persistence_upgrade('file.pickle')
+
+    def test_json_upgrade(self):
+        """Test that all attributes are present after JSON upgrade."""
+        # pylint: disable=no-value-for-parameter
+        self._test_persistence_upgrade('file.json')
+
     def _callback(self, update_type, nid):
         """Callback for test of callback."""
         self.gateway.test_callback_update = update_type
@@ -581,6 +642,21 @@ class TestMessage(TestCase):
         """Test decode of bad message."""
         with self.assertRaises(ValueError):
             my.Message('bad;bad;bad;bad;bad;bad\n')
+
+
+class MySensorsJSONEncoderTestUpgrade(my.MySensorsJSONEncoder):
+    """JSON encoder used for testing upgrade with missing attributes."""
+
+    def default(self, obj):  # pylint: disable=E0202
+        """Serialize obj into JSON."""
+        if isinstance(obj, my.ChildSensor):
+            return {
+                'id': obj.id,
+                'type': obj.type,
+                'values': obj.values,
+            }
+        else:
+            return super().default(obj)
 
 if __name__ == '__main__':
     main()
