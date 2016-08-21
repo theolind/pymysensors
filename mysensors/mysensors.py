@@ -787,6 +787,15 @@ class Sensor:
         self.queue = deque()
         self.reboot = False
 
+    def __setstate__(self, state):
+        """Set state when loading pickle."""
+        # Restore instance attributes
+        self.__dict__.update(state)
+        # Reset some attributes
+        self.new_state = {}
+        self.queue = deque()
+        self.reboot = False
+
     def add_child_sensor(self, child_id, child_type, description=''):
         """Create and add a child sensor."""
         if child_id in self.children:
@@ -835,6 +844,14 @@ class ChildSensor:
         self.type = child_type
         self.description = description
         self.values = {}
+
+    def __setstate__(self, state):
+        """Set state when loading pickle."""
+        # Restore instance attributes
+        self.__dict__.update(state)
+        # Make sure all attributes exist
+        if 'description' not in self.__dict__:
+            self.description = ''
 
     def __repr__(self):
         """Return the representation."""
@@ -938,8 +955,12 @@ class MySensorsJSONDecoder(json.JSONDecoder):
             sensor = Sensor(obj['sensor_id'])
             sensor.__dict__.update(obj)
             return sensor
-        elif all(k in obj for k in ['id', 'type', 'description', 'values']):
-            child = ChildSensor(obj['id'], obj['type'], obj['description'])
+        elif all(k in obj for k in ['id', 'type', 'values']):
+            # Handle new optional description attribute
+            if 'description' in obj:
+                child = ChildSensor(obj['id'], obj['type'], obj['description'])
+            else:
+                child = ChildSensor(obj['id'], obj['type'])
             child.values = obj['values']
             return child
         elif all(k.isdigit() for k in obj.keys()):
