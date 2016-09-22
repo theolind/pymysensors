@@ -16,7 +16,6 @@ from mysensors.ota import OTAFirmware
 
 _LOGGER = logging.getLogger(__name__)
 
-
 class Gateway(object):
     """Base implementation for a MySensors Gateway."""
 
@@ -312,8 +311,11 @@ class Gateway(object):
             _LOGGER.warning('Node %s is unknown', sensorid)
         if ret and child_id is not None:
             ret = child_id in self.sensors[sensorid].children
-            if not ret:
+            if not ret and child_id != 255:
                 _LOGGER.warning('Child %s is unknown', child_id)
+            if child_id == 255:
+                ret = True
+                _LOGGER.info('Child %s is internal', child_id)
         if not ret and self.protocol_version >= 2.0:
             _LOGGER.info('Requesting new presentation for node %s',
                          sensorid)
@@ -504,6 +506,7 @@ class TCPGateway(Gateway, threading.Thread):
         self.timeout = timeout
         self.reconnect_timeout = reconnect_timeout
         self._stop_event = threading.Event()
+        self._stop_tcp_check = threading.Event()
 
     def connect(self):
         """Connect to the socket object, on host and port."""
@@ -517,6 +520,8 @@ class TCPGateway(Gateway, threading.Thread):
             self.sock = socket.create_connection(
                 self.server_address, self.reconnect_timeout)
             _LOGGER.info('Connected to %s', self.server_address)
+            self._stop_tcp_check.clear()
+            self.tcp_check()    # start the tcp_check thread
             return True
 
         except TimeoutError:
@@ -537,6 +542,7 @@ class TCPGateway(Gateway, threading.Thread):
         self.sock.close()
         self.sock = None
         _LOGGER.info('Socket closed at %s.', self.server_address)
+        self._stop_tcp_check.set()    #stop the tcp_check until the next connect()
 
     def stop(self):
         """Stop the background thread."""
@@ -551,6 +557,15 @@ class TCPGateway(Gateway, threading.Thread):
         if available_socks[2]:
             raise OSError
         return available_socks
+
+    def tcp_check(self):
+        if not self._stop_tcp_check.is_set():
+            t = threading.Timer(10.0, self.tcp_check)    #send heartbeat every 10 seconds until socket is disconnected
+            t.setDaemon(True)
+            t.start()
+            _LOGGER.info('Sending I_HEARTBEAT')
+            #self.set_child_internal(0, 255, 2, 0)
+            self.set_child_value(0, 255, 18, 0)
 
     def recv_timeout(self):
         """Receive reply from server, with a timeout."""
@@ -810,9 +825,12 @@ class Sensor:
     def set_child_value(self, child_id, value_type, value, **kwargs):
         """Set a child sensor's value."""
         children = kwargs.get('children', self.children)
-        if not isinstance(children, dict) or child_id not in children:
+        if (not isinstance(children, dict) or child_id not in children) and child_id != 255:
             return
-        msg_type = kwargs.get('msg_type', 1)
+        if child_id==255:   # Internal subtype message
+            msg_type = kwargs.get('msg_type', 3)
+        else:
+            msg_type = kwargs.get('msg_type', 1)
         ack = kwargs.get('ack', 0)
         msg_string = Message().copy(
             node_id=self.sensor_id, child_id=child_id, type=msg_type, ack=ack,
@@ -828,7 +846,8 @@ class Sensor:
         except (ValueError, AttributeError) as exception:
             _LOGGER.error('Error validating child values: %s', exception)
             return
-        children[child_id].values[value_type] = msg.payload
+        if child_id != 255:    # 255 is not a real child_id
+            children[child_id].values[value_type] = msg.payload
         return msg_string
 
 
