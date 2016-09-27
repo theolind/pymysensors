@@ -67,11 +67,11 @@ class TestGateway(TestCase):
 
     def test_presentation_arduino_node(self):
         """Test presentation of sensor node."""
-        sensor = self._add_sensor(1)
         self.gateway.logic('1;255;0;0;17;1.4.1\n')
         self.assertEqual(
-            sensor.type, self.gateway.const.Presentation.S_ARDUINO_NODE)
-        self.assertEqual(sensor.protocol_version, '1.4.1')
+            self.gateway.sensors[1].type,
+            self.gateway.const.Presentation.S_ARDUINO_NODE)
+        self.assertEqual(self.gateway.sensors[1].protocol_version, '1.4.1')
 
     def test_internal_config(self):
         """Test internal config request, metric or imperial."""
