@@ -461,6 +461,7 @@ class SerialGateway(Gateway, threading.Thread):
                     continue
             except serial.SerialException:
                 _LOGGER.exception('Serial exception')
+                self.disconnect()
                 continue
             except TypeError:
                 # pyserial has a bug that causes a TypeError to be thrown when
