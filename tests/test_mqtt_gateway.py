@@ -42,12 +42,12 @@ class TestMQTTGateway(TestCase):
             'Publish topic cannot contain wildcards.')
         with self.assertLogs(level='ERROR') as test_handle:
             self.gateway.send('1;1;1;0;1;20\n')
-            self.mock_pub.assert_called_with('/1/1/1/0/1', '20', 0, True)
-            self.assertEqual(
-                # only check first line of error log
-                test_handle.output[0].split('\n', 1)[0],
-                'ERROR:mysensors.mysensors:Publish to /1/1/1/0/1 failed: '
-                'Publish topic cannot contain wildcards.')
+        self.mock_pub.assert_called_with('/1/1/1/0/1', '20', 0, True)
+        self.assertEqual(
+            # only check first line of error log
+            test_handle.output[0].split('\n', 1)[0],
+            'ERROR:mysensors.mysensors:Publish to /1/1/1/0/1 failed: '
+            'Publish topic cannot contain wildcards.')
 
     def test_recv(self):
         """Test recv method. """
@@ -78,7 +78,8 @@ class TestMQTTGateway(TestCase):
         self.gateway.logic('1;1;0;0;7;Humidity Sensor\n')
         calls = [
             mock.call('/1/1/1/+/+', self.gateway.recv, 0),
-            mock.call('/1/1/2/+/+', self.gateway.recv, 0)]
+            mock.call('/1/1/2/+/+', self.gateway.recv, 0),
+            mock.call('/1/+/4/+/+', self.gateway.recv, 0)]
         self.mock_sub.assert_has_calls(calls)
 
     def test_presentation_no_sensor(self):
@@ -93,15 +94,15 @@ class TestMQTTGateway(TestCase):
             'No topic specified, or incorrect topic type.')
         with self.assertLogs(level='ERROR') as test_handle:
             self.gateway.logic('1;1;0;0;7;Humidity Sensor\n')
-            calls = [
-                mock.call('/1/1/1/+/+', self.gateway.recv, 0),
-                mock.call('/1/1/2/+/+', self.gateway.recv, 0)]
-            self.mock_sub.assert_has_calls(calls)
-            self.assertEqual(
-                # only check first line of error log
-                test_handle.output[0].split('\n', 1)[0],
-                'ERROR:mysensors.mysensors:Subscribe to /1/1/1/+/+ failed: '
-                'No topic specified, or incorrect topic type.')
+        calls = [
+            mock.call('/1/1/1/+/+', self.gateway.recv, 0),
+            mock.call('/1/1/2/+/+', self.gateway.recv, 0)]
+        self.mock_sub.assert_has_calls(calls)
+        self.assertEqual(
+            # only check first line of error log
+            test_handle.output[0].split('\n', 1)[0],
+            'ERROR:mysensors.mysensors:Subscribe to /1/1/1/+/+ failed: '
+            'No topic specified, or incorrect topic type.')
 
     def test_start_stop_gateway(self):
         """Test start and stop of MQTT gateway."""
@@ -153,7 +154,8 @@ class TestMQTTGateway(TestCase):
             sensor.children[1].values)
         calls = [
             mock.call('/1/1/1/+/+', self.gateway.recv, 0),
-            mock.call('/1/1/2/+/+', self.gateway.recv, 0)]
+            mock.call('/1/1/2/+/+', self.gateway.recv, 0),
+            mock.call('/1/+/4/+/+', self.gateway.recv, 0)]
         self.mock_sub.assert_has_calls(calls)
 
 

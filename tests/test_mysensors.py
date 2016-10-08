@@ -110,10 +110,10 @@ class TestGateway(TestCase):
         data = '0;255;3;0;9;{}'.format(payload)
         with self.assertLogs(level='DEBUG') as test_handle:
             self.gateway.logic(data)
-            self.assertEqual(
-                test_handle.output,
-                ['DEBUG:mysensors.mysensors:n:0 c:255 t:3 s:9 p:{}'.format(
-                    payload[:-1])])
+        self.assertEqual(
+            test_handle.output,
+            ['DEBUG:mysensors.mysensors:n:0 c:255 t:3 s:9 p:{}'.format(
+                payload[:-1])])
 
     def test_present_light_level_sensor(self):
         """Test presentation of a light level sensor."""
@@ -415,11 +415,11 @@ class TestGateway(TestCase):
                                side_effect=side_effect) as mock_callback:
             with self.assertLogs(level='ERROR') as test_handle:
                 self.gateway.alert(1)
-                assert mock_callback.called
-                self.assertEqual(
-                    # only check first line of error log
-                    test_handle.output[0].split('\n', 1)[0],
-                    'ERROR:mysensors.mysensors:test')
+            assert mock_callback.called
+            self.assertEqual(
+                # only check first line of error log
+                test_handle.output[0].split('\n', 1)[0],
+                'ERROR:mysensors.mysensors:test')
 
     def test_set_and_reboot(self):
         """Test set message with reboot attribute true."""
