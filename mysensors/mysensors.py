@@ -12,6 +12,7 @@ from importlib import import_module
 from queue import Queue
 
 import serial
+
 from mysensors.ota import OTAFirmware
 
 _LOGGER = logging.getLogger(__name__)
@@ -739,6 +740,18 @@ class MQTTGateway(Gateway, threading.Thread):
         ]
         self._handle_subscription(topics)
 
+    def _safe_load_sensors(self):
+        """Load MQTT sensors safely from file."""
+        super()._safe_load_sensors()
+        topics = [
+            '{}/{}/{}/{}/+/+'.format(
+                self._in_prefix, str(sensor.sensor_id), str(child.id),
+                msg_type) for sensor in self.sensors.values()
+            for child in sensor.children.values()
+            for msg_type in ('1', '2')
+        ]
+        self._handle_subscription(topics)
+
     def recv(self, topic, payload, qos):
         """Receive a MQTT message.
 
@@ -771,10 +784,12 @@ class MQTTGateway(Gateway, threading.Thread):
         """Background thread that sends messages to the gateway via MQTT."""
         self._init_topics()
         while not self._stop_event.is_set():
-            time.sleep(0.02)  # short sleep to avoid burning 100% cpu
             response = self.handle_queue()
             if response is not None:
                 self.send(response)
+            if not self.queue.empty():
+                continue
+            time.sleep(0.02)  # short sleep to avoid burning 100% cpu
 
 
 class Sensor:

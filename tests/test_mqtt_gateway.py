@@ -1,4 +1,6 @@
 """Test mysensors MQTT gateway with unittest."""
+import os
+import tempfile
 import time
 from unittest import TestCase, main, mock
 
@@ -13,6 +15,11 @@ class TestMQTTGateway(TestCase):
         self.mock_pub = mock.Mock()
         self.mock_sub = mock.Mock()
         self.gateway = my.MQTTGateway(self.mock_pub, self.mock_sub)
+
+    def tearDown(self):
+        """Stop MQTTGateway if alive."""
+        if self.gateway.is_alive():
+            self.gateway.stop()
 
     def _add_sensor(self, sensorid):
         """Add sensor node. Return sensor node instance."""
@@ -47,7 +54,7 @@ class TestMQTTGateway(TestCase):
         sensor = self._add_sensor(1)
         sensor.children[1] = my.ChildSensor(
             1, self.gateway.const.Presentation.S_HUM)
-        sensor.set_child_value(1, self.gateway.const.SetReq.V_HUM, 20)
+        sensor.children[1].values[self.gateway.const.SetReq.V_HUM] = '20'
         self.gateway.recv('/1/1/2/0/1', '', 0)
         ret = self.gateway.handle_queue()
         self.assertEqual(ret, '1;1;1;0;1;20\n')
@@ -60,7 +67,7 @@ class TestMQTTGateway(TestCase):
         sensor = self._add_sensor(1)
         sensor.children[1] = my.ChildSensor(
             1, self.gateway.const.Presentation.S_HUM)
-        sensor.set_child_value(1, self.gateway.const.SetReq.V_HUM, 20)
+        sensor.children[1].values[self.gateway.const.SetReq.V_HUM] = '20'
         self.gateway.recv('wrong/1/1/2/0/1', '', 0)
         ret = self.gateway.handle_queue()
         self.assertEqual(ret, None)
@@ -99,15 +106,55 @@ class TestMQTTGateway(TestCase):
     def test_start_stop_gateway(self):
         """Test start and stop of MQTT gateway."""
         self.assertFalse(self.gateway.is_alive())
+        sensor = self._add_sensor(1)
+        sensor.children[1] = my.ChildSensor(
+            1, self.gateway.const.Presentation.S_HUM)
+        sensor.children[1].values[self.gateway.const.SetReq.V_HUM] = '20'
+        self.gateway.recv('/1/1/2/0/1', '', 0)
+        self.gateway.recv('/1/1/1/0/1', '30', 0)
+        self.gateway.recv('/1/1/2/0/1', '', 0)
         self.gateway.start()
         self.assertTrue(self.gateway.is_alive())
         calls = [
             mock.call('/+/+/0/+/+', self.gateway.recv, 0),
             mock.call('/+/+/3/+/+', self.gateway.recv, 0)]
         self.mock_sub.assert_has_calls(calls)
-        self.gateway.stop()
         time.sleep(0.05)
+        calls = [
+            mock.call('/1/1/1/0/1', '20', 0, True),
+            mock.call('/1/1/1/0/1', '30', 0, True)]
+        self.mock_pub.assert_has_calls(calls)
+        self.gateway.stop()
+        self.gateway.join(timeout=0.5)
         self.assertFalse(self.gateway.is_alive())
+
+    def test_mqtt_load_persistence(self):
+        """Test load persistence file for MQTTGateway."""
+        sensor = self._add_sensor(1)
+        sensor.children[1] = my.ChildSensor(
+            1, self.gateway.const.Presentation.S_HUM)
+        sensor.children[1].values[self.gateway.const.SetReq.V_HUM] = '20'
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            self.gateway.persistence_file = os.path.join(temp_dir, 'file.json')
+            # pylint: disable=protected-access
+            self.gateway._save_sensors()
+            del self.gateway.sensors[1]
+            self.assertNotIn(1, self.gateway.sensors)
+            self.gateway._safe_load_sensors()
+        self.assertEqual(
+            self.gateway.sensors[1].children[1].id,
+            sensor.children[1].id)
+        self.assertEqual(
+            self.gateway.sensors[1].children[1].type,
+            sensor.children[1].type)
+        self.assertEqual(
+            self.gateway.sensors[1].children[1].values,
+            sensor.children[1].values)
+        calls = [
+            mock.call('/1/1/1/+/+', self.gateway.recv, 0),
+            mock.call('/1/1/2/+/+', self.gateway.recv, 0)]
+        self.mock_sub.assert_has_calls(calls)
 
 
 if __name__ == '__main__':
