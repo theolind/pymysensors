@@ -51,11 +51,13 @@ class Gateway(object):
         if msg.child_id == 255:
             # this is a presentation of the sensor platform
             sensorid = self.add_sensor(msg.node_id)
+            if sensorid is None:
+                return
             self.sensors[msg.node_id].type = msg.sub_type
             self.sensors[msg.node_id].protocol_version = msg.payload
             self.sensors[msg.node_id].reboot = False
             self.alert(msg.node_id)
-            return sensorid if sensorid is not None else None
+            return msg
         else:
             # this is a presentation of a child sensor
             if not self.is_sensor(msg.node_id):
@@ -64,8 +66,10 @@ class Gateway(object):
                 return
             child_id = self.sensors[msg.node_id].add_child_sensor(
                 msg.child_id, msg.sub_type, msg.payload)
+            if child_id is None:
+                return
             self.alert(msg.node_id)
-            return child_id if child_id is not None else None
+            return msg
 
     def _handle_set(self, msg):
         """Process a set message."""
@@ -326,7 +330,8 @@ class Gateway(object):
         return ret
 
     def _route_message(self, msg):
-        if not isinstance(msg, Message):
+        if not isinstance(msg, Message) or \
+                msg.type == self.const.MessageType.presentation:
             return
         if (msg.node_id not in self.sensors or
                 msg.type == self.const.MessageType.stream or
@@ -723,8 +728,8 @@ class MQTTGateway(Gateway, threading.Thread):
 
     def _handle_presentation(self, msg):
         """Process a MQTT presentation message."""
-        node_child_id = super()._handle_presentation(msg)
-        if msg.child_id == 255 or node_child_id is None:
+        ret_msg = super()._handle_presentation(msg)
+        if msg.child_id == 255 or ret_msg is None:
             return
         # this is a presentation of a child sensor
         topics = [
