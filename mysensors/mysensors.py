@@ -717,7 +717,7 @@ class MQTTGateway(Gateway, threading.Thread):
         payload = str(msg.payload)
         msg.payload = ''
         # prefix/node/child/type/ack/subtype : payload
-        return ('{}/{}'.format(self._out_prefix, msg.encode('/'))[:-1],
+        return ('{}/{}'.format(self._out_prefix, msg.encode('/'))[:-2],
                 payload, msg.ack)
 
     def _handle_presentation(self, msg):
@@ -739,6 +739,8 @@ class MQTTGateway(Gateway, threading.Thread):
         Call this method when a message is received from the MQTT broker.
         """
         data = self._parse_mqtt_to_message(topic, payload, qos)
+        if data is None:
+            return
         _LOGGER.debug('Receiving %s', data)
         self.fill_queue(self.logic, (data,))
 
