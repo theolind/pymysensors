@@ -17,6 +17,8 @@ from mysensors.ota import OTAFirmware
 
 _LOGGER = logging.getLogger(__name__)
 
+# pylint: disable=too-many-lines
+
 
 class Gateway(object):
     """Base implementation for a MySensors Gateway."""
@@ -736,8 +738,13 @@ class MQTTGateway(Gateway, threading.Thread):
         topics = [
             '{}/{}/{}/{}/+/+'.format(
                 self._in_prefix, str(msg.node_id), str(msg.child_id),
-                msg_type) for msg_type in ('1', '2')
+                msg_type)
+            for msg_type in (int(self.const.MessageType.set),
+                             int(self.const.MessageType.req))
         ]
+        topics.append('{}/{}/+/{}/+/+'.format(
+            self._in_prefix, str(msg.node_id),
+            int(self.const.MessageType.stream)))
         self._handle_subscription(topics)
 
     def _safe_load_sensors(self):
@@ -748,8 +755,14 @@ class MQTTGateway(Gateway, threading.Thread):
                 self._in_prefix, str(sensor.sensor_id), str(child.id),
                 msg_type) for sensor in self.sensors.values()
             for child in sensor.children.values()
-            for msg_type in ('1', '2')
+            for msg_type in (int(self.const.MessageType.set),
+                             int(self.const.MessageType.req))
         ]
+        topics.extend([
+            '{}/{}/+/{}/+/+'.format(
+                self._in_prefix, str(sensor.sensor_id),
+                int(self.const.MessageType.stream))
+            for sensor in self.sensors.values()])
         self._handle_subscription(topics)
 
     def recv(self, topic, payload, qos):
