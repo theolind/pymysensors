@@ -37,8 +37,6 @@ class Gateway(object):
         self.persistence = persistence  # if true - save sensors to disk
         self.persistence_file = persistence_file  # path to persistence file
         self.persistence_bak = '{}.bak'.format(self.persistence_file)
-        if persistence:
-            self._safe_load_sensors()
         self.protocol_version = float(protocol_version)
         if 1.5 <= self.protocol_version < 2.0:
             _const = import_module('mysensors.const_15')
@@ -48,6 +46,8 @@ class Gateway(object):
             _const = import_module('mysensors.const_14')
         self.const = _const
         self.ota = OTAFirmware(self.sensors, self.const)
+        if persistence:
+            self._safe_load_sensors()
 
     def _handle_presentation(self, msg):
         """Process a presentation message."""
@@ -661,8 +661,6 @@ class MQTTGateway(Gateway, threading.Thread):
                  retain=True):
         """Setup MQTT client gateway."""
         threading.Thread.__init__(self)
-        Gateway.__init__(self, event_callback, persistence,
-                         persistence_file, protocol_version)
         # Should accept topic, payload, qos, retain.
         self._pub_callback = pub_callback
         # Should accept topic, function callback for receive and qos.
@@ -673,6 +671,8 @@ class MQTTGateway(Gateway, threading.Thread):
         self._stop_event = threading.Event()
         # topic structure:
         # prefix/node/child/type/ack/subtype : payload
+        Gateway.__init__(self, event_callback, persistence,
+                         persistence_file, protocol_version)
 
     def _handle_subscription(self, topics):
         """Handle subscription of topics."""
