@@ -4,7 +4,9 @@ python:
   - "3.4"
   - "3.5"
   - "3.5-dev" # 3.5 development branch
-  - "nightly" # currently points to 3.6-dev
+  # nightly now points to 3.7-dev,
+  # which is not supported by latest released tox version
+  - "3.6-dev"
 # command to install dependencies
 install: pip install tox-travis
 # command to run tests
