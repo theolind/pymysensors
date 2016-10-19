@@ -7,11 +7,11 @@ def event(update_type, nid):
     print(update_type + " " + str(nid))
 
 # To create a serial gateway.
-#GATEWAY = mysensors.SerialGateway(
-#    '/dev/ttyACM0', event, protocol_version='2.0')
+GATEWAY = mysensors.SerialGateway(
+    '/dev/ttyACM0', event, protocol_version='2.0')
 
 # To create a TCP gateway.
-GATEWAY = mysensors.TCPGateway('192.168.1.84', event, True)
+GATEWAY = mysensors.TCPGateway('127.0.0.1', event, True)
 
 GATEWAY.debug = True
 GATEWAY.start()
