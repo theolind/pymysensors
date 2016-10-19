@@ -12,9 +12,12 @@ from importlib import import_module
 from queue import Queue
 
 import serial
+
 from mysensors.ota import OTAFirmware
 
 _LOGGER = logging.getLogger(__name__)
+
+# pylint: disable=too-many-lines
 
 
 class Gateway(object):
@@ -34,8 +37,6 @@ class Gateway(object):
         self.persistence = persistence  # if true - save sensors to disk
         self.persistence_file = persistence_file  # path to persistence file
         self.persistence_bak = '{}.bak'.format(self.persistence_file)
-        if persistence:
-            self._safe_load_sensors()
         self.protocol_version = float(protocol_version)
         if 1.5 <= self.protocol_version < 2.0:
             _const = import_module('mysensors.const_15')
@@ -45,17 +46,21 @@ class Gateway(object):
             _const = import_module('mysensors.const_14')
         self.const = _const
         self.ota = OTAFirmware(self.sensors, self.const)
+        if persistence:
+            self._safe_load_sensors()
 
     def _handle_presentation(self, msg):
         """Process a presentation message."""
         if msg.child_id == 255:
             # this is a presentation of the sensor platform
             sensorid = self.add_sensor(msg.node_id)
+            if sensorid is None:
+                return
             self.sensors[msg.node_id].type = msg.sub_type
             self.sensors[msg.node_id].protocol_version = msg.payload
             self.sensors[msg.node_id].reboot = False
             self.alert(msg.node_id)
-            return sensorid if sensorid is not None else None
+            return msg
         else:
             # this is a presentation of a child sensor
             if not self.is_sensor(msg.node_id):
@@ -64,8 +69,10 @@ class Gateway(object):
                 return
             child_id = self.sensors[msg.node_id].add_child_sensor(
                 msg.child_id, msg.sub_type, msg.payload)
+            if child_id is None:
+                return
             self.alert(msg.node_id)
-            return child_id if child_id is not None else None
+            return msg
 
     def _handle_set(self, msg):
         """Process a set message."""
@@ -326,7 +333,8 @@ class Gateway(object):
         return ret
 
     def _route_message(self, msg):
-        if not isinstance(msg, Message):
+        if not isinstance(msg, Message) or \
+                msg.type == self.const.MessageType.presentation:
             return
         if (msg.node_id not in self.sensors or
                 msg.type == self.const.MessageType.stream or
@@ -461,6 +469,7 @@ class SerialGateway(Gateway, threading.Thread):
                     continue
             except serial.SerialException:
                 _LOGGER.exception('Serial exception')
+                self.disconnect()
                 continue
             except TypeError:
                 # pyserial has a bug that causes a TypeError to be thrown when
@@ -652,8 +661,6 @@ class MQTTGateway(Gateway, threading.Thread):
                  retain=True):
         """Setup MQTT client gateway."""
         threading.Thread.__init__(self)
-        Gateway.__init__(self, event_callback, persistence,
-                         persistence_file, protocol_version)
         # Should accept topic, payload, qos, retain.
         self._pub_callback = pub_callback
         # Should accept topic, function callback for receive and qos.
@@ -664,6 +671,8 @@ class MQTTGateway(Gateway, threading.Thread):
         self._stop_event = threading.Event()
         # topic structure:
         # prefix/node/child/type/ack/subtype : payload
+        Gateway.__init__(self, event_callback, persistence,
+                         persistence_file, protocol_version)
 
     def _handle_subscription(self, topics):
         """Handle subscription of topics."""
@@ -717,20 +726,43 @@ class MQTTGateway(Gateway, threading.Thread):
         payload = str(msg.payload)
         msg.payload = ''
         # prefix/node/child/type/ack/subtype : payload
-        return ('{}/{}'.format(self._out_prefix, msg.encode('/'))[:-1],
+        return ('{}/{}'.format(self._out_prefix, msg.encode('/'))[:-2],
                 payload, msg.ack)
 
     def _handle_presentation(self, msg):
         """Process a MQTT presentation message."""
-        node_child_id = super()._handle_presentation(msg)
-        if msg.child_id == 255 or node_child_id is None:
+        ret_msg = super()._handle_presentation(msg)
+        if msg.child_id == 255 or ret_msg is None:
             return
         # this is a presentation of a child sensor
         topics = [
             '{}/{}/{}/{}/+/+'.format(
                 self._in_prefix, str(msg.node_id), str(msg.child_id),
-                msg_type) for msg_type in ('1', '2')
+                msg_type)
+            for msg_type in (int(self.const.MessageType.set),
+                             int(self.const.MessageType.req))
         ]
+        topics.append('{}/{}/+/{}/+/+'.format(
+            self._in_prefix, str(msg.node_id),
+            int(self.const.MessageType.stream)))
+        self._handle_subscription(topics)
+
+    def _safe_load_sensors(self):
+        """Load MQTT sensors safely from file."""
+        super()._safe_load_sensors()
+        topics = [
+            '{}/{}/{}/{}/+/+'.format(
+                self._in_prefix, str(sensor.sensor_id), str(child.id),
+                msg_type) for sensor in self.sensors.values()
+            for child in sensor.children.values()
+            for msg_type in (int(self.const.MessageType.set),
+                             int(self.const.MessageType.req))
+        ]
+        topics.extend([
+            '{}/{}/+/{}/+/+'.format(
+                self._in_prefix, str(sensor.sensor_id),
+                int(self.const.MessageType.stream))
+            for sensor in self.sensors.values()])
         self._handle_subscription(topics)
 
     def recv(self, topic, payload, qos):
@@ -739,6 +771,8 @@ class MQTTGateway(Gateway, threading.Thread):
         Call this method when a message is received from the MQTT broker.
         """
         data = self._parse_mqtt_to_message(topic, payload, qos)
+        if data is None:
+            return
         _LOGGER.debug('Receiving %s', data)
         self.fill_queue(self.logic, (data,))
 
@@ -763,10 +797,12 @@ class MQTTGateway(Gateway, threading.Thread):
         """Background thread that sends messages to the gateway via MQTT."""
         self._init_topics()
         while not self._stop_event.is_set():
-            time.sleep(0.02)  # short sleep to avoid burning 100% cpu
             response = self.handle_queue()
             if response is not None:
                 self.send(response)
+            if not self.queue.empty():
+                continue
+            time.sleep(0.02)  # short sleep to avoid burning 100% cpu
 
 
 class Sensor:
