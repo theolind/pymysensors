@@ -85,7 +85,6 @@ class Gateway(object):
 
     def _handle_req(self, msg):
         """Process a req message.
-
         This will return the value if it exists. If no value exists,
         nothing is returned.
         """
@@ -160,7 +159,6 @@ class Gateway(object):
 
     def logic(self, data):
         """Parse the data and respond to it appropriately.
-
         Response is returned to the caller and has to be sent
         data as a mysensors command string.
         """
@@ -262,7 +260,6 @@ class Gateway(object):
 
     def _perform_file_action(self, filename, action):
         """Perform action on specific file types.
-
         Dynamic dispatch function for performing actions on
         specific file types.
         """
@@ -274,7 +271,6 @@ class Gateway(object):
 
     def alert(self, nid):
         """Tell anyone who wants to know that a sensor was updated.
-
         Also save sensors if persistence is enabled.
         """
         if self.event_callback is not None:
@@ -311,11 +307,8 @@ class Gateway(object):
             _LOGGER.warning('Node %s is unknown', sensorid)
         if ret and child_id is not None:
             ret = child_id in self.sensors[sensorid].children
-            if not ret and child_id != 255:
+            if not ret:
                 _LOGGER.warning('Child %s is unknown', child_id)
-            if child_id == 255:
-                ret = True
-                _LOGGER.info('Child %s is internal', child_id)
         if not ret and self.protocol_version >= 2.0:
             _LOGGER.info('Requesting new presentation for node %s',
                          sensorid)
@@ -338,7 +331,6 @@ class Gateway(object):
 
     def handle_queue(self, queue=None):
         """Handle queue.
-
         If queue is not empty, get the function and any args and kwargs
         from the queue. Run the function and return output.
         """
@@ -352,7 +344,6 @@ class Gateway(object):
 
     def fill_queue(self, func, args=None, kwargs=None, queue=None):
         """Put a function in a queue.
-
         Put the function 'func', a tuple of arguments 'args' and a dict
         of keyword arguments 'kwargs', as a tuple in the queue.
         """
@@ -367,7 +358,6 @@ class Gateway(object):
     def set_child_value(
             self, sensor_id, child_id, value_type, value, **kwargs):
         """Add a command to set a sensor value, to the queue.
-
         A queued command will be sent to the sensor when the gateway
         thread has sent all previously queued commands to the FIFO queue.
         If the sensor attribute new_state returns True, the command will not be
@@ -384,6 +374,11 @@ class Gateway(object):
         else:
             self.fill_queue(self.sensors[sensor_id].set_child_value,
                             (child_id, value_type, value), kwargs)
+
+    def set_internal_value(
+            self, value_type, **kwargs):
+        self.fill_queue(self.sensors[0].set_internal_value,
+                        (value_type,), kwargs)
 
     def update_fw(self, nids, fw_type, fw_ver, fw_path=None):
         """Update firwmare of all node_ids in nids."""
@@ -504,9 +499,9 @@ class TCPGateway(Gateway, threading.Thread):
         self.sock = None
         self.server_address = (host, port)
         self.timeout = timeout
+        self.tcp_check_timer = time.time()
         self.reconnect_timeout = reconnect_timeout
         self._stop_event = threading.Event()
-        self._stop_tcp_check = threading.Event()
 
     def connect(self):
         """Connect to the socket object, on host and port."""
@@ -520,8 +515,6 @@ class TCPGateway(Gateway, threading.Thread):
             self.sock = socket.create_connection(
                 self.server_address, self.reconnect_timeout)
             _LOGGER.info('Connected to %s', self.server_address)
-            self._stop_tcp_check.clear()
-            self.tcp_check()    # start the tcp_check thread
             return True
 
         except TimeoutError:
@@ -542,7 +535,6 @@ class TCPGateway(Gateway, threading.Thread):
         self.sock.close()
         self.sock = None
         _LOGGER.info('Socket closed at %s.', self.server_address)
-        self._stop_tcp_check.set()    #stop the tcp_check until the next connect()
 
     def stop(self):
         """Stop the background thread."""
@@ -557,15 +549,6 @@ class TCPGateway(Gateway, threading.Thread):
         if available_socks[2]:
             raise OSError
         return available_socks
-
-    def tcp_check(self):
-        if not self._stop_tcp_check.is_set():
-            t = threading.Timer(10.0, self.tcp_check)    #send heartbeat every 10 seconds until socket is disconnected
-            t.setDaemon(True)
-            t.start()
-            _LOGGER.info('Sending I_HEARTBEAT')
-            #self.set_child_internal(0, 255, 2, 0)
-            self.set_child_value(0, 255, 18, 0)
 
     def recv_timeout(self):
         """Receive reply from server, with a timeout."""
@@ -653,6 +636,9 @@ class TCPGateway(Gateway, threading.Thread):
                 del lines[-1]
                 for line in lines:
                     self.fill_queue(self.logic, (line,))
+            if (self.tcp_check_timer + self.reconnect_timeout) < time.time():
+                self.set_internal_value (self.const.Internal.I_VERSION)
+                self.tcp_check_timer = time.time()
         self.disconnect()
 
 
@@ -708,7 +694,6 @@ class MQTTGateway(Gateway, threading.Thread):
 
     def _parse_mqtt_to_message(self, topic, payload, qos):
         """Parse a MQTT topic and payload.
-
         Return a mysensors command string.
         """
         topic_levels = topic.split('/')
@@ -725,7 +710,6 @@ class MQTTGateway(Gateway, threading.Thread):
 
     def _parse_message_to_mqtt(self, data):
         """Parse a mysensors command string.
-
         Return a MQTT topic, payload and qos-level as a tuple.
         """
         msg = Message(data)
@@ -750,7 +734,6 @@ class MQTTGateway(Gateway, threading.Thread):
 
     def recv(self, topic, payload, qos):
         """Receive a MQTT message.
-
         Call this method when a message is received from the MQTT broker.
         """
         data = self._parse_mqtt_to_message(topic, payload, qos)
@@ -825,12 +808,9 @@ class Sensor:
     def set_child_value(self, child_id, value_type, value, **kwargs):
         """Set a child sensor's value."""
         children = kwargs.get('children', self.children)
-        if (not isinstance(children, dict) or child_id not in children) and child_id != 255:
+        if not isinstance(children, dict) or child_id not in children:
             return
-        if child_id==255:   # Internal subtype message
-            msg_type = kwargs.get('msg_type', 3)
-        else:
-            msg_type = kwargs.get('msg_type', 1)
+        msg_type = kwargs.get('msg_type', 1)
         ack = kwargs.get('ack', 0)
         msg_string = Message().copy(
             node_id=self.sensor_id, child_id=child_id, type=msg_type, ack=ack,
@@ -846,10 +826,12 @@ class Sensor:
         except (ValueError, AttributeError) as exception:
             _LOGGER.error('Error validating child values: %s', exception)
             return
-        if child_id != 255:    # 255 is not a real child_id
-            children[child_id].values[value_type] = msg.payload
+        children[child_id].values[value_type] = msg.payload
         return msg_string
 
+    def set_internal_value(self, value_type, **kwargs):
+        return Message().copy(
+            child_id=255, type=3, ack=0, sub_type=value_type, payload='').encode()
 
 class ChildSensor:
     """Represent a child sensor."""
