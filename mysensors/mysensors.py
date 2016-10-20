@@ -385,6 +385,7 @@ class Gateway(object):
 
     def set_internal_value(
             self, value_type, **kwargs):
+        """Add an internal command to the queue."""
         self.fill_queue(self.sensors[0].set_internal_value,
                         (value_type,), kwargs)
 
@@ -645,7 +646,7 @@ class TCPGateway(Gateway, threading.Thread):
                 for line in lines:
                     self.fill_queue(self.logic, (line,))
             if (self.tcp_check_timer + self.reconnect_timeout) < time.time():
-                self.set_internal_value (self.const.Internal.I_VERSION)
+                self.set_internal_value(self.const.Internal.I_VERSION)
                 self.tcp_check_timer = time.time()
         self.disconnect()
 
@@ -840,9 +841,13 @@ class Sensor:
         children[child_id].values[value_type] = msg.payload
         return msg_string
 
-    def set_internal_value(self, value_type, **kwargs):
+    @classmethod
+    def set_internal_value(self, value_type):
+        """Creates an internal message to be queued."""
         return Message().copy(
-            child_id=255, type=3, ack=0, sub_type=value_type, payload='').encode()
+            child_id=255, type=3, ack=0, sub_type=value_type, 
+            payload='').encode()
+
 
 class ChildSensor:
     """Represent a child sensor."""
