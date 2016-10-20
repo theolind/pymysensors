@@ -849,8 +849,7 @@ class Sensor:
         if msg_string is None:
             _LOGGER.error(
                 'Not a valid internal message: node %s, 255, 3, 0, '
-                'sub_type %s, payload %s',
-                self.sensor_id, child_id, msg_type, ack, value_type, value)
+                'sub_type %s, 0', self.sensor_id, value_type)
             return
         return msg_string
 
