@@ -842,10 +842,17 @@ class Sensor:
         return msg_string
 
     def set_internal_value(self, value_type):
-        """Creates an internal message to be queued."""
-        return Message().copy(
+        """Create an internal message to be queued."""
+        msg_string = Message().copy(
             child_id=255, type=3, ack=0, sub_type=value_type,
             payload='').encode()
+        if msg_string is None:
+            _LOGGER.error(
+                'Not a valid internal message: node %s, 255, 3, 0, '
+                'sub_type %s, payload %s',
+                self.sensor_id, child_id, msg_type, ack, value_type, value)
+            return
+        return msg_string
 
 
 class ChildSensor:
