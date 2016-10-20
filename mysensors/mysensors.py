@@ -16,6 +16,7 @@ from mysensors.ota import OTAFirmware
 
 _LOGGER = logging.getLogger(__name__)
 
+
 class Gateway(object):
     """Base implementation for a MySensors Gateway."""
 
@@ -85,6 +86,7 @@ class Gateway(object):
 
     def _handle_req(self, msg):
         """Process a req message.
+
         This will return the value if it exists. If no value exists,
         nothing is returned.
         """
@@ -159,6 +161,7 @@ class Gateway(object):
 
     def logic(self, data):
         """Parse the data and respond to it appropriately.
+
         Response is returned to the caller and has to be sent
         data as a mysensors command string.
         """
@@ -260,6 +263,7 @@ class Gateway(object):
 
     def _perform_file_action(self, filename, action):
         """Perform action on specific file types.
+
         Dynamic dispatch function for performing actions on
         specific file types.
         """
@@ -271,6 +275,7 @@ class Gateway(object):
 
     def alert(self, nid):
         """Tell anyone who wants to know that a sensor was updated.
+
         Also save sensors if persistence is enabled.
         """
         if self.event_callback is not None:
@@ -331,6 +336,7 @@ class Gateway(object):
 
     def handle_queue(self, queue=None):
         """Handle queue.
+
         If queue is not empty, get the function and any args and kwargs
         from the queue. Run the function and return output.
         """
@@ -344,6 +350,7 @@ class Gateway(object):
 
     def fill_queue(self, func, args=None, kwargs=None, queue=None):
         """Put a function in a queue.
+
         Put the function 'func', a tuple of arguments 'args' and a dict
         of keyword arguments 'kwargs', as a tuple in the queue.
         """
@@ -358,6 +365,7 @@ class Gateway(object):
     def set_child_value(
             self, sensor_id, child_id, value_type, value, **kwargs):
         """Add a command to set a sensor value, to the queue.
+
         A queued command will be sent to the sensor when the gateway
         thread has sent all previously queued commands to the FIFO queue.
         If the sensor attribute new_state returns True, the command will not be
@@ -694,6 +702,7 @@ class MQTTGateway(Gateway, threading.Thread):
 
     def _parse_mqtt_to_message(self, topic, payload, qos):
         """Parse a MQTT topic and payload.
+
         Return a mysensors command string.
         """
         topic_levels = topic.split('/')
@@ -710,6 +719,7 @@ class MQTTGateway(Gateway, threading.Thread):
 
     def _parse_message_to_mqtt(self, data):
         """Parse a mysensors command string.
+
         Return a MQTT topic, payload and qos-level as a tuple.
         """
         msg = Message(data)
@@ -734,6 +744,7 @@ class MQTTGateway(Gateway, threading.Thread):
 
     def recv(self, topic, payload, qos):
         """Receive a MQTT message.
+
         Call this method when a message is received from the MQTT broker.
         """
         data = self._parse_mqtt_to_message(topic, payload, qos)
