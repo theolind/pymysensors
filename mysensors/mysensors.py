@@ -841,11 +841,10 @@ class Sensor:
         children[child_id].values[value_type] = msg.payload
         return msg_string
 
-    @classmethod
     def set_internal_value(self, value_type):
         """Creates an internal message to be queued."""
         return Message().copy(
-            child_id=255, type=3, ack=0, sub_type=value_type, 
+            child_id=255, type=3, ack=0, sub_type=value_type,
             payload='').encode()
 
 
