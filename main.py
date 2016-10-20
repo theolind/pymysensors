@@ -11,7 +11,7 @@ GATEWAY = mysensors.SerialGateway(
     '/dev/ttyACM0', event, protocol_version='2.0')
 
 # To create a TCP gateway.
-GATEWAY = mysensors.TCPGateway('127.0.0.1', event, True)
+# GATEWAY = mysensors.TCPGateway('127.0.0.1', event, True)
 
 GATEWAY.debug = True
 GATEWAY.start()
