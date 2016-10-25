@@ -383,12 +383,6 @@ class Gateway(object):
             self.fill_queue(self.sensors[sensor_id].set_child_value,
                             (child_id, value_type, value), kwargs)
 
-    def set_internal_value(
-            self, value_type, **kwargs):
-        """Add an internal command to the queue."""
-        self.fill_queue(self.sensors[0].set_internal_value,
-                        (value_type,), kwargs)
-
     def update_fw(self, nids, fw_type, fw_ver, fw_path=None):
         """Update firwmare of all node_ids in nids."""
         self.ota.make_update(nids, fw_type, fw_ver, fw_path)
@@ -511,6 +505,16 @@ class TCPGateway(Gateway, threading.Thread):
         self.tcp_check_timer = time.time()
         self.reconnect_timeout = reconnect_timeout
         self._stop_event = threading.Event()
+
+    def _check_connection(self):
+        """Check if connection is alive every reconnect_timeout seconds."""
+        if not (self.tcp_check_timer + self.reconnect_timeout) < time.time():
+            return
+        msg = Message().copy(
+            child_id=255, type=self.const.MessageType.internal,
+            sub_type=self.const.Internal.I_VERSION)
+        self.fill_queue(msg.encode)
+        self.tcp_check_timer = time.time()
 
     def connect(self):
         """Connect to the socket object, on host and port."""
@@ -645,9 +649,7 @@ class TCPGateway(Gateway, threading.Thread):
                 del lines[-1]
                 for line in lines:
                     self.fill_queue(self.logic, (line,))
-            if (self.tcp_check_timer + self.reconnect_timeout) < time.time():
-                self.set_internal_value(self.const.Internal.I_VERSION)
-                self.tcp_check_timer = time.time()
+            self._check_connection()
         self.disconnect()
 
 
@@ -839,18 +841,6 @@ class Sensor:
             _LOGGER.error('Error validating child values: %s', exception)
             return
         children[child_id].values[value_type] = msg.payload
-        return msg_string
-
-    def set_internal_value(self, value_type):
-        """Create an internal message to be queued."""
-        msg_string = Message().copy(
-            child_id=255, type=3, ack=0, sub_type=value_type,
-            payload='').encode()
-        if msg_string is None:
-            _LOGGER.error(
-                'Not a valid internal message: node %s, 255, 3, 0, '
-                'sub_type %s, 0', self.sensor_id, value_type)
-            return
         return msg_string
 
 
