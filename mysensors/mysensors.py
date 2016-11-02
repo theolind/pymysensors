@@ -544,12 +544,11 @@ class TCPGateway(Gateway, threading.Thread):
         if not self.sock:
             return
         _LOGGER.info('Closing socket at %s.', self.server_address)
-      
         try:
             self.sock.shutdown(socket.SHUT_WR)
         except OSError:
-            _LOGGER.error('Failed to shutdown socket at %s.', self.server_address)
-      
+            _LOGGER.error('Failed to shutdown socket at %s.', 
+                          self.server_address)
         self.sock.close()
         self.sock = None
         _LOGGER.info('Socket closed at %s.', self.server_address)
