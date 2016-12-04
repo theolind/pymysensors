@@ -114,7 +114,9 @@ class Gateway(object):
 
     def _handle_internal(self, msg):
         """Process an internal protocol message."""
-        if msg.sub_type == self.const.Internal.I_ID_REQUEST:
+        if msg.sub_type == self.const.Internal.I_VERSION:
+            self.tcp_disconnect_timer = time.time()
+        elif msg.sub_type == self.const.Internal.I_ID_REQUEST:
             node_id = self.add_sensor()
             return msg.copy(ack=0,
                             sub_type=self.const.Internal.I_ID_RESPONSE,
@@ -503,11 +505,18 @@ class TCPGateway(Gateway, threading.Thread):
         self.server_address = (host, port)
         self.timeout = timeout
         self.tcp_check_timer = time.time()
+        self.tcp_disconnect_timer = time.time()
         self.reconnect_timeout = reconnect_timeout
         self._stop_event = threading.Event()
 
     def _check_connection(self):
         """Check if connection is alive every reconnect_timeout seconds."""
+        if ((self.tcp_disconnect_timer + 2 * self.reconnect_timeout) <
+                time.time()):
+            self.tcp_disconnect_timer = time.time()
+            self.disconnect()
+            _LOGGER.info('No response. Disconnected.')
+            return
         if not (self.tcp_check_timer + self.reconnect_timeout) < time.time():
             return
         msg = Message().copy(
