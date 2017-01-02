@@ -387,24 +387,28 @@ class TestGateway(TestCase):
         # pylint: disable=no-value-for-parameter
         self._test_persistence_upgrade('file.json')
 
-    def _callback(self, update_type, nid):
-        """Callback for test of callback."""
-        self.gateway.test_callback_update = update_type
-        self.gateway.test_callback_node_id = nid
+    def _callback(self, message):
+        self.gateway.test_callback_message = message
 
     @mock.patch('mysensors.mysensors.Gateway._save_sensors')
     def test_callback(self, mock_save_sensors):
         """Test gateway callback function."""
         self.gateway.event_callback = self._callback
         self.gateway.persistence = True
-        self.gateway.test_callback_node_id = None
-        self.gateway.test_callback_update = None
+        self.gateway.test_callback_message = None
         sensor = self._add_sensor(1)
         sensor.children[0] = my.ChildSensor(
             0, self.gateway.const.Presentation.S_LIGHT_LEVEL)
         self.gateway.logic('1;0;1;0;23;43\n')
-        self.assertEqual(1, self.gateway.test_callback_node_id)
-        self.assertEqual('sensor_update', self.gateway.test_callback_update)
+        self.assertIsNotNone(self.gateway.test_callback_message)
+        self.assertEqual(self.gateway,
+                         self.gateway.test_callback_message.gateway)
+        self.assertEqual(1, self.gateway.test_callback_message.node_id)
+        self.assertEqual(0, self.gateway.test_callback_message.child_id)
+        self.assertEqual(1, self.gateway.test_callback_message.type)
+        self.assertEqual(0, self.gateway.test_callback_message.ack)
+        self.assertEqual(23, self.gateway.test_callback_message.sub_type)
+        self.assertEqual('43', self.gateway.test_callback_message.payload)
         assert mock_save_sensors.called
 
     def test_callback_exception(self):
@@ -414,7 +418,9 @@ class TestGateway(TestCase):
         with mock.patch.object(self.gateway, 'event_callback',
                                side_effect=side_effect) as mock_callback:
             with self.assertLogs(level='ERROR') as test_handle:
-                self.gateway.alert(1)
+                msg = my.Message()
+                msg.node_id = 1
+                self.gateway.alert(msg)
             assert mock_callback.called
             self.assertEqual(
                 # only check first line of error log
@@ -657,6 +663,7 @@ class MySensorsJSONEncoderTestUpgrade(my.MySensorsJSONEncoder):
             }
         else:
             return super().default(obj)
+
 
 if __name__ == '__main__':
     main()

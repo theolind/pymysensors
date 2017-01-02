@@ -7,20 +7,34 @@ Python API for talking to a MySensors gateway (http://www.mysensors.org/). Curre
 
 # Usage
 Currently the API is best used by implementing a callback handler
+
 ```python
 import mysensors.mysensors as mysensors
 
-def event(update_type, nid):
+def event(message):
     """Callback for mysensors updates."""
-    print(update_type + " " + str(nid))
+    print("sensor_update " + str(message.node_id))
 
 GATEWAY = mysensors.SerialGateway('/dev/ttyACM0', event)
 GATEWAY.start()
 ```
 
-In the above example PyMysensors will call "event" whenever a node in the Mysensors network has been updated.
+In the above example PyMysensors will call "event" whenever a node in the Mysensors network has been updated. The message passed to the callback handler has the following data:
+
+```
+Message
+    node_id - the sensor node identifier
+    child_id - the child sensor id
+    type - the message type (int)
+    ack - True is message was an ACK, false otherwise
+    sub_type - the message sub_type (int)
+    payload - the payload of the message (string)
+```
+
+Symbolic names for the Message types and sub_types are defined in the protocol version-specific const_X.py files.
 
 The data structure of a gateway and it's network is described below.
+
 ```
 SerialGateway/TCPGateway/MQTTGateway
     sensors - a dict containing all nodes for the gateway; node is of type Sensor
@@ -41,11 +55,13 @@ ChildSensor - a child sensor
 ```
 
 Getting the type and values of node 23, child sensor 4 would be performed as follows:
+
 ```python
 s_type = GATEWAY.sensors[23].children[4].type
 values = GATEWAY.sensors[23].children[4].values
 ```
 To update a node child sensor value and send it to the node, use the set_child_value method in the Gateway class:
+
 ```python
 # To set sensor 1, child 1, sub-type V_LIGHT (= 2), with value 1.
 GATEWAY.set_child_value(1, 1, 2, 1)
@@ -64,9 +80,9 @@ The serial gateway also supports setting the baudrate, read timeout and reconnec
 ```python
 import mysensors.mysensors as mysensors
 
-def event(update_type, nid):
+def event(message):
     """Callback for mysensors updates."""
-    print(update_type + " " + str(nid))
+    print("sensor_update " + str(message.node_id))
 
 GATEWAY = mysensors.SerialGateway(
   '/dev/ttyACM0', event_callback=event, persistence=True,

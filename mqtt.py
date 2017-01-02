@@ -44,9 +44,9 @@ class MQTT(object):
         self._mqttc.loop_stop()
 
 
-def event(update_type, nid):
+def event(message):
     """Callback for mysensors updates."""
-    print(update_type + " " + str(nid))
+    print("sensor_update " + str(message.node_id))
 
 MQTTC = MQTT('localhost', 1883, 60)
 MQTTC.start()
