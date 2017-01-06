@@ -10,7 +10,6 @@ import time
 from collections import deque
 from importlib import import_module
 from queue import Queue
-
 import serial
 
 from mysensors.ota import OTAFirmware
@@ -59,7 +58,7 @@ class Gateway(object):
             self.sensors[msg.node_id].type = msg.sub_type
             self.sensors[msg.node_id].protocol_version = msg.payload
             self.sensors[msg.node_id].reboot = False
-            self.alert(msg.node_id)
+            self.alert(msg)
             return msg
         else:
             # this is a presentation of a child sensor
@@ -71,7 +70,7 @@ class Gateway(object):
                 msg.child_id, msg.sub_type, msg.payload)
             if child_id is None:
                 return
-            self.alert(msg.node_id)
+            self.alert(msg)
             return msg
 
     def _handle_set(self, msg):
@@ -84,7 +83,7 @@ class Gateway(object):
             self.sensors[msg.node_id].set_child_value(
                 msg.child_id, msg.sub_type, msg.payload,
                 children=self.sensors[msg.node_id].new_state)
-        self.alert(msg.node_id)
+        self.alert(msg)
         # Check if reboot is true
         if self.sensors[msg.node_id].reboot:
             return msg.copy(
@@ -129,17 +128,17 @@ class Gateway(object):
         elif msg.sub_type == self.const.Internal.I_SKETCH_NAME:
             if self.is_sensor(msg.node_id):
                 self.sensors[msg.node_id].sketch_name = msg.payload
-                self.alert(msg.node_id)
+                self.alert(msg)
         elif msg.sub_type == self.const.Internal.I_SKETCH_VERSION:
             if self.is_sensor(msg.node_id):
                 self.sensors[msg.node_id].sketch_version = msg.payload
-                self.alert(msg.node_id)
+                self.alert(msg)
         elif msg.sub_type == self.const.Internal.I_CONFIG:
             return msg.copy(ack=0, payload='M' if self.metric else 'I')
         elif msg.sub_type == self.const.Internal.I_BATTERY_LEVEL:
             if self.is_sensor(msg.node_id):
                 self.sensors[msg.node_id].battery_level = int(msg.payload)
-                self.alert(msg.node_id)
+                self.alert(msg)
         elif msg.sub_type == self.const.Internal.I_TIME:
             return msg.copy(ack=0, payload=int(time.time()))
         elif (self.protocol_version >= 2.0 and
@@ -174,7 +173,7 @@ class Gateway(object):
         """
         ret = None
         try:
-            msg = Message(data)
+            msg = Message(data, self)
         except ValueError:
             return
 
@@ -280,14 +279,14 @@ class Gateway(object):
             raise Exception('Unsupported file type %s' % ext[1:])
         func(filename)
 
-    def alert(self, nid):
+    def alert(self, msg):
         """Tell anyone who wants to know that a sensor was updated.
 
         Also save sensors if persistence is enabled.
         """
         if self.event_callback is not None:
             try:
-                self.event_callback('sensor_update', nid)
+                self.event_callback(msg)
             except Exception as exception:  # pylint: disable=W0703
                 _LOGGER.exception(exception)
 
@@ -324,7 +323,7 @@ class Gateway(object):
         if not ret and self.protocol_version >= 2.0:
             _LOGGER.info('Requesting new presentation for node %s',
                          sensorid)
-            msg = Message().copy(
+            msg = Message(gateway=self).copy(
                 node_id=sensorid, child_id=255,
                 type=self.const.MessageType.internal,
                 sub_type=self.const.Internal.I_PRESENTATION)
@@ -722,7 +721,7 @@ class MQTTGateway(Gateway, threading.Thread):
 
         Return a MQTT topic, payload and qos-level as a tuple.
         """
-        msg = Message(data)
+        msg = Message(data, self)
         payload = str(msg.payload)
         msg.payload = ''
         # prefix/node/child/type/ack/subtype : payload
@@ -850,7 +849,7 @@ class Sensor:
             return
         msg_type = kwargs.get('msg_type', 1)
         ack = kwargs.get('ack', 0)
-        msg_string = Message().copy(
+        msg_string = Message(gateway=self).copy(
             node_id=self.sensor_id, child_id=child_id, type=msg_type, ack=ack,
             sub_type=value_type, payload=value).encode()
         if msg_string is None:
@@ -903,7 +902,7 @@ class ChildSensor:
 class Message:
     """Represent a message from the gateway."""
 
-    def __init__(self, data=None):
+    def __init__(self, data=None, gateway=None):
         """Setup message."""
         self.node_id = 0
         self.child_id = 0
@@ -911,12 +910,13 @@ class Message:
         self.ack = 0
         self.sub_type = 0
         self.payload = ''  # All data except payload are integers
+        self.gateway = gateway
         if data is not None:
             self.decode(data)
 
     def copy(self, **kwargs):
         """Copy a message, optionally replace attributes with kwargs."""
-        msg = Message(self.encode())
+        msg = Message(self.encode(), self.gateway)
         for key, val in kwargs.items():
             setattr(msg, key, val)
         return msg

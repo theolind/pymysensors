@@ -2,9 +2,9 @@
 import mysensors.mysensors as mysensors
 
 
-def event(update_type, nid):
+def event(message):
     """Callback for mysensors updates."""
-    print(update_type + " " + str(nid))
+    print("sensor_update " + str(message.node_id))
 
 # To create a serial gateway.
 GATEWAY = mysensors.SerialGateway(
