@@ -105,7 +105,6 @@ class TestGateway(TestCase):
 
     def test_internal_log_message(self):
         """Test internal receive of log message."""
-        self.gateway.debug = True
         payload = 'read: 1-1-0 s=0,c=1,t=1,pt=7,l=5,sg=0:22.0\n'
         data = '0;255;3;0;9;{}'.format(payload)
         with self.assertLogs(level='DEBUG') as test_handle:

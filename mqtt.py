@@ -56,5 +56,4 @@ GATEWAY = mysensors.MQTTGateway(
     protocol_version="2.0", in_prefix='mygateway1-out',
     out_prefix='mygateway1-in', retain=True)
 
-GATEWAY.debug = True
 GATEWAY.start()
