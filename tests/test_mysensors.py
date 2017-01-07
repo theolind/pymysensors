@@ -105,7 +105,6 @@ class TestGateway(TestCase):
 
     def test_internal_log_message(self):
         """Test internal receive of log message."""
-        self.gateway.debug = True
         payload = 'read: 1-1-0 s=0,c=1,t=1,pt=7,l=5,sg=0:22.0\n'
         data = '0;255;3;0;9;{}'.format(payload)
         with self.assertLogs(level='DEBUG') as test_handle:
@@ -114,6 +113,18 @@ class TestGateway(TestCase):
             test_handle.output,
             ['DEBUG:mysensors.mysensors:n:0 c:255 t:3 s:9 p:{}'.format(
                 payload[:-1])])
+
+    def test_internal_gateway_ready(self):
+        """Test internal receive gateway ready and send discover request."""
+        payload = 'Gateway startup complete.\n'
+        data = '0;255;3;0;14;{}'.format(payload)
+        with self.assertLogs(level='INFO') as test_handle:
+            ret = self.gateway.logic(data)
+        self.assertEqual(
+            test_handle.output,
+            ['INFO:mysensors.mysensors:n:0 c:255 t:3 s:14 p:{}'.format(
+                payload[:-1])])
+        self.assertEqual(ret, None)
 
     def test_present_light_level_sensor(self):
         """Test presentation of a light level sensor."""
@@ -348,6 +359,7 @@ class TestGateway(TestCase):
         sensor = self._add_sensor(1)
         sensor.children[0] = my.ChildSensor(
             0, self.gateway.const.Presentation.S_LIGHT_LEVEL)
+        sensor.battery_level = 58
         del self.gateway.sensors[1].__dict__['new_state']
         self.assertNotIn('new_state', self.gateway.sensors[1].__dict__)
         del self.gateway.sensors[1].__dict__['queue']
@@ -365,6 +377,7 @@ class TestGateway(TestCase):
             del self.gateway.sensors[1]
             self.assertNotIn(1, self.gateway.sensors)
             self.gateway._safe_load_sensors()
+            self.assertEqual(self.gateway.sensors[1].battery_level, 58)
             self.assertEqual(self.gateway.sensors[1].new_state, {})
             self.assertEqual(self.gateway.sensors[1].queue, deque())
             self.assertEqual(self.gateway.sensors[1].reboot, False)
@@ -607,6 +620,33 @@ class TestGateway20(TestGateway):
             sensor.new_state[0].values[
                 self.gateway.const.SetReq.V_LIGHT_LEVEL])
 
+    def test_internal_gateway_ready(self):
+        """Test internal receive gateway ready and send discover request."""
+        payload = 'Gateway startup complete.\n'
+        data = '0;255;3;0;14;{}'.format(payload)
+        with self.assertLogs(level='INFO') as test_handle:
+            ret = self.gateway.logic(data)
+        self.assertEqual(
+            test_handle.output,
+            ['INFO:mysensors.mysensors:n:0 c:255 t:3 s:14 p:{}'.format(
+                payload[:-1])])
+        self.assertEqual(ret, '255;255;3;0;20;\n')
+
+    def test_discover_response_unknown(self):
+        """Test internal receive discover response."""
+        # Test sensor 1 unknown.
+        self.gateway.logic('1;255;3;0;21;0')
+        ret = self.gateway.handle_queue()
+        self.assertEqual(ret, '1;255;3;0;19;\n')
+
+    @mock.patch('mysensors.mysensors.Gateway.is_sensor')
+    def test_discover_response_known(self, mock_is_sensor):
+        """Test internal receive discover response."""
+        # Test sensor 1 known.
+        self._add_sensor(1)
+        self.gateway.logic('1;255;3;0;21;0')
+        assert mock_is_sensor.called
+
 
 class TestMessage(TestCase):
     """Test the Message class and it's encode/decode functions."""
@@ -655,6 +695,16 @@ class MySensorsJSONEncoderTestUpgrade(my.MySensorsJSONEncoder):
 
     def default(self, obj):  # pylint: disable=E0202
         """Serialize obj into JSON."""
+        if isinstance(obj, my.Sensor):
+            return {
+                'sensor_id': obj.sensor_id,
+                'children': obj.children,
+                'type': obj.type,
+                'sketch_name': obj.sketch_name,
+                'sketch_version': obj.sketch_version,
+                'battery_level': obj.battery_level,
+                'protocol_version': obj.protocol_version,
+            }
         if isinstance(obj, my.ChildSensor):
             return {
                 'id': obj.id,

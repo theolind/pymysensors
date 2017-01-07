@@ -32,7 +32,6 @@ class Gateway(object):
         self.event_callback = event_callback
         self.sensors = {}
         self.metric = True  # if true - use metric, if false - use imperial
-        self.debug = False  # if true - print all received messages
         self.persistence = persistence  # if true - save sensors to disk
         self.persistence_file = persistence_file  # path to persistence file
         self.persistence_bak = '{}.bak'.format(self.persistence_file)
@@ -125,32 +124,28 @@ class Gateway(object):
             return msg.copy(ack=0,
                             sub_type=self.const.Internal.I_ID_RESPONSE,
                             payload=node_id) if node_id is not None else None
-        elif msg.sub_type == self.const.Internal.I_SKETCH_NAME:
-            if self.is_sensor(msg.node_id):
-                self.sensors[msg.node_id].sketch_name = msg.payload
-                self.alert(msg)
-        elif msg.sub_type == self.const.Internal.I_SKETCH_VERSION:
-            if self.is_sensor(msg.node_id):
-                self.sensors[msg.node_id].sketch_version = msg.payload
-                self.alert(msg)
         elif msg.sub_type == self.const.Internal.I_CONFIG:
             return msg.copy(ack=0, payload='M' if self.metric else 'I')
-        elif msg.sub_type == self.const.Internal.I_BATTERY_LEVEL:
-            if self.is_sensor(msg.node_id):
-                self.sensors[msg.node_id].battery_level = int(msg.payload)
-                self.alert(msg)
         elif msg.sub_type == self.const.Internal.I_TIME:
             return msg.copy(ack=0, payload=int(time.time()))
-        elif (self.protocol_version >= 2.0 and
-              msg.sub_type == self.const.Internal.I_HEARTBEAT_RESPONSE):
-            self._handle_heartbeat(msg)
-        elif msg.sub_type == self.const.Internal.I_LOG_MESSAGE and self.debug:
-            _LOGGER.debug('n:%s c:%s t:%s s:%s p:%s',
-                          msg.node_id,
-                          msg.child_id,
-                          msg.type,
-                          msg.sub_type,
-                          msg.payload)
+        actions = self.const.HANDLE_INTERNAL.get(msg.sub_type)
+        if not actions:
+            return
+        if actions.get('is_sensor') and not self.is_sensor(msg.node_id):
+            return
+        if actions.get('setattr'):
+            setattr(self.sensors[msg.node_id], actions['setattr'], msg.payload)
+        if actions.get('fun'):
+            getattr(self, actions['fun'])(msg)
+        if actions.get('log'):
+            getattr(_LOGGER, actions['log'])('n:%s c:%s t:%s s:%s p:%s',
+                                             msg.node_id,
+                                             msg.child_id,
+                                             msg.type,
+                                             msg.sub_type,
+                                             msg.payload)
+        if actions.get('msg'):
+            return msg.copy(**actions['msg'])
 
     def _handle_stream(self, msg):
         """Process a stream type message."""
@@ -287,7 +282,7 @@ class Gateway(object):
         if self.event_callback is not None:
             try:
                 self.event_callback(msg)
-            except Exception as exception:  # pylint: disable=W0703
+            except Exception as exception:  # pylint: disable=broad-except
                 _LOGGER.exception(exception)
 
         if self.persistence:
@@ -686,7 +681,7 @@ class MQTTGateway(Gateway, threading.Thread):
             try:
                 _LOGGER.debug('Subscribing to: %s', topic)
                 self._sub_callback(topic, self.recv, qos)
-            except Exception as exception:  # pylint: disable=W0703
+            except Exception as exception:  # pylint: disable=broad-except
                 _LOGGER.exception(
                     'Subscribe to %s failed: %s', topic, exception)
 
@@ -784,7 +779,7 @@ class MQTTGateway(Gateway, threading.Thread):
             try:
                 _LOGGER.debug('Publishing %s', message)
                 self._pub_callback(topic, payload, qos, self._retain)
-            except Exception as exception:  # pylint: disable=W0703
+            except Exception as exception:  # pylint: disable=broad-except
                 _LOGGER.exception('Publish to %s failed: %s', topic, exception)
 
     def stop(self):
@@ -804,7 +799,7 @@ class MQTTGateway(Gateway, threading.Thread):
             time.sleep(0.02)  # short sleep to avoid burning 100% cpu
 
 
-class Sensor:
+class Sensor(object):
     """Represent a sensor."""
 
     # pylint: disable=too-many-instance-attributes
@@ -816,7 +811,7 @@ class Sensor:
         self.type = None
         self.sketch_name = None
         self.sketch_version = None
-        self.battery_level = 0
+        self._battery_level = 0
         self.protocol_version = None
         self.new_state = {}
         self.queue = deque()
@@ -830,6 +825,16 @@ class Sensor:
         self.new_state = {}
         self.queue = deque()
         self.reboot = False
+
+    @property
+    def battery_level(self):
+        """Return battery level."""
+        return self._battery_level
+
+    @battery_level.setter
+    def battery_level(self, value):
+        """Set battery level as int."""
+        self._battery_level = int(value)
 
     def add_child_sensor(self, child_id, child_type, description=''):
         """Create and add a child sensor."""
@@ -867,7 +872,7 @@ class Sensor:
         return msg_string
 
 
-class ChildSensor:
+class ChildSensor(object):
     """Represent a child sensor."""
 
     # pylint: disable=too-few-public-methods
@@ -899,7 +904,7 @@ class ChildSensor:
         return ret.format(self.id, self.type, self.description, self.values)
 
 
-class Message:
+class Message(object):
     """Represent a message from the gateway."""
 
     def __init__(self, data=None, gateway=None):
@@ -954,8 +959,9 @@ class Message:
 class MySensorsJSONEncoder(json.JSONEncoder):
     """JSON encoder."""
 
-    def default(self, obj):  # pylint: disable=E0202
+    def default(self, obj):
         """Serialize obj into JSON."""
+        # pylint: disable=method-hidden, protected-access
         if isinstance(obj, Sensor):
             return {
                 'sensor_id': obj.sensor_id,
@@ -963,7 +969,7 @@ class MySensorsJSONEncoder(json.JSONEncoder):
                 'type': obj.type,
                 'sketch_name': obj.sketch_name,
                 'sketch_version': obj.sketch_version,
-                'battery_level': obj.battery_level,
+                '_battery_level': obj.battery_level,
                 'protocol_version': obj.protocol_version,
             }
         if isinstance(obj, ChildSensor):
@@ -989,7 +995,8 @@ class MySensorsJSONDecoder(json.JSONDecoder):
             return obj
         if 'sensor_id' in obj:
             sensor = Sensor(obj['sensor_id'])
-            sensor.__dict__.update(obj)
+            for key, val in obj.items():
+                setattr(sensor, key, val)
             return sensor
         elif all(k in obj for k in ['id', 'type', 'values']):
             # Handle new optional description attribute

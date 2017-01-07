@@ -1,6 +1,8 @@
 """MySensors constants for version 1.5 of MySensors."""
 from enum import IntEnum
 
+from mysensors.const_15 import HANDLE_INTERNAL
+
 
 class MessageType(IntEnum):
     """MySensors message types."""
@@ -246,3 +248,15 @@ class Stream(IntEnum):
     ST_FIRMWARE_RESPONSE = 3  # Response FW block
     ST_SOUND = 4  # Sound
     ST_IMAGE = 5  # Image
+
+
+HANDLE_INTERNAL.update({
+    Internal.I_GATEWAY_READY: {
+        'log': 'info', 'msg': {
+            'node_id': 255, 'ack': 0, 'sub_type': Internal.I_DISCOVER,
+            'payload': ''}},
+    Internal.I_HEARTBEAT_RESPONSE: {
+        'fun': '_handle_heartbeat'},
+    Internal.I_DISCOVER_RESPONSE: {
+        'is_sensor': True},
+})
