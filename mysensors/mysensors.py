@@ -114,9 +114,7 @@ class Gateway(object):
 
     def _handle_internal(self, msg):
         """Process an internal protocol message."""
-        if msg.sub_type == self.const.Internal.I_VERSION:
-            self.tcp_disconnect_timer = time.time()
-        elif msg.sub_type == self.const.Internal.I_ID_REQUEST:
+        if msg.sub_type == self.const.Internal.I_ID_REQUEST:
             node_id = self.add_sensor()
             return msg.copy(ack=0,
                             sub_type=self.const.Internal.I_ID_RESPONSE,
@@ -302,7 +300,6 @@ class Gateway(object):
         """Add a sensor to the gateway."""
         if sensorid is None:
             sensorid = self._get_next_id()
-
         if sensorid is not None and sensorid not in self.sensors:
             self.sensors[sensorid] = Sensor(sensorid)
             return sensorid
@@ -524,6 +521,12 @@ class TCPGateway(Gateway, threading.Thread):
             sub_type=self.const.Internal.I_VERSION)
         self.fill_queue(msg.encode)
         self.tcp_check_timer = time.time()
+
+    def _handle_internal(self, msg):
+        if msg.sub_type == self.const.Internal.I_VERSION:
+            self.tcp_disconnect_timer = time.time()
+        else:
+            super()._handle_internal(msg)
 
     def connect(self):
         """Connect to the socket object, on host and port."""
