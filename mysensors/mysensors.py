@@ -7,6 +7,7 @@ import select
 import socket
 import threading
 import time
+import calendar
 from collections import deque
 from importlib import import_module
 from queue import Queue
@@ -141,7 +142,7 @@ class Gateway(object):
                 self.sensors[msg.node_id].battery_level = int(msg.payload)
                 self.alert(msg.node_id)
         elif msg.sub_type == self.const.Internal.I_TIME:
-            return msg.copy(ack=0, payload=int(time.time()))
+            return msg.copy(ack=0, payload=int(calendar.timegm(time.localtime())))
         elif (self.protocol_version >= 2.0 and
               msg.sub_type == self.const.Internal.I_HEARTBEAT_RESPONSE):
             self._handle_heartbeat(msg)
