@@ -301,7 +301,6 @@ class Gateway(object):
         """Add a sensor to the gateway."""
         if sensorid is None:
             sensorid = self._get_next_id()
-
         if sensorid is not None and sensorid not in self.sensors:
             self.sensors[sensorid] = Sensor(sensorid)
             return sensorid
@@ -505,8 +504,32 @@ class TCPGateway(Gateway, threading.Thread):
         self.sock = None
         self.server_address = (host, port)
         self.timeout = timeout
+        self.tcp_check_timer = time.time()
+        self.tcp_disconnect_timer = time.time()
         self.reconnect_timeout = reconnect_timeout
         self._stop_event = threading.Event()
+
+    def _check_connection(self):
+        """Check if connection is alive every reconnect_timeout seconds."""
+        if ((self.tcp_disconnect_timer + 2 * self.reconnect_timeout) <
+                time.time()):
+            self.tcp_disconnect_timer = time.time()
+            self.disconnect()
+            _LOGGER.info('No response. Disconnected.')
+            return
+        if not (self.tcp_check_timer + self.reconnect_timeout) < time.time():
+            return
+        msg = Message().copy(
+            child_id=255, type=self.const.MessageType.internal,
+            sub_type=self.const.Internal.I_VERSION)
+        self.fill_queue(msg.encode)
+        self.tcp_check_timer = time.time()
+
+    def _handle_internal(self, msg):
+        if msg.sub_type == self.const.Internal.I_VERSION:
+            self.tcp_disconnect_timer = time.time()
+        else:
+            return super()._handle_internal(msg)
 
     def connect(self):
         """Connect to the socket object, on host and port."""
@@ -536,7 +559,11 @@ class TCPGateway(Gateway, threading.Thread):
         if not self.sock:
             return
         _LOGGER.info('Closing socket at %s.', self.server_address)
-        self.sock.shutdown(socket.SHUT_WR)
+        try:
+            self.sock.shutdown(socket.SHUT_WR)
+        except OSError:
+            _LOGGER.error('Failed to shutdown socket at %s.',
+                          self.server_address)
         self.sock.close()
         self.sock = None
         _LOGGER.info('Socket closed at %s.', self.server_address)
@@ -641,6 +668,7 @@ class TCPGateway(Gateway, threading.Thread):
                 del lines[-1]
                 for line in lines:
                     self.fill_queue(self.logic, (line,))
+            self._check_connection()
         self.disconnect()
 
 
