@@ -3,9 +3,12 @@ import calendar
 import logging
 import threading
 import time
+
+from collections import deque
 # pylint: disable=no-name-in-module, import-error
 from distutils.version import LooseVersion as parse_ver
-from queue import Queue
+from functools import partial
+
 from timeit import default_timer as timer
 
 import voluptuous as vol
@@ -30,7 +33,7 @@ class Gateway(object):
                  persistence_file='mysensors.pickle',
                  persistence_scheduler=None, protocol_version='1.4'):
         """Set up Gateway."""
-        self.queue = Queue()
+        self.queue = deque()
         self.event_callback = event_callback
         self.sensors = {}
         self.metric = True  # if true - use metric, if false - use imperial
@@ -111,7 +114,7 @@ class Gateway(object):
         if not self.is_sensor(msg.node_id):
             return
         while self.sensors[msg.node_id].queue:
-            self.fill_queue(str, (self.sensors[msg.node_id].queue.popleft(), ))
+            self.add_job(str, self.sensors[msg.node_id].queue.popleft())
         for child in self.sensors[msg.node_id].children.values():
             new_child = self.sensors[msg.node_id].new_state.get(
                 child.id, ChildSensor(child.id, child.type, child.description))
@@ -119,8 +122,9 @@ class Gateway(object):
             for value_type, value in child.values.items():
                 new_value = new_child.values.get(value_type)
                 if new_value is not None and new_value != value:
-                    self.fill_queue(self.sensors[msg.node_id].set_child_value,
-                                    (child.id, value_type, new_value))
+                    self.add_job(
+                        self.sensors[msg.node_id].set_child_value, child.id,
+                        value_type, new_value)
 
     def _handle_internal(self, msg):
         """Process an internal protocol message."""
@@ -236,7 +240,7 @@ class Gateway(object):
                 type=self.const.MessageType.internal,
                 sub_type=self.const.Internal.I_PRESENTATION)
             if self._route_message(msg):
-                self.fill_queue(msg.encode)
+                self.add_job(msg.encode)
         return ret
 
     def _route_message(self, msg):
@@ -250,51 +254,48 @@ class Gateway(object):
         self.sensors[msg.node_id].queue.append(msg.encode())
         return None
 
-    def handle_queue(self, queue=None):
-        """Handle queue.
+    def run_job(self, job=None):
+        """Run a job, either passed in or from the queue.
 
-        If queue is not empty, get the function and any args and kwargs
-        from the queue. Run the function and return output.
+        A job is a tuple of function and optional args. Keyword arguments
+        can be passed via use of functools.partial. The job should return a
+        string that should be sent by the gateway protocol. The function will
+        be called with the arguments and the result will be returned.
         """
-        if queue is None:
-            queue = self.queue
-        if queue.empty():
-            return None
+        if job is None:
+            if not self.queue:
+                return None
+            job = self.queue.popleft()
         start = timer()
-        func, args, kwargs = queue.get()
-        reply = func(*args, **kwargs)
-        queue.task_done()
+        func, args = job
+        reply = func(*args)
         end = timer()
         if end - start > 0.1:
             _LOGGER.debug(
-                'Handle queue with call %s(%s, %s) took %.3f seconds',
-                func, args, kwargs, end - start)
+                'Handle queue with call %s(%s) took %.3f seconds',
+                func, args, end - start)
         return reply
 
-    def fill_queue(self, func, args=None, kwargs=None, queue=None):
-        """Put a function in a queue.
+    def add_job(self, func, *args):
+        """Add a job that should return a reply to be sent.
 
-        Put the function 'func', a tuple of arguments 'args' and a dict
-        of keyword arguments 'kwargs', as a tuple in the queue.
+        A job is a tuple of function and optional args. Keyword arguments
+        can be passed via use of functools.partial. The job should return a
+        string that should be sent by the gateway protocol.
         """
-        if args is None:
-            args = ()
-        if kwargs is None:
-            kwargs = {}
-        if queue is None:
-            queue = self.queue
-        queue.put((func, args, kwargs))
+        self.queue.append((func, args))
 
     def set_child_value(
             self, sensor_id, child_id, value_type, value, **kwargs):
         """Add a command to set a sensor value, to the queue.
 
         A queued command will be sent to the sensor when the gateway
-        thread has sent all previously queued commands to the FIFO queue.
-        If the sensor attribute new_state returns True, the command will not be
-        put on the queue, but the internal sensor state will be updated. When a
-        smartsleep message is received, the internal state will be pushed to
-        the sensor, via _handle_smartsleep method.
+        thread has sent all previously queued commands.
+
+        If the sensor attribute new_state returns True, the command will be
+        buffered in a queue on the sensor, and only the internal sensor state
+        will be updated. When a smartsleep message is received, the internal
+        state will be pushed to the sensor, via _handle_smartsleep method.
         """
         if not self.is_sensor(sensor_id, child_id):
             return
@@ -303,8 +304,9 @@ class Gateway(object):
                 child_id, value_type, value,
                 children=self.sensors[sensor_id].new_state)
         else:
-            self.fill_queue(self.sensors[sensor_id].set_child_value,
-                            (child_id, value_type, value), kwargs)
+            self.add_job(partial(
+                self.sensors[sensor_id].set_child_value, child_id, value_type,
+                value, **kwargs))
 
     def update_fw(self, nids, fw_type, fw_ver, fw_path=None):
         """Update firwmare of all node_ids in nids.

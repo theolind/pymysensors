@@ -271,19 +271,19 @@ class TestGateway(TestCase):
             0, self.gateway.const.Presentation.S_LIGHT)
         self.gateway.set_child_value(
             1, 0, self.gateway.const.SetReq.V_LIGHT, '1')
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         self.assertEqual(ret, '1;0;1;0;2;1\n')
         # test integer value
         self.gateway.set_child_value(
             1, 0, self.gateway.const.SetReq.V_LIGHT, 0)
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         self.assertEqual(ret, '1;0;1;0;2;0\n')
 
     def test_set_child_value_no_sensor(self):
         """Test Gateway method set_child_value with no sensor."""
         self.gateway.set_child_value(
             1, 0, self.gateway.const.SetReq.V_LIGHT, '1')
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         self.assertEqual(ret, None)
 
     def test_set_child_no_children(self):
@@ -293,7 +293,7 @@ class TestGateway(TestCase):
             0, self.gateway.const.Presentation.S_LIGHT)
         self.gateway.set_child_value(
             1, 0, self.gateway.const.SetReq.V_LIGHT, 1, children={})
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         self.assertEqual(ret, None)
 
     def test_set_child_value_bad_type(self):
@@ -303,7 +303,7 @@ class TestGateway(TestCase):
             0, self.gateway.const.Presentation.S_LIGHT)
         self.gateway.set_child_value(
             1, 0, self.gateway.const.SetReq.V_LIGHT, 1, msg_type='one')
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         self.assertEqual(ret, None)
 
     def test_set_child_value_bad_ack(self):
@@ -313,7 +313,7 @@ class TestGateway(TestCase):
             0, self.gateway.const.Presentation.S_LIGHT)
         self.gateway.set_child_value(
             1, 0, self.gateway.const.SetReq.V_LIGHT, 1, ack='one')
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         self.assertEqual(ret, None)
 
     def test_set_child_value_value_type(self):
@@ -322,11 +322,11 @@ class TestGateway(TestCase):
         sensor.children[0] = ChildSensor(
             0, self.gateway.const.Presentation.S_LIGHT)
         self.gateway.set_child_value(1, 0, 2, 1)
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         self.assertEqual(ret, '1;0;1;0;2;1\n')
         child_values = dict(sensor.children[0].values)
         self.gateway.set_child_value(1, 0, '2', 1)
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         self.assertEqual(child_values, sensor.children[0].values)
         self.assertEqual(ret, '1;0;1;0;2;1\n')
 
@@ -423,24 +423,24 @@ class TestGateway20(TestGateway):
         """Test non presented sensor node."""
         self.gateway.logic('1;0;1;0;23;43\n')
         self.assertNotIn(1, self.gateway.sensors)
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         self.assertEqual(ret, '1;255;3;0;19;\n')
 
         self.gateway.logic('1;1;1;0;1;75\n')
         self.assertNotIn(1, self.gateway.sensors)
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         self.assertEqual(ret, '1;255;3;0;19;\n')
 
         self.gateway.logic('1;255;3;0;0;79\n')
         self.assertNotIn(1, self.gateway.sensors)
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         self.assertEqual(ret, '1;255;3;0;19;\n')
 
     def test_present_to_non_sensor(self):
         """Test presenting a child to a non presented sensor node."""
         ret = self.gateway.logic('1;1;0;0;0;\n')
         self.assertNotIn(1, self.gateway.sensors)
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         self.assertEqual(ret, '1;255;3;0;19;\n')
 
     def test_non_presented_child(self):
@@ -448,19 +448,19 @@ class TestGateway20(TestGateway):
         self._add_sensor(1)
         self.gateway.logic('1;0;1;0;23;43\n')
         self.assertNotIn(0, self.gateway.sensors[1].children)
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         self.assertEqual(ret, '1;255;3;0;19;\n')
 
         self.gateway.logic('1;1;2;0;1;\n')
         self.assertNotIn(1, self.gateway.sensors[1].children)
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         self.assertEqual(ret, '1;255;3;0;19;\n')
 
     def test_set_child_value_no_sensor(self):
         """Test Gateway method set_child_value with no sensor."""
         self.gateway.set_child_value(
             1, 0, self.gateway.const.SetReq.V_LIGHT, '1')
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         self.assertEqual(ret, '1;255;3;0;19;\n')
 
     def test_smartsleep(self):
@@ -469,44 +469,44 @@ class TestGateway20(TestGateway):
         sensor.children[0] = ChildSensor(
             0, self.gateway.const.Presentation.S_LIGHT_LEVEL)
         self.gateway.logic('1;0;1;0;23;43\n')
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         self.assertEqual(ret, None)
         # heartbeat
         self.gateway.logic('1;255;3;0;22;\n')
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         # nothing has changed
         self.assertEqual(ret, None)
         # change from controller side
         self.gateway.set_child_value(
             1, 0, self.gateway.const.SetReq.V_LIGHT_LEVEL, '57')
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         # no heartbeat
         self.assertEqual(ret, None)
         # heartbeat comes in
         self.gateway.logic('1;255;3;0;22;\n')
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         # instance responds with new values
         self.assertEqual(ret, '1;0;1;0;23;57\n')
         # request from node
         self.gateway.logic('1;0;2;0;23;\n')
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         # no heartbeat
         self.assertEqual(ret, None)
         # heartbeat
         self.gateway.logic('1;255;3;0;22;\n')
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         # instance responds to request with current value
         self.assertEqual(ret, '1;0;1;0;23;57\n')
         # heartbeat
         self.gateway.logic('1;255;3;0;22;\n')
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         # nothing has changed
         self.assertEqual(ret, None)
 
     def test_smartsleep_from_unknown(self):
         """Test smartsleep message from unknown node."""
         self.gateway.logic('1;255;3;0;22;\n')
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         self.assertEqual(ret, '1;255;3;0;19;\n')
 
     def test_set_with_new_state(self):
@@ -538,7 +538,7 @@ class TestGateway20(TestGateway):
         """Test internal receive discover response."""
         # Test sensor 1 unknown.
         self.gateway.logic('1;255;3;0;21;0')
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         self.assertEqual(ret, '1;255;3;0;19;\n')
 
     @mock.patch('mysensors.Gateway.is_sensor')
@@ -590,44 +590,44 @@ class TestGateway22(TestGateway21):
         sensor.children[0] = ChildSensor(
             0, self.gateway.const.Presentation.S_LIGHT_LEVEL)
         self.gateway.logic('1;0;1;0;23;43\n')
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         self.assertEqual(ret, None)
         # pre sleep message
         self.gateway.logic('1;255;3;0;32;500\n')
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         # nothing has changed
         self.assertEqual(ret, None)
         # change from controller side
         self.gateway.set_child_value(
             1, 0, self.gateway.const.SetReq.V_LIGHT_LEVEL, '57')
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         # no pre sleep message
         self.assertEqual(ret, None)
         # pre sleep message comes in
         self.gateway.logic('1;255;3;0;32;500\n')
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         # instance responds with new values
         self.assertEqual(ret, '1;0;1;0;23;57\n')
         # request from node
         self.gateway.logic('1;0;2;0;23;\n')
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         # no pre sleep message
         self.assertEqual(ret, None)
         # pre sleep message
         self.gateway.logic('1;255;3;0;32;500\n')
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         # instance responds to request with current value
         self.assertEqual(ret, '1;0;1;0;23;57\n')
         # pre sleep message
         self.gateway.logic('1;255;3;0;32;500\n')
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         # nothing has changed
         self.assertEqual(ret, None)
 
     def test_smartsleep_from_unknown(self):
         """Test smartsleep message from unknown node."""
         self.gateway.logic('1;255;3;0;32;500\n')
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         self.assertEqual(ret, '1;255;3;0;19;\n')
 
     def test_set_with_new_state(self):

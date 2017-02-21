@@ -1,4 +1,5 @@
-pyserial==3.1.1
-IntelHex==2.1
-crcmod==1.7
+pyserial>=3.1.1
+pyserial-asyncio>=0.4
+IntelHex>=2.1
+crcmod>=1.7
 voluptuous==0.10.5

@@ -10,7 +10,8 @@ else:
     README = ''
 
 REQUIRES = [
-    'pyserial>=3.1.1', 'crcmod>=1.7', 'IntelHex>=2.1', 'voluptuous>=0.10.5',
+    'pyserial>=3.1.1', 'pyserial-asyncio>=0.4', 'crcmod>=1.7', 'IntelHex>=2.1',
+    'voluptuous>=0.10.5',
 ]
 
 setup(
