@@ -32,6 +32,7 @@ class Gateway(object):
                  persistence_file='mysensors.pickle',
                  persistence_scheduler=None, protocol_version='1.4'):
         """Set up Gateway."""
+        super().__init__()
         self.queue = deque()
         self.event_callback = event_callback
         self.sensors = {}
@@ -322,13 +323,12 @@ class Gateway(object):
         raise NotImplementedError
 
 
-class ThreadingGateway(Gateway, threading.Thread):
+class ThreadingGateway(Gateway):
     """Gateway that implements a new thread."""
 
     def __init__(self, **kwargs):
         """Set up gateway instance."""
-        threading.Thread.__init__(self)
-        Gateway.__init__(self, **kwargs)
+        super().__init__(**kwargs)
         self.lock = threading.Lock()
         self._stop_event = threading.Event()
         self._cancel_save = None
@@ -349,7 +349,7 @@ class ThreadingGateway(Gateway, threading.Thread):
 
     def stop(self):
         """Stop the background thread."""
-        _LOGGER.info('Stopping thread')
+        _LOGGER.info('Stopping gateway')
         self._stop_event.set()
         if not self.persistence:
             return
