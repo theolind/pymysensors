@@ -16,7 +16,7 @@ GATEWAY = mysensors.SerialGateway(
     '/dev/ttyACM0', event_callback=event, protocol_version='2.0')
 
 # To create a TCP gateway.
-# GATEWAY = mysensors.TCPGateway('127.0.0.1', event, True)
+# GATEWAY = mysensors.TCPGateway('127.0.0.1', event_callback=event)
 
 GATEWAY.start()
 # To set sensor 1, child 1, sub-type V_LIGHT (= 2), with value 1.

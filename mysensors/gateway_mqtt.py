@@ -1,17 +1,16 @@
 """Implement an MQTT gateway."""
 import logging
 import threading
-import time
 
 from mysensors import ThreadingGateway, Message
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class MQTTGateway(ThreadingGateway, threading.Thread):
+class MQTTGateway(ThreadingGateway):
     """MySensors MQTT client gateway."""
 
-    # pylint: disable=too-many-arguments, too-many-instance-attributes
+    # pylint: disable=too-many-arguments, abstract-method
 
     def __init__(
             self, pub_callback, sub_callback, in_prefix='', out_prefix='',
@@ -142,13 +141,8 @@ class MQTTGateway(ThreadingGateway, threading.Thread):
             except Exception as exception:  # pylint: disable=broad-except
                 _LOGGER.exception('Publish to %s failed: %s', topic, exception)
 
-    def run(self):
-        """Background thread that sends messages to the gateway via MQTT."""
+    def start(self):
+        """Connect to the transport."""
         self._init_topics()
-        while not self._stop_event.is_set():
-            response = self.run_job()
-            if response is not None:
-                self.send(response)
-            if self.queue:
-                continue
-            time.sleep(0.02)  # short sleep to avoid burning 100% cpu
+        poll_thread = threading.Thread(target=self._poll_queue)
+        poll_thread.start()

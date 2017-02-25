@@ -9,7 +9,8 @@ import serial
 import serial.threaded
 import serial_asyncio
 
-from mysensors import Gateway, ThreadingGateway
+from mysensors import (
+    BaseMySensorsProtocol, BaseTransportGateway, ThreadingGateway)
 from .ota import load_fw
 
 try:
@@ -23,89 +24,29 @@ except ImportError:
 _LOGGER = logging.getLogger(__name__)
 
 
-class BaseSerialProtocol(serial.threaded.LineReader):
-    """Serial protocol class."""
-
-    TERMINATOR = b'\n'
-
-    def __init__(self, gateway, conn_lost_callback):
-        """Set up serial base protocol."""
-        super().__init__()
-        self.gateway = gateway
-        self._conn_lost_callback = conn_lost_callback
-
-    def connection_made(self, transport):
-        """Handle created serial connection."""
-        super().connection_made(transport)
-        if self.transport.serial.is_open:
-            _LOGGER.info('%s is open...', self.transport.serial.name)
-            _LOGGER.info('Connected to %s', self.transport.serial.name)
-
-    def handle_line(self, line):
-        """Handle Incoming string data one line at a time."""
-        _LOGGER.debug('Receiving %s', line)
-        self.gateway.add_job(self.gateway.logic, line)
-
-    def connection_lost(self, exc):
-        """Handle lost connection."""
-        try:
-            self.transport.serial.close()
-            super().connection_lost(exc)
-        except Exception as exception:  # pylint: disable=broad-except
-            _LOGGER.error(exception)
-            self._conn_lost_callback()
-
-
-class AsyncSerialProtocol(BaseSerialProtocol, asyncio.Protocol):
+class AsyncSerialProtocol(BaseMySensorsProtocol, asyncio.Protocol):
     """Async serial protocol class."""
 
 
-class BaseSerialGateway(Gateway):
-    """Base class for serial gateways."""
+class BaseSerialGateway(BaseTransportGateway):
+    """MySensors base serial gateway."""
 
     # pylint: disable=abstract-method
 
-    def __init__(
-            self, port, baud=115200, timeout=1.0, reconnect_timeout=10.0,
-            **kwargs):
+    def __init__(self, port, baud=115200, **kwargs):
         """Set up base serial gateway."""
         super().__init__(**kwargs)
         self.port = port
         self.baud = baud
-        self.timeout = timeout
-        self.reconnect_timeout = reconnect_timeout
-        self.protocol = None
-
-    def _disconnect(self):
-        """Disconnect from the serial port."""
-        if not self.protocol or not self.protocol.transport:
-            return
-        name = self.protocol.transport.serial.name
-        _LOGGER.info('Disconnecting from %s', name)
-        self.protocol.transport.close()
-        _LOGGER.info('Disconnected from %s', name)
-
-    def send(self, message):
-        """Write a Message to the gateway."""
-        if not message or not self.protocol or not self.protocol.transport:
-            return
-        _LOGGER.debug('Sending %s', message)
-        self.protocol.transport.write(message.encode())
 
 
-class SerialGateway(BaseSerialGateway, ThreadingGateway):
-    """Serial gateway for MySensors."""
+class SerialGateway(ThreadingGateway, BaseSerialGateway):
+    """MySensors serial gateway."""
 
     def __init__(self, *args, **kwargs):
         """Set up serial gateway."""
         super().__init__(*args, **kwargs)
-        self.protocol = BaseSerialProtocol(self, self.start)
-        self._poll_thread = None
-
-    def start(self):
-        """Start the connection to a serial port."""
-        connect_thread = threading.Thread(target=self._connect)
-        connect_thread.start()
+        self.protocol = BaseMySensorsProtocol(self, self.start)
 
     def _connect(self):
         """Connect to the serial port. This should be run in a new thread."""
@@ -116,36 +57,30 @@ class SerialGateway(BaseSerialGateway, ThreadingGateway):
                     self.port, self.baud, timeout=self.timeout)
             except serial.SerialException:
                 _LOGGER.error('Unable to connect to %s', self.port)
+                _LOGGER.info(
+                    'Waiting %s secs before trying to connect again.',
+                    self.reconnect_timeout)
                 time.sleep(self.reconnect_timeout)
             else:
                 transport = serial.threaded.ReaderThread(
                     ser, lambda: self.protocol)
                 transport.daemon = False
-                self._poll_thread = threading.Thread(target=self._poll_queue)
+                poll_thread = threading.Thread(target=self._poll_queue)
                 self._stop_event.clear()
-                self._poll_thread.start()
+                poll_thread.start()
                 transport.start()
                 transport.connect()
                 return
 
     def stop(self):
         """Stop the gateway."""
-        super().stop()
+        _LOGGER.info('Stopping gateway')
         self._disconnect()
-        self.protocol = None
-
-    def _poll_queue(self):
-        """Poll the queue for work."""
-        while not self._stop_event.is_set():
-            reply = self.run_job()
-            self.send(reply)
-            if self.queue:
-                continue
-            time.sleep(0.02)
+        super().stop()
 
 
 class AsyncSerialGateway(BaseSerialGateway):
-    """Serial gateway for MySensors using asyncio."""
+    """MySensors async serial gateway."""
 
     def __init__(self, *args, loop=None, **kwargs):
         """Set up async serial gateway."""
@@ -173,6 +108,9 @@ class AsyncSerialGateway(BaseSerialGateway):
                     return
                 except serial.SerialException:
                     _LOGGER.error('Unable to connect to %s', self.port)
+                    _LOGGER.info(
+                        'Waiting %s secs before trying to connect again.',
+                        self.reconnect_timeout)
                     yield from asyncio.sleep(
                         self.reconnect_timeout, loop=self.loop)
         except asyncio.CancelledError:
@@ -188,7 +126,6 @@ class AsyncSerialGateway(BaseSerialGateway):
         """Stop the gateway."""
         _LOGGER.info('Stopping gateway')
         self._disconnect()
-        self.protocol = None
         if not self.persistence:
             return
         if self._cancel_save is not None:

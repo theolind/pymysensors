@@ -10,6 +10,7 @@ from distutils.version import LooseVersion as parse_ver
 from functools import partial
 from timeit import default_timer as timer
 
+import serial.threaded
 import voluptuous as vol
 
 from .const import get_const
@@ -45,10 +46,11 @@ class Gateway(object):
         self.protocol_version = safe_is_version(protocol_version)
         self.const = get_const(self.protocol_version)
         self.ota = OTAFirmware(self.sensors, self.const)
+        self.can_log = False
 
     def __repr__(self):
         """Return the representation."""
-        return self.__class__.__name__
+        return '<{}>'.format(self.__class__.__name__)
 
     def _handle_presentation(self, msg):
         """Process a presentation message."""
@@ -137,6 +139,8 @@ class Gateway(object):
             return msg.modify(ack=0, payload='M' if self.metric else 'I')
         elif msg.sub_type == self.const.Internal.I_TIME:
             return msg.modify(ack=0, payload=calendar.timegm(time.localtime()))
+        elif msg.sub_type == self.const.Internal.I_LOG_MESSAGE:
+            self.can_log = True
         actions = self.const.HANDLE_INTERNAL.get(msg.sub_type, {})
         if actions.get('is_sensor') and not self.is_sensor(msg.node_id):
             return None
@@ -308,6 +312,13 @@ class Gateway(object):
                 self.sensors[sensor_id].set_child_value, child_id, value_type,
                 value, **kwargs))
 
+    def send(self, message):
+        """Send a command string to the gateway.
+
+        Implement this method in a child class.
+        """
+        raise NotImplementedError
+
     def update_fw(self, nids, fw_type, fw_ver, fw_path=None):
         """Update firwmare of all node_ids in nids.
 
@@ -326,19 +337,29 @@ class Gateway(object):
 class ThreadingGateway(Gateway):
     """Gateway that implements a new thread."""
 
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
         """Set up gateway instance."""
-        super().__init__(**kwargs)
+        super().__init__(*args, **kwargs)
         self.lock = threading.Lock()
         self._stop_event = threading.Event()
         self._cancel_save = None
 
-    def send(self, message):
-        """Send a command string to the gateway.
+    def start(self):
+        """Connect to the transport."""
+        connect_thread = threading.Thread(target=self._connect)
+        connect_thread.start()
 
-        Implement this method in a child class.
-        """
+    def _connect(self):
         raise NotImplementedError
+
+    def _poll_queue(self):
+        """Poll the queue for work."""
+        while not self._stop_event.is_set():
+            reply = self.run_job()
+            self.send(reply)
+            if self.queue:
+                continue
+            time.sleep(0.02)
 
     def start_persistence(self):
         """Load persistence file and schedule saving of persistence file."""
@@ -349,7 +370,6 @@ class ThreadingGateway(Gateway):
 
     def stop(self):
         """Stop the background thread."""
-        _LOGGER.info('Stopping gateway')
         self._stop_event.set()
         if not self.persistence:
             return
@@ -366,3 +386,76 @@ class ThreadingGateway(Gateway):
             if not fw_bin:
                 return
         self.ota.make_update(nids, fw_type, fw_ver, fw_bin)
+
+
+class BaseTransportGateway(Gateway):
+    """MySensors base gateway for a transport."""
+
+    # pylint: disable=abstract-method
+
+    def __init__(self, timeout=1.0, reconnect_timeout=10.0, **kwargs):
+        """Set up gateway."""
+        super().__init__(**kwargs)
+        self.timeout = timeout
+        self.reconnect_timeout = reconnect_timeout
+        self.protocol = None
+
+    def _disconnect(self):
+        """Disconnect from the transport."""
+        if not self.protocol or not self.protocol.transport:
+            self.protocol = None  # Make sure protocol is None
+            return
+        _LOGGER.info('Disconnecting from gateway')
+        self.protocol.transport.close()
+        self.protocol = None
+
+    def send(self, message):
+        """Write a message to the gateway."""
+        if not message or not self.protocol or not self.protocol.transport:
+            return
+        if not self.can_log:
+            _LOGGER.debug('Sending %s', message)
+        try:
+            self.protocol.transport.write(message.encode())
+        except OSError as exc:
+            _LOGGER.error(
+                'Failed writing to transport %s: %s',
+                self.protocol.transport, exc)
+            self.protocol.transport.close()
+            self.protocol.conn_lost_callback()
+
+
+class BaseMySensorsProtocol(serial.threaded.LineReader):
+    """MySensors base protocol class."""
+
+    TERMINATOR = b'\n'
+
+    def __init__(self, gateway, conn_lost_callback):
+        """Set up base protocol."""
+        super().__init__()
+        self.gateway = gateway
+        self.conn_lost_callback = conn_lost_callback
+
+    def __repr__(self):
+        """Return the representation."""
+        return '<{}>'.format(self.__class__.__name__)
+
+    def connection_made(self, transport):
+        """Handle created connection."""
+        super().connection_made(transport)
+        _LOGGER.info('Connected to %s', self.transport.serial)
+
+    def handle_line(self, line):
+        """Handle incoming string data one line at a time."""
+        if not self.gateway.can_log:
+            _LOGGER.debug('Receiving %s', line)
+        self.gateway.add_job(self.gateway.logic, line)
+
+    def connection_lost(self, exc):
+        """Handle lost connection."""
+        _LOGGER.debug('Connection lost with %s', self.transport.serial)
+        if exc:
+            _LOGGER.error(exc)
+            self.transport.serial.close()
+            self.conn_lost_callback()
+        self.transport = None
