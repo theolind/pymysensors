@@ -2,6 +2,7 @@
 import json
 import os
 import tempfile
+import time
 from collections import deque
 from unittest import TestCase, main, mock
 
@@ -87,7 +88,7 @@ class TestGateway(TestCase):
         """Test internal time request."""
         self._add_sensor(1)
         with mock.patch('mysensors.mysensors.time') as mock_time:
-            mock_time.time.return_value = 123456789
+            mock_time.localtime.return_value = time.gmtime(123456789)
             ret = self.gateway.logic('1;255;3;0;1;\n')
             self.assertEqual(ret, '1;255;3;0;1;123456789\n')
 
