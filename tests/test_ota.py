@@ -4,7 +4,7 @@ import struct
 import tempfile
 from unittest import TestCase, main
 
-import mysensors.mysensors as my
+from mysensors import Gateway, Sensor
 from mysensors.ota import FIRMWARE_BLOCK_SIZE
 
 FW_TYPE = 1
@@ -25,11 +25,11 @@ class TestOTA(TestCase):
 
     def setUp(self):
         """Setup gateway."""
-        self.gateway = my.Gateway()
+        self.gateway = Gateway()
 
     def _add_sensor(self, sensorid):
         """Add sensor node. Return sensor node instance."""
-        self.gateway.sensors[sensorid] = my.Sensor(sensorid)
+        self.gateway.sensors[sensorid] = Sensor(sensorid)
         return self.gateway.sensors[sensorid]
 
     def _setup_firmware(self, nids, hex_file_str):

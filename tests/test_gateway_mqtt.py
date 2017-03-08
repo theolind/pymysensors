@@ -4,7 +4,8 @@ import tempfile
 import time
 from unittest import TestCase, main, mock
 
-import mysensors.mysensors as my
+from mysensors import ChildSensor, Sensor
+from mysensors.gateway_mqtt import MQTTGateway
 
 
 class TestMQTTGateway(TestCase):
@@ -14,7 +15,7 @@ class TestMQTTGateway(TestCase):
         """Set up gateway."""
         self.mock_pub = mock.Mock()
         self.mock_sub = mock.Mock()
-        self.gateway = my.MQTTGateway(self.mock_pub, self.mock_sub)
+        self.gateway = MQTTGateway(self.mock_pub, self.mock_sub)
 
     def tearDown(self):
         """Stop MQTTGateway if alive."""
@@ -23,21 +24,21 @@ class TestMQTTGateway(TestCase):
 
     def _add_sensor(self, sensorid):
         """Add sensor node. Return sensor node instance."""
-        self.gateway.sensors[sensorid] = my.Sensor(sensorid)
+        self.gateway.sensors[sensorid] = Sensor(sensorid)
         return self.gateway.sensors[sensorid]
 
     def test_send(self):
-        """Test send method. """
+        """Test send method."""
         self.gateway.send('1;1;1;0;1;20\n')
         self.mock_pub.assert_called_with('/1/1/1/0/1', '20', 0, True)
 
     def test_send_empty_string(self):
-        """Test send method with empty string. """
+        """Test send method with empty string."""
         self.gateway.send('')
         self.assertFalse(self.mock_pub.called)
 
     def test_send_error(self):
-        """Test send method with error on publish. """
+        """Test send method with error on publish."""
         self.mock_pub.side_effect = ValueError(
             'Publish topic cannot contain wildcards.')
         with self.assertLogs(level='ERROR') as test_handle:
@@ -46,13 +47,13 @@ class TestMQTTGateway(TestCase):
         self.assertEqual(
             # only check first line of error log
             test_handle.output[0].split('\n', 1)[0],
-            'ERROR:mysensors.mysensors:Publish to /1/1/1/0/1 failed: '
+            'ERROR:mysensors.gateway_mqtt:Publish to /1/1/1/0/1 failed: '
             'Publish topic cannot contain wildcards.')
 
     def test_recv(self):
-        """Test recv method. """
+        """Test recv method."""
         sensor = self._add_sensor(1)
-        sensor.children[1] = my.ChildSensor(
+        sensor.children[1] = ChildSensor(
             1, self.gateway.const.Presentation.S_HUM)
         sensor.children[1].values[self.gateway.const.SetReq.V_HUM] = '20'
         self.gateway.recv('/1/1/2/0/1', '', 0)
@@ -63,9 +64,9 @@ class TestMQTTGateway(TestCase):
         self.assertEqual(ret, '1;1;1;1;1;20\n')
 
     def test_recv_wrong_prefix(self):
-        """Test recv method with wrong topic prefix. """
+        """Test recv method with wrong topic prefix."""
         sensor = self._add_sensor(1)
-        sensor.children[1] = my.ChildSensor(
+        sensor.children[1] = ChildSensor(
             1, self.gateway.const.Presentation.S_HUM)
         sensor.children[1].values[self.gateway.const.SetReq.V_HUM] = '20'
         self.gateway.recv('wrong/1/1/2/0/1', '', 0)
@@ -101,14 +102,14 @@ class TestMQTTGateway(TestCase):
         self.assertEqual(
             # only check first line of error log
             test_handle.output[0].split('\n', 1)[0],
-            'ERROR:mysensors.mysensors:Subscribe to /1/1/1/+/+ failed: '
+            'ERROR:mysensors.gateway_mqtt:Subscribe to /1/1/1/+/+ failed: '
             'No topic specified, or incorrect topic type.')
 
     def test_start_stop_gateway(self):
         """Test start and stop of MQTT gateway."""
         self.assertFalse(self.gateway.is_alive())
         sensor = self._add_sensor(1)
-        sensor.children[1] = my.ChildSensor(
+        sensor.children[1] = ChildSensor(
             1, self.gateway.const.Presentation.S_HUM)
         sensor.children[1].values[self.gateway.const.SetReq.V_HUM] = '20'
         self.gateway.recv('/1/1/2/0/1', '', 0)
@@ -132,7 +133,7 @@ class TestMQTTGateway(TestCase):
     def test_mqtt_load_persistence(self):
         """Test load persistence file for MQTTGateway."""
         sensor = self._add_sensor(1)
-        sensor.children[1] = my.ChildSensor(
+        sensor.children[1] = ChildSensor(
             1, self.gateway.const.Presentation.S_HUM)
         sensor.children[1].values[self.gateway.const.SetReq.V_HUM] = '20'
 
