@@ -7,6 +7,7 @@ import select
 import socket
 import threading
 import time
+import calendar
 from collections import deque
 from importlib import import_module
 from queue import Queue
@@ -127,7 +128,7 @@ class Gateway(object):
         elif msg.sub_type == self.const.Internal.I_CONFIG:
             return msg.copy(ack=0, payload='M' if self.metric else 'I')
         elif msg.sub_type == self.const.Internal.I_TIME:
-            return msg.copy(ack=0, payload=int(time.time()))
+            return msg.copy(ack=0, payload=calendar.timegm(time.localtime()))
         actions = self.const.HANDLE_INTERNAL.get(msg.sub_type)
         if not actions:
             return
