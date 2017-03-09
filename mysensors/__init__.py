@@ -81,7 +81,7 @@ class Gateway(object):
         self.alert(msg)
         # Check if reboot is true
         if self.sensors[msg.node_id].reboot:
-            return msg.copy(
+            return msg.modify(
                 child_id=255, type=self.const.MessageType.internal, ack=0,
                 sub_type=self.const.Internal.I_REBOOT, payload='')
 
@@ -95,7 +95,8 @@ class Gateway(object):
             value = self.sensors[msg.node_id].children[
                 msg.child_id].values.get(msg.sub_type)
             if value is not None:
-                return msg.copy(type=self.const.MessageType.set, payload=value)
+                return msg.modify(
+                    type=self.const.MessageType.set, payload=value)
 
     def _handle_heartbeat(self, msg):
         """Process a heartbeat message."""
@@ -117,13 +118,13 @@ class Gateway(object):
         """Process an internal protocol message."""
         if msg.sub_type == self.const.Internal.I_ID_REQUEST:
             node_id = self.add_sensor()
-            return msg.copy(ack=0,
-                            sub_type=self.const.Internal.I_ID_RESPONSE,
-                            payload=node_id) if node_id is not None else None
+            return msg.modify(
+                ack=0, sub_type=self.const.Internal.I_ID_RESPONSE,
+                payload=node_id) if node_id is not None else None
         elif msg.sub_type == self.const.Internal.I_CONFIG:
-            return msg.copy(ack=0, payload='M' if self.metric else 'I')
+            return msg.modify(ack=0, payload='M' if self.metric else 'I')
         elif msg.sub_type == self.const.Internal.I_TIME:
-            return msg.copy(ack=0, payload=calendar.timegm(time.localtime()))
+            return msg.modify(ack=0, payload=calendar.timegm(time.localtime()))
         actions = self.const.HANDLE_INTERNAL.get(msg.sub_type)
         if not actions:
             return
@@ -141,7 +142,7 @@ class Gateway(object):
                                              msg.sub_type,
                                              msg.payload)
         if actions.get('msg'):
-            return msg.copy(**actions['msg'])
+            return msg.modify(**actions['msg'])
 
     def _handle_stream(self, msg):
         """Process a stream type message."""
@@ -313,7 +314,7 @@ class Gateway(object):
         if not ret and self.protocol_version >= 2.0:
             _LOGGER.info('Requesting new presentation for node %s',
                          sensorid)
-            msg = Message(gateway=self).copy(
+            msg = Message(gateway=self).modify(
                 node_id=sensorid, child_id=255,
                 type=self.const.MessageType.internal,
                 sub_type=self.const.Internal.I_PRESENTATION)
@@ -440,9 +441,10 @@ class Sensor(object):
             return
         msg_type = kwargs.get('msg_type', 1)
         ack = kwargs.get('ack', 0)
-        msg_string = Message(gateway=self).copy(
+        msg = Message(gateway=self).modify(
             node_id=self.sensor_id, child_id=child_id, type=msg_type, ack=ack,
-            sub_type=value_type, payload=value).encode()
+            sub_type=value_type, payload=value)
+        msg_string = msg.encode()
         if msg_string is None:
             _LOGGER.error(
                 'Not a valid message: node %s, child %s, type %s, ack %s, '
@@ -454,7 +456,7 @@ class Sensor(object):
         except (ValueError, AttributeError) as exception:
             _LOGGER.error('Error validating child values: %s', exception)
             return
-        children[child_id].values[value_type] = msg.payload
+        children[msg.child_id].values[msg.sub_type] = msg.payload
         return msg_string
 
 
@@ -511,6 +513,12 @@ class Message(object):
         for key, val in kwargs.items():
             setattr(msg, key, val)
         return msg
+
+    def modify(self, **kwargs):
+        """Modify and return message, replace attributes with kwargs."""
+        for key, val in kwargs.items():
+            setattr(self, key, val)
+        return self
 
     def decode(self, data, delimiter=';'):
         """Decode a message from command string."""

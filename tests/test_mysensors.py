@@ -503,6 +503,20 @@ class TestGateway(TestCase):
         ret = self.gateway.handle_queue()
         self.assertEqual(ret, None)
 
+    def test_set_child_value_value_type(self):
+        """Test Gateway method set_child_value with string value type."""
+        sensor = self._add_sensor(1)
+        sensor.children[0] = ChildSensor(
+            0, self.gateway.const.Presentation.S_LIGHT)
+        self.gateway.set_child_value(1, 0, 2, 1)
+        ret = self.gateway.handle_queue()
+        self.assertEqual(ret, '1;0;1;0;2;1\n')
+        child_values = dict(sensor.children[0].values)
+        self.gateway.set_child_value(1, 0, '2', 1)
+        ret = self.gateway.handle_queue()
+        self.assertEqual(child_values, sensor.children[0].values)
+        self.assertEqual(ret, '1;0;1;0;2;1\n')
+
 
 class TestGateway15(TestGateway):
     """Use protocol_version 1.5."""
