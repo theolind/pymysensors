@@ -3,7 +3,7 @@ Python API for talking to a MySensors gateway (http://www.mysensors.org/). Curre
 
 - Supports smartsleep with serial API v2.0.
 - Supports the MQTT client gateway with serial API v2.0.
-- Supports OTA updates, for DualOptiboot bootloader.
+- Supports OTA updates, for both [DualOptiboot](https://github.com/mysensors/DualOptiboot) and [MYSBootloader](https://github.com/mysensors/MySensorsBootloaderRF24) bootloaders.
 
 # Usage
 Currently the API is best used by implementing a callback handler
