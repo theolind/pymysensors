@@ -6,6 +6,7 @@ def event(message):
     """Callback for mysensors updates."""
     print("sensor_update " + str(message.node_id))
 
+
 # To create a serial gateway.
 GATEWAY = mysensors.SerialGateway(
     '/dev/ttyACM0', event, protocol_version='2.0')
