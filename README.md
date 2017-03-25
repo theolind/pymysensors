@@ -23,6 +23,7 @@ In the above example PyMysensors will call "event" whenever a node in the Mysens
 
 ```
 Message
+    gateway - the gateway instance
     node_id - the sensor node identifier
     child_id - the child sensor id
     type - the message type (int)
