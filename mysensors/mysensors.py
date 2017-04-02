@@ -202,7 +202,7 @@ class Gateway(object):
     def _load_pickle(self, filename):
         """Load sensors from pickle file."""
         with open(filename, 'rb') as file_handle:
-            self.sensors = pickle.load(file_handle)
+            self.sensors.update(pickle.load(file_handle))
 
     def _save_json(self, filename):
         """Save sensors to json file."""
@@ -214,7 +214,8 @@ class Gateway(object):
     def _load_json(self, filename):
         """Load sensors from json file."""
         with open(filename, 'r') as file_handle:
-            self.sensors = json.load(file_handle, cls=MySensorsJSONDecoder)
+            self.sensors.update(
+                    json.load(file_handle, cls=MySensorsJSONDecoder))
 
     def _save_sensors(self):
         """Save sensors to file."""
