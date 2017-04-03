@@ -2,10 +2,12 @@
 import json
 import os
 import tempfile
+import time
 from collections import deque
 from unittest import TestCase, main, mock
 
-import mysensors.mysensors as my
+from mysensors import (ChildSensor, Gateway, Message, MySensorsJSONEncoder,
+                       Sensor)
 from mysensors.const_14 import Internal, MessageType
 
 
@@ -16,11 +18,11 @@ class TestGateway(TestCase):
 
     def setUp(self):
         """Setup gateway."""
-        self.gateway = my.Gateway()
+        self.gateway = Gateway()
 
     def _add_sensor(self, sensorid):
         """Add sensor node. Return sensor node instance."""
-        self.gateway.sensors[sensorid] = my.Sensor(sensorid)
+        self.gateway.sensors[sensorid] = Sensor(sensorid)
         return self.gateway.sensors[sensorid]
 
     def test_logic_bad_message(self):
@@ -86,8 +88,8 @@ class TestGateway(TestCase):
     def test_internal_time(self):
         """Test internal time request."""
         self._add_sensor(1)
-        with mock.patch('mysensors.mysensors.time') as mock_time:
-            mock_time.time.return_value = 123456789
+        with mock.patch('mysensors.time') as mock_time:
+            mock_time.localtime.return_value = time.gmtime(123456789)
             ret = self.gateway.logic('1;255;3;0;1;\n')
             self.assertEqual(ret, '1;255;3;0;1;123456789\n')
 
@@ -105,15 +107,26 @@ class TestGateway(TestCase):
 
     def test_internal_log_message(self):
         """Test internal receive of log message."""
-        self.gateway.debug = True
         payload = 'read: 1-1-0 s=0,c=1,t=1,pt=7,l=5,sg=0:22.0\n'
         data = '0;255;3;0;9;{}'.format(payload)
         with self.assertLogs(level='DEBUG') as test_handle:
             self.gateway.logic(data)
         self.assertEqual(
             test_handle.output,
-            ['DEBUG:mysensors.mysensors:n:0 c:255 t:3 s:9 p:{}'.format(
+            ['DEBUG:mysensors:n:0 c:255 t:3 s:9 p:{}'.format(
                 payload[:-1])])
+
+    def test_internal_gateway_ready(self):
+        """Test internal receive gateway ready and send discover request."""
+        payload = 'Gateway startup complete.\n'
+        data = '0;255;3;0;14;{}'.format(payload)
+        with self.assertLogs(level='INFO') as test_handle:
+            ret = self.gateway.logic(data)
+        self.assertEqual(
+            test_handle.output,
+            ['INFO:mysensors:n:0 c:255 t:3 s:14 p:{}'.format(
+                payload[:-1])])
+        self.assertEqual(ret, None)
 
     def test_present_light_level_sensor(self):
         """Test presentation of a light level sensor."""
@@ -146,7 +159,7 @@ class TestGateway(TestCase):
     def test_set_light_level(self):
         """Test set of light level."""
         sensor = self._add_sensor(1)
-        sensor.children[0] = my.ChildSensor(
+        sensor.children[0] = ChildSensor(
             0, self.gateway.const.Presentation.S_LIGHT_LEVEL)
         self.gateway.logic('1;0;1;0;23;43\n')
         self.assertEqual(
@@ -156,7 +169,7 @@ class TestGateway(TestCase):
     def test_set_humidity_level(self):
         """Test set humidity level."""
         sensor = self._add_sensor(1)
-        sensor.children[1] = my.ChildSensor(
+        sensor.children[1] = ChildSensor(
             1, self.gateway.const.Presentation.S_HUM)
         self.gateway.logic('1;1;1;0;1;75\n')
         self.assertEqual(
@@ -171,7 +184,7 @@ class TestGateway(TestCase):
     def test_req(self):
         """Test req message in case where value exists."""
         sensor = self._add_sensor(1)
-        sensor.children[1] = my.ChildSensor(
+        sensor.children[1] = ChildSensor(
             1, self.gateway.const.Presentation.S_POWER)
         sensor.set_child_value(1, self.gateway.const.SetReq.V_VAR1, 42)
         ret = self.gateway.logic('1;1;2;0;24;\n')
@@ -180,7 +193,7 @@ class TestGateway(TestCase):
     def test_req_zerovalue(self):
         """Test req message in case where value exists but is zero."""
         sensor = self._add_sensor(1)
-        sensor.children[1] = my.ChildSensor(
+        sensor.children[1] = ChildSensor(
             1, self.gateway.const.Presentation.S_POWER)
         sensor.set_child_value(1, self.gateway.const.SetReq.V_VAR1, 0)
         ret = self.gateway.logic('1;1;2;0;24;\n')
@@ -189,7 +202,7 @@ class TestGateway(TestCase):
     def test_req_novalue(self):
         """Test req message for sensor with no value."""
         sensor = self._add_sensor(1)
-        sensor.children[1] = my.ChildSensor(
+        sensor.children[1] = ChildSensor(
             1, self.gateway.const.Presentation.S_POWER)
         ret = self.gateway.logic('1;1;2;0;24;\n')
         self.assertEqual(ret, None)
@@ -202,7 +215,7 @@ class TestGateway(TestCase):
     def _test_persistence(self, filename):
         """Test persistence."""
         sensor = self._add_sensor(1)
-        sensor.children[0] = my.ChildSensor(
+        sensor.children[0] = ChildSensor(
             0, self.gateway.const.Presentation.S_LIGHT_LEVEL, 'test')
         sensor.children[0].values[
             self.gateway.const.SetReq.V_LIGHT_LEVEL] = '43'
@@ -325,7 +338,7 @@ class TestGateway(TestCase):
     @mock.patch('mysensors.mysensors.Gateway._safe_load_sensors')
     def test_persistence_at_init(self, mock_load_sensors):
         """Test call to load persistence_file at init of Gateway."""
-        self.gateway = my.Gateway(persistence=True)
+        self.gateway = Gateway(persistence=True)
         assert mock_load_sensors.called
 
     def _save_json_upgrade(self, filename):
@@ -346,8 +359,9 @@ class TestGateway(TestCase):
         # pylint: disable=protected-access
         mock_save_json.side_effect = self._save_json_upgrade
         sensor = self._add_sensor(1)
-        sensor.children[0] = my.ChildSensor(
+        sensor.children[0] = ChildSensor(
             0, self.gateway.const.Presentation.S_LIGHT_LEVEL)
+        sensor.battery_level = 58
         del self.gateway.sensors[1].__dict__['new_state']
         self.assertNotIn('new_state', self.gateway.sensors[1].__dict__)
         del self.gateway.sensors[1].__dict__['queue']
@@ -365,6 +379,7 @@ class TestGateway(TestCase):
             del self.gateway.sensors[1]
             self.assertNotIn(1, self.gateway.sensors)
             self.gateway._safe_load_sensors()
+            self.assertEqual(self.gateway.sensors[1].battery_level, 58)
             self.assertEqual(self.gateway.sensors[1].new_state, {})
             self.assertEqual(self.gateway.sensors[1].queue, deque())
             self.assertEqual(self.gateway.sensors[1].reboot, False)
@@ -387,44 +402,50 @@ class TestGateway(TestCase):
         # pylint: disable=no-value-for-parameter
         self._test_persistence_upgrade('file.json')
 
-    def _callback(self, update_type, nid):
-        """Callback for test of callback."""
-        self.gateway.test_callback_update = update_type
-        self.gateway.test_callback_node_id = nid
+    def _callback(self, message):
+        self.gateway.test_callback_message = message
 
     @mock.patch('mysensors.mysensors.Gateway._save_sensors')
     def test_callback(self, mock_save_sensors):
         """Test gateway callback function."""
         self.gateway.event_callback = self._callback
         self.gateway.persistence = True
-        self.gateway.test_callback_node_id = None
-        self.gateway.test_callback_update = None
+        self.gateway.test_callback_message = None
         sensor = self._add_sensor(1)
-        sensor.children[0] = my.ChildSensor(
+        sensor.children[0] = ChildSensor(
             0, self.gateway.const.Presentation.S_LIGHT_LEVEL)
         self.gateway.logic('1;0;1;0;23;43\n')
-        self.assertEqual(1, self.gateway.test_callback_node_id)
-        self.assertEqual('sensor_update', self.gateway.test_callback_update)
+        self.assertIsNotNone(self.gateway.test_callback_message)
+        self.assertEqual(self.gateway,
+                         self.gateway.test_callback_message.gateway)
+        self.assertEqual(1, self.gateway.test_callback_message.node_id)
+        self.assertEqual(0, self.gateway.test_callback_message.child_id)
+        self.assertEqual(1, self.gateway.test_callback_message.type)
+        self.assertEqual(0, self.gateway.test_callback_message.ack)
+        self.assertEqual(23, self.gateway.test_callback_message.sub_type)
+        self.assertEqual('43', self.gateway.test_callback_message.payload)
         assert mock_save_sensors.called
 
     def test_callback_exception(self):
         """Test gateway callback with exception."""
         side_effect = ValueError('test')
-        self.gateway = my.Gateway(event_callback=self._callback)
+        self.gateway = Gateway(event_callback=self._callback)
         with mock.patch.object(self.gateway, 'event_callback',
                                side_effect=side_effect) as mock_callback:
             with self.assertLogs(level='ERROR') as test_handle:
-                self.gateway.alert(1)
+                msg = Message()
+                msg.node_id = 1
+                self.gateway.alert(msg)
             assert mock_callback.called
             self.assertEqual(
                 # only check first line of error log
                 test_handle.output[0].split('\n', 1)[0],
-                'ERROR:mysensors.mysensors:test')
+                'ERROR:mysensors:test')
 
     def test_set_and_reboot(self):
         """Test set message with reboot attribute true."""
         sensor = self._add_sensor(1)
-        sensor.children[0] = my.ChildSensor(
+        sensor.children[0] = ChildSensor(
             0, self.gateway.const.Presentation.S_LIGHT_LEVEL)
         sensor.reboot = True
         ret = self.gateway.logic('1;0;1;0;23;43\n')
@@ -433,7 +454,7 @@ class TestGateway(TestCase):
     def test_set_child_value(self):
         """Test Gateway method set_child_value."""
         sensor = self._add_sensor(1)
-        sensor.children[0] = my.ChildSensor(
+        sensor.children[0] = ChildSensor(
             0, self.gateway.const.Presentation.S_LIGHT)
         self.gateway.set_child_value(
             1, 0, self.gateway.const.SetReq.V_LIGHT, '1')
@@ -455,7 +476,7 @@ class TestGateway(TestCase):
     def test_set_child_no_children(self):
         """Test Gateway method set_child_value without child in children."""
         sensor = self._add_sensor(1)
-        sensor.children[0] = my.ChildSensor(
+        sensor.children[0] = ChildSensor(
             0, self.gateway.const.Presentation.S_LIGHT)
         self.gateway.set_child_value(
             1, 0, self.gateway.const.SetReq.V_LIGHT, 1, children={})
@@ -465,7 +486,7 @@ class TestGateway(TestCase):
     def test_set_child_value_bad_type(self):
         """Test Gateway method set_child_value with bad type."""
         sensor = self._add_sensor(1)
-        sensor.children[0] = my.ChildSensor(
+        sensor.children[0] = ChildSensor(
             0, self.gateway.const.Presentation.S_LIGHT)
         self.gateway.set_child_value(
             1, 0, self.gateway.const.SetReq.V_LIGHT, 1, msg_type='one')
@@ -475,12 +496,26 @@ class TestGateway(TestCase):
     def test_set_child_value_bad_ack(self):
         """Test Gateway method set_child_value with bad ack."""
         sensor = self._add_sensor(1)
-        sensor.children[0] = my.ChildSensor(
+        sensor.children[0] = ChildSensor(
             0, self.gateway.const.Presentation.S_LIGHT)
         self.gateway.set_child_value(
             1, 0, self.gateway.const.SetReq.V_LIGHT, 1, ack='one')
         ret = self.gateway.handle_queue()
         self.assertEqual(ret, None)
+
+    def test_set_child_value_value_type(self):
+        """Test Gateway method set_child_value with string value type."""
+        sensor = self._add_sensor(1)
+        sensor.children[0] = ChildSensor(
+            0, self.gateway.const.Presentation.S_LIGHT)
+        self.gateway.set_child_value(1, 0, 2, 1)
+        ret = self.gateway.handle_queue()
+        self.assertEqual(ret, '1;0;1;0;2;1\n')
+        child_values = dict(sensor.children[0].values)
+        self.gateway.set_child_value(1, 0, '2', 1)
+        ret = self.gateway.handle_queue()
+        self.assertEqual(child_values, sensor.children[0].values)
+        self.assertEqual(ret, '1;0;1;0;2;1\n')
 
 
 class TestGateway15(TestGateway):
@@ -488,7 +523,7 @@ class TestGateway15(TestGateway):
 
     def setUp(self):
         """Setup gateway."""
-        self.gateway = my.Gateway(protocol_version='1.5')
+        self.gateway = Gateway(protocol_version='1.5')
 
 
 class TestGateway20(TestGateway):
@@ -496,7 +531,7 @@ class TestGateway20(TestGateway):
 
     def setUp(self):
         """Setup gateway."""
-        self.gateway = my.Gateway(protocol_version='2.0')
+        self.gateway = Gateway(protocol_version='2.0')
 
     def test_non_presented_sensor(self):
         """Test non presented sensor node."""
@@ -545,7 +580,7 @@ class TestGateway20(TestGateway):
     def test_heartbeat(self):
         """Test heartbeat message."""
         sensor = self._add_sensor(1)
-        sensor.children[0] = my.ChildSensor(
+        sensor.children[0] = ChildSensor(
             0, self.gateway.const.Presentation.S_LIGHT_LEVEL)
         self.gateway.logic('1;0;1;0;23;43\n')
         ret = self.gateway.handle_queue()
@@ -591,7 +626,7 @@ class TestGateway20(TestGateway):
     def test_set_with_new_state(self):
         """Test set message with populated new_state."""
         sensor = self._add_sensor(1)
-        sensor.children[0] = my.ChildSensor(
+        sensor.children[0] = ChildSensor(
             0, self.gateway.const.Presentation.S_LIGHT_LEVEL)
         self.gateway.logic('1;0;1;0;23;43\n')
         self.gateway.logic('1;255;3;0;22;\n')
@@ -601,13 +636,40 @@ class TestGateway20(TestGateway):
             sensor.new_state[0].values[
                 self.gateway.const.SetReq.V_LIGHT_LEVEL])
 
+    def test_internal_gateway_ready(self):
+        """Test internal receive gateway ready and send discover request."""
+        payload = 'Gateway startup complete.\n'
+        data = '0;255;3;0;14;{}'.format(payload)
+        with self.assertLogs(level='INFO') as test_handle:
+            ret = self.gateway.logic(data)
+        self.assertEqual(
+            test_handle.output,
+            ['INFO:mysensors:n:0 c:255 t:3 s:14 p:{}'.format(
+                payload[:-1])])
+        self.assertEqual(ret, '255;255;3;0;20;\n')
+
+    def test_discover_response_unknown(self):
+        """Test internal receive discover response."""
+        # Test sensor 1 unknown.
+        self.gateway.logic('1;255;3;0;21;0')
+        ret = self.gateway.handle_queue()
+        self.assertEqual(ret, '1;255;3;0;19;\n')
+
+    @mock.patch('mysensors.mysensors.Gateway.is_sensor')
+    def test_discover_response_known(self, mock_is_sensor):
+        """Test internal receive discover response."""
+        # Test sensor 1 known.
+        self._add_sensor(1)
+        self.gateway.logic('1;255;3;0;21;0')
+        assert mock_is_sensor.called
+
 
 class TestMessage(TestCase):
     """Test the Message class and it's encode/decode functions."""
 
     def test_encode(self):
         """Test encode of message."""
-        msg = my.Message()
+        msg = Message()
         cmd = msg.encode()
         self.assertEqual(cmd, '0;0;0;0;0;\n')
 
@@ -623,14 +685,14 @@ class TestMessage(TestCase):
 
     def test_encode_bad_message(self):
         """Test encode of bad message."""
-        msg = my.Message()
+        msg = Message()
         msg.sub_type = 'bad'
         cmd = msg.encode()
         self.assertEqual(cmd, None)
 
     def test_decode(self):
         """Test decode of message."""
-        msg = my.Message('255;255;3;0;0;57\n')
+        msg = Message('255;255;3;0;0;57\n')
         self.assertEqual(msg.node_id, 255)
         self.assertEqual(msg.child_id, 255)
         self.assertEqual(msg.type, MessageType.internal)
@@ -641,15 +703,25 @@ class TestMessage(TestCase):
     def test_decode_bad_message(self):
         """Test decode of bad message."""
         with self.assertRaises(ValueError):
-            my.Message('bad;bad;bad;bad;bad;bad\n')
+            Message('bad;bad;bad;bad;bad;bad\n')
 
 
-class MySensorsJSONEncoderTestUpgrade(my.MySensorsJSONEncoder):
+class MySensorsJSONEncoderTestUpgrade(MySensorsJSONEncoder):
     """JSON encoder used for testing upgrade with missing attributes."""
 
     def default(self, obj):  # pylint: disable=E0202
         """Serialize obj into JSON."""
-        if isinstance(obj, my.ChildSensor):
+        if isinstance(obj, Sensor):
+            return {
+                'sensor_id': obj.sensor_id,
+                'children': obj.children,
+                'type': obj.type,
+                'sketch_name': obj.sketch_name,
+                'sketch_version': obj.sketch_version,
+                'battery_level': obj.battery_level,
+                'protocol_version': obj.protocol_version,
+            }
+        if isinstance(obj, ChildSensor):
             return {
                 'id': obj.id,
                 'type': obj.type,
@@ -657,6 +729,7 @@ class MySensorsJSONEncoderTestUpgrade(my.MySensorsJSONEncoder):
             }
         else:
             return super().default(obj)
+
 
 if __name__ == '__main__':
     main()

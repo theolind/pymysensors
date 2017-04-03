@@ -1,5 +1,7 @@
 """MySensors constants for version 1.5 of MySensors."""
 from enum import IntEnum
+# pylint: disable=unused-import
+from mysensors.const_14 import HANDLE_INTERNAL  # noqa: F401
 
 
 class MessageType(IntEnum):

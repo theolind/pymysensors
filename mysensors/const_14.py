@@ -148,3 +148,17 @@ class Stream(IntEnum):
     ST_FIRMWARE_RESPONSE = 3  # Response FW block
     ST_SOUND = 4  # Sound
     ST_IMAGE = 5  # Image
+
+
+HANDLE_INTERNAL = {
+    Internal.I_BATTERY_LEVEL: {
+        'is_sensor': True, 'setattr': 'battery_level', 'fun': 'alert'},
+    Internal.I_SKETCH_NAME: {
+        'is_sensor': True, 'setattr': 'sketch_name', 'fun': 'alert'},
+    Internal.I_SKETCH_VERSION: {
+        'is_sensor': True, 'setattr': 'sketch_version', 'fun': 'alert'},
+    Internal.I_LOG_MESSAGE: {
+        'log': 'debug'},
+    Internal.I_GATEWAY_READY: {
+        'log': 'info'},
+}

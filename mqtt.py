@@ -1,5 +1,5 @@
 """Example for using pymysensors with mqtt."""
-import paho.mqtt.client as mqtt  # pylint: disable=E0401
+import paho.mqtt.client as mqtt  # pylint: disable=import-error
 
 import mysensors.mysensors as mysensors
 
@@ -44,9 +44,9 @@ class MQTT(object):
         self._mqttc.loop_stop()
 
 
-def event(update_type, nid):
+def event(message):
     """Callback for mysensors updates."""
-    print(update_type + " " + str(nid))
+    print("sensor_update " + str(message.node_id))
 
 MQTTC = MQTT('localhost', 1883, 60)
 MQTTC.start()
@@ -56,5 +56,4 @@ GATEWAY = mysensors.MQTTGateway(
     protocol_version="2.0", in_prefix='mygateway1-out',
     out_prefix='mygateway1-in', retain=True)
 
-GATEWAY.debug = True
 GATEWAY.start()
