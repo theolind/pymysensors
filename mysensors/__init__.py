@@ -408,7 +408,8 @@ class Sensor(object):
     def __setstate__(self, state):
         """Set state when loading pickle."""
         # Restore instance attributes
-        self.__dict__.update(state)
+        for key, val in state.items():
+            setattr(self, key, val)
         # Reset some attributes
         self.new_state = {}
         self.queue = deque()
