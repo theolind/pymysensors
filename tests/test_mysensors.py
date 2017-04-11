@@ -361,13 +361,15 @@ class TestGateway(TestCase):
         sensor = self._add_sensor(1)
         sensor.children[0] = ChildSensor(
             0, self.gateway.const.Presentation.S_LIGHT_LEVEL)
-        sensor.battery_level = 58
         del self.gateway.sensors[1].__dict__['new_state']
         self.assertNotIn('new_state', self.gateway.sensors[1].__dict__)
         del self.gateway.sensors[1].__dict__['queue']
         self.assertNotIn('queue', self.gateway.sensors[1].__dict__)
         del self.gateway.sensors[1].__dict__['reboot']
         self.assertNotIn('reboot', self.gateway.sensors[1].__dict__)
+        del self.gateway.sensors[1].__dict__['_battery_level']
+        self.assertNotIn('_battery_level', self.gateway.sensors[1].__dict__)
+        self.gateway.sensors[1].__dict__['battery_level'] = 58
         del self.gateway.sensors[1].children[0].__dict__['description']
         self.assertNotIn(
             'description', self.gateway.sensors[1].children[0].__dict__)
@@ -712,15 +714,7 @@ class MySensorsJSONEncoderTestUpgrade(MySensorsJSONEncoder):
     def default(self, obj):  # pylint: disable=E0202
         """Serialize obj into JSON."""
         if isinstance(obj, Sensor):
-            return {
-                'sensor_id': obj.sensor_id,
-                'children': obj.children,
-                'type': obj.type,
-                'sketch_name': obj.sketch_name,
-                'sketch_version': obj.sketch_version,
-                'battery_level': obj.battery_level,
-                'protocol_version': obj.protocol_version,
-            }
+            return obj.__dict__
         if isinstance(obj, ChildSensor):
             return {
                 'id': obj.id,
