@@ -557,7 +557,7 @@ class MySensorsJSONEncoder(json.JSONEncoder):
 
     def default(self, obj):
         """Serialize obj into JSON."""
-        # pylint: disable=method-hidden, protected-access
+        # pylint: disable=method-hidden, protected-access, arguments-differ
         if isinstance(obj, Sensor):
             return {
                 'sensor_id': obj.sensor_id,
