@@ -19,7 +19,7 @@ class SerialGateway(Gateway, threading.Thread):
                  persistence=False, persistence_file='mysensors.pickle',
                  protocol_version='1.4', baud=115200, timeout=1.0,
                  reconnect_timeout=10.0):
-        """Setup serial gateway."""
+        """Set up serial gateway."""
         threading.Thread.__init__(self)
         Gateway.__init__(self, event_callback, persistence,
                          persistence_file, protocol_version)

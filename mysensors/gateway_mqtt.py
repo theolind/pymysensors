@@ -17,7 +17,7 @@ class MQTTGateway(Gateway, threading.Thread):
                  persistence=False, persistence_file='mysensors.pickle',
                  protocol_version='1.4', in_prefix='', out_prefix='',
                  retain=True):
-        """Setup MQTT client gateway."""
+        """Set up MQTT client gateway."""
         threading.Thread.__init__(self)
         # Should accept topic, payload, qos, retain.
         self._pub_callback = pub_callback
@@ -50,7 +50,7 @@ class MQTTGateway(Gateway, threading.Thread):
                     'Subscribe to %s failed: %s', topic, exception)
 
     def _init_topics(self):
-        """Setup initial subscription of mysensors topics."""
+        """Set up initial subscription of mysensors topics."""
         _LOGGER.info('Setting up initial MQTT topic subscription')
         init_topics = [
             '{}/+/+/0/+/+'.format(self._in_prefix),

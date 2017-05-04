@@ -62,7 +62,7 @@ class OTAFirmware(object):
     """Organize OTAFirmware updates."""
 
     def __init__(self, sensors, const):
-        """Setup OTA firmware instance."""
+        """Set up OTA firmware instance."""
         self._sensors = sensors
         self._const = const
         self.firmware = {}
