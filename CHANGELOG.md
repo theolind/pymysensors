@@ -8,6 +8,11 @@
 
 - Publish pymysensors on pypi [\#94](https://github.com/theolind/pymysensors/issues/94)
 
+**Merged pull requests:**
+
+- Add manifest and update setup files [\#96](https://github.com/theolind/pymysensors/pull/96) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Add changelog [\#95](https://github.com/theolind/pymysensors/pull/95) ([MartinHjelmare](https://github.com/MartinHjelmare))
+
 ## [0.9.1](https://github.com/theolind/pymysensors/tree/0.9.1) (2017-04-11)
 [Full Changelog](https://github.com/theolind/pymysensors/compare/0.9...0.9.1)
 
