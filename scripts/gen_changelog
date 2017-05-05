@@ -1,0 +1,7 @@
+#!/bin/sh
+if ! gem list github_changelog_generator -i; then
+  echo "github_changelog_generator must be installed before running this \
+script.\nInstall with (requires Ruby):\ngem install github_changelog_generator";
+else
+  github_changelog_generator -u theolind -p pymysensors
+fi
