@@ -721,8 +721,7 @@ class MySensorsJSONEncoderTestUpgrade(MySensorsJSONEncoder):
                 'type': obj.type,
                 'values': obj.values,
             }
-        else:
-            return super().default(obj)
+        return super().default(obj)
 
 
 if __name__ == '__main__':

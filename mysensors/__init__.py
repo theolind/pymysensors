@@ -22,7 +22,7 @@ class Gateway(object):
 
     def __init__(self, event_callback=None, persistence=False,
                  persistence_file='mysensors.pickle', protocol_version='1.4'):
-        """Setup Gateway."""
+        """Set up Gateway."""
         self.queue = Queue()
         self.lock = threading.Lock()
         self.event_callback = event_callback
@@ -154,7 +154,7 @@ class Gateway(object):
             return self.ota.respond_fw(msg)
 
     def send(self, message):
-        """Should be implemented by a child class."""
+        """Implement this method in a child class."""
         raise NotImplementedError
 
     def logic(self, data):
@@ -393,7 +393,7 @@ class Sensor(object):
     # pylint: disable=too-many-instance-attributes
 
     def __init__(self, sensor_id):
-        """Setup sensor."""
+        """Set up sensor."""
         self.sensor_id = sensor_id
         self.children = {}
         self.type = None
@@ -468,7 +468,7 @@ class ChildSensor(object):
     # pylint: disable=too-few-public-methods
 
     def __init__(self, child_id, child_type, description=''):
-        """Setup child sensor."""
+        """Set up child sensor."""
         # pylint: disable=invalid-name
         self.id = child_id
         self.type = child_type
@@ -498,7 +498,7 @@ class Message(object):
     """Represent a message from the gateway."""
 
     def __init__(self, data=None, gateway=None):
-        """Setup message."""
+        """Set up message."""
         self.node_id = 0
         self.child_id = 0
         self.type = 0
@@ -557,7 +557,7 @@ class MySensorsJSONEncoder(json.JSONEncoder):
 
     def default(self, obj):
         """Serialize obj into JSON."""
-        # pylint: disable=method-hidden, protected-access
+        # pylint: disable=method-hidden, protected-access, arguments-differ
         if isinstance(obj, Sensor):
             return {
                 'sensor_id': obj.sensor_id,
@@ -582,7 +582,7 @@ class MySensorsJSONDecoder(json.JSONDecoder):
     """JSON decoder."""
 
     def __init__(self):
-        """Setup decoder."""
+        """Set up decoder."""
         json.JSONDecoder.__init__(self, object_hook=self.dict_to_object)
 
     def dict_to_object(self, obj):  # pylint: disable=no-self-use

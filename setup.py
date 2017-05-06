@@ -14,6 +14,7 @@ setup(
     long_description=README,
     url='https://github.com/theolind/pymysensors',
     author='Theodor Lindquist',
+    author_email='theodor.lindquist@gmail.com',
     license='MIT License',
     install_requires=['pyserial>=3.1.1', 'crcmod>=1.7', 'IntelHex>=2.1'],
     packages=find_packages(exclude=['tests', 'tests.*']),

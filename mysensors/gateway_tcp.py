@@ -19,7 +19,7 @@ class TCPGateway(Gateway, threading.Thread):
                  persistence=False, persistence_file='mysensors.pickle',
                  protocol_version='1.4', port=5003, timeout=1.0,
                  reconnect_timeout=10.0):
-        """Setup TCP ethernet gateway."""
+        """Set up TCP ethernet gateway."""
         threading.Thread.__init__(self)
         Gateway.__init__(self, event_callback, persistence,
                          persistence_file, protocol_version)
