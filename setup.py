@@ -9,7 +9,7 @@ else:
 
 setup(
     name='pymysensors',
-    version='0.10.0.dev0',
+    version='0.10.0',
     description='Python API for talking to a MySensors gateway',
     long_description=README,
     url='https://github.com/theolind/pymysensors',

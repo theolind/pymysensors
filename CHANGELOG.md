@@ -1,8 +1,7 @@
 # Change Log
 
-## [Unreleased](https://github.com/theolind/pymysensors/tree/HEAD)
-
-[Full Changelog](https://github.com/theolind/pymysensors/compare/0.9.1...HEAD)
+## [0.10](https://github.com/theolind/pymysensors/tree/0.10) (2017-05-07)
+[Full Changelog](https://github.com/theolind/pymysensors/compare/0.9.1...0.10)
 
 **Closed issues:**
 
@@ -10,6 +9,7 @@
 
 **Merged pull requests:**
 
+- Add release instructions and update setup [\#97](https://github.com/theolind/pymysensors/pull/97) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Add manifest and update setup files [\#96](https://github.com/theolind/pymysensors/pull/96) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Add changelog [\#95](https://github.com/theolind/pymysensors/pull/95) ([MartinHjelmare](https://github.com/MartinHjelmare))
 
