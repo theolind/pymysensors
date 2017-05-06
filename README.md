@@ -103,7 +103,7 @@ GATEWAY = mysensors.TCPGateway(
   port=5003, timeout=1.0, reconnect_timeout=10.0)
 ```
 
-The MQTT gateway requires MySensors serial API v2.0 and the MQTT client gateway example sketch loaded in the gateway Arduino. The gateway also requires an MQTT broker and a python MQTT client interface to the broker. See [mqtt.py](mqtt.py) for an example of how to implement this and initialize the MQTT gateway.
+The MQTT gateway requires MySensors serial API v2.0 and the MQTT client gateway example sketch loaded in the gateway Arduino. The gateway also requires an MQTT broker and a python MQTT client interface to the broker. See [mqtt.py](https://github.com/theolind/pymysensors/blob/master/mqtt.py) for an example of how to implement this and initialize the MQTT gateway.
 
 ## Over the air (OTA) firmware updates
 Call `Gateway` method `update_fw` to set one or more nodes for OTA

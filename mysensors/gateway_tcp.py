@@ -39,7 +39,7 @@ class TCPGateway(Gateway, threading.Thread):
             self.disconnect()
             _LOGGER.info('No response. Disconnected.')
             return
-        if not (self.tcp_check_timer + self.reconnect_timeout) < time.time():
+        if (self.tcp_check_timer + self.reconnect_timeout) >= time.time():
             return
         msg = Message().copy(
             child_id=255, type=self.const.MessageType.internal,
