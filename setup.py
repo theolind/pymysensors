@@ -1,8 +1,11 @@
 """Setup file for mysensors package."""
+import os
 from setuptools import setup, find_packages
 
-with open('README.md') as readme_file:
-    README = readme_file.read()
+if os.path.exists('README.rst'):
+    README = open('README.rst').read()
+else:
+    README = ''
 
 setup(
     name='pymysensors',
