@@ -1,7 +1,12 @@
 """MySensors constants for version 1.5 of MySensors."""
 from enum import IntEnum
 
-from mysensors.const_15 import HANDLE_INTERNAL
+import voluptuous as vol
+
+# pylint: disable=unused-import
+from mysensors.const_15 import MAX_NODE_ID  # noqa: F401
+from mysensors.const_15 import (HANDLE_INTERNAL, VALID_INTERNAL, VALID_SETREQ,
+                                VALID_STREAM, VALID_TYPES)
 
 
 class MessageType(IntEnum):
@@ -250,6 +255,78 @@ class Stream(IntEnum):
     ST_SOUND = 4  # Sound
     ST_IMAGE = 5  # Image
 
+
+VALID_MESSAGE_TYPES = {
+    MessageType.presentation: list(Presentation),
+    MessageType.set: list(SetReq),
+    MessageType.req: list(SetReq),
+    MessageType.internal: list(Internal),
+    MessageType.stream: list(Stream),
+}
+
+VALID_PRESENTATION = {
+    member: str for member in list(Presentation)
+}
+
+VALID_TYPES.update({
+    Presentation.S_INFO: [SetReq.V_TEXT],
+    Presentation.S_GAS: [SetReq.V_FLOW, SetReq.V_VOLUME],
+    Presentation.S_GPS: [SetReq.V_POSITION],
+    Presentation.S_WATER_QUALITY: [
+        SetReq.V_TEMP, SetReq.V_PH, SetReq.V_ORP, SetReq.V_EC,
+        SetReq.V_STATUS],
+})
+
+
+def validate_gps(value):
+    """Validate GPS value."""
+    try:
+        latitude, longitude, altitude = value.split(',')
+        vol.Coerce(float)(latitude)
+        vol.Coerce(float)(longitude)
+        vol.Coerce(float)(altitude)
+    except (TypeError, ValueError, vol.Invalid):
+        raise vol.Invalid(
+            'GPS value should be of format "latitude,longitude,altitude"')
+    return value
+
+
+VALID_SETREQ.update({
+    SetReq.V_TEXT: str,
+    SetReq.V_CUSTOM: str,
+    SetReq.V_POSITION: vol.All(str, validate_gps),
+    SetReq.V_IR_RECORD: str,
+    SetReq.V_PH: str,
+    SetReq.V_ORP: str,
+    SetReq.V_EC: str,
+    SetReq.V_VAR: str,
+    SetReq.V_VA: str,
+    SetReq.V_POWER_FACTOR: vol.All(
+        vol.Coerce(float), vol.Range(min=-1.0, max=1.0), vol.Coerce(str),
+        msg='value should be between -1.0 and 1.0'),
+})
+
+VALID_INTERNAL.update({
+    Internal.I_HEARTBEAT: '',
+    Internal.I_PRESENTATION: '',
+    Internal.I_DISCOVER: '',
+    Internal.I_DISCOVER_RESPONSE: str,
+    Internal.I_HEARTBEAT_RESPONSE: str,
+    Internal.I_LOCKED: str,
+    Internal.I_PING: vol.All(vol.Coerce(int), vol.Coerce(str)),
+    Internal.I_PONG: vol.All(vol.Coerce(int), vol.Coerce(str)),
+    Internal.I_REGISTRATION_REQUEST: str,
+    Internal.I_REGISTRATION_RESPONSE: str,
+    Internal.I_DEBUG: str,
+})
+
+VALID_PAYLOADS = {
+    MessageType.presentation: VALID_PRESENTATION,
+    MessageType.set: VALID_SETREQ,
+    MessageType.req: {member: '' for member in list(SetReq)},
+    MessageType.internal: VALID_INTERNAL,
+    MessageType.stream: VALID_STREAM,
+}
 
 HANDLE_INTERNAL.update({
     Internal.I_GATEWAY_READY: {

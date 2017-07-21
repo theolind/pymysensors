@@ -6,6 +6,8 @@ import time
 from collections import deque
 from unittest import TestCase, main, mock
 
+import voluptuous as vol
+
 from mysensors import (ChildSensor, Gateway, Message, MySensorsJSONEncoder,
                        Sensor)
 from mysensors.const_14 import Internal, MessageType
@@ -519,6 +521,35 @@ class TestGateway(TestCase):
         self.assertEqual(child_values, sensor.children[0].values)
         self.assertEqual(ret, '1;0;1;0;2;1\n')
 
+    def test_child_validate(self):
+        """Test child validate method."""
+        sensor = self._add_sensor(1)
+        sensor.children[0] = ChildSensor(
+            0, self.gateway.const.Presentation.S_LIGHT_LEVEL)
+        sensor.children[0].values[
+            self.gateway.const.SetReq.V_LIGHT_LEVEL] = '43'
+        sensor.children[0].validate()
+        self.assertEqual(
+            sensor.children[0].values[self.gateway.const.SetReq.V_LIGHT_LEVEL],
+            '43')
+        sensor.children[0].values[self.gateway.const.SetReq.V_TRIPPED] = '1'
+        with self.assertRaises(vol.Invalid):
+            sensor.children[0].validate()
+
+    def test_set_forecast(self):
+        """Test set of V_FORECAST."""
+        sensor = self._add_sensor(1)
+        sensor.children[0] = ChildSensor(
+            0, self.gateway.const.Presentation.S_BARO)
+        self.gateway.logic('1;0;1;0;5;sunny\n')
+        self.assertEqual(
+            sensor.children[0].values[self.gateway.const.SetReq.V_FORECAST],
+            'sunny')
+        self.gateway.logic('1;0;1;0;5;rainy\n')
+        self.assertEqual(
+            sensor.children[0].values[self.gateway.const.SetReq.V_FORECAST],
+            'rainy')
+
 
 class TestGateway15(TestGateway):
     """Use protocol_version 1.5."""
@@ -526,6 +557,44 @@ class TestGateway15(TestGateway):
     def setUp(self):
         """Set up gateway."""
         self.gateway = Gateway(protocol_version='1.5')
+
+    def test_set_rgb(self):
+        """Test set of V_RGB."""
+        sensor = self._add_sensor(1)
+        sensor.protocol_version = '1.5'
+        sensor.children[0] = ChildSensor(
+            0, self.gateway.const.Presentation.S_RGB_LIGHT)
+        self.gateway.logic('1;0;1;0;40;ffffff\n')
+        self.assertEqual(
+            sensor.children[0].values[self.gateway.const.SetReq.V_RGB],
+            'ffffff')
+        self.gateway.logic('1;0;1;0;40;ffffff00\n')
+        self.assertEqual(
+            sensor.children[0].values[self.gateway.const.SetReq.V_RGB],
+            'ffffff')
+        self.gateway.logic('1;0;1;0;40;nothex\n')
+        self.assertEqual(
+            sensor.children[0].values[self.gateway.const.SetReq.V_RGB],
+            'ffffff')
+
+    def test_set_rgbw(self):
+        """Test set of V_RGBW."""
+        sensor = self._add_sensor(1)
+        sensor.protocol_version = '1.5'
+        sensor.children[0] = ChildSensor(
+            0, self.gateway.const.Presentation.S_RGBW_LIGHT)
+        self.gateway.logic('1;0;1;0;41;ffffffff\n')
+        self.assertEqual(
+            sensor.children[0].values[self.gateway.const.SetReq.V_RGBW],
+            'ffffffff')
+        self.gateway.logic('1;0;1;0;41;ffffffff00\n')
+        self.assertEqual(
+            sensor.children[0].values[self.gateway.const.SetReq.V_RGBW],
+            'ffffffff')
+        self.gateway.logic('1;0;1;0;41;nothexxx\n')
+        self.assertEqual(
+            sensor.children[0].values[self.gateway.const.SetReq.V_RGBW],
+            'ffffffff')
 
 
 class TestGateway20(TestGateway):
@@ -567,7 +636,7 @@ class TestGateway20(TestGateway):
         ret = self.gateway.handle_queue()
         self.assertEqual(ret, '1;255;3;0;19;\n')
 
-        self.gateway.logic('1;1;2;0;1;75\n')
+        self.gateway.logic('1;1;2;0;1;\n')
         self.assertNotIn(1, self.gateway.sensors[1].children)
         ret = self.gateway.handle_queue()
         self.assertEqual(ret, '1;255;3;0;19;\n')
@@ -664,6 +733,25 @@ class TestGateway20(TestGateway):
         self._add_sensor(1)
         self.gateway.logic('1;255;3;0;21;0')
         assert mock_is_sensor.called
+
+    def test_set_rgbw(self):
+        """Test set of V_POSITION."""
+        sensor = self._add_sensor(1)
+        sensor.protocol_version = '2.0'
+        sensor.children[0] = ChildSensor(
+            0, self.gateway.const.Presentation.S_GPS)
+        self.gateway.logic('1;0;1;0;49;10.0,10.0,10.0\n')
+        self.assertEqual(
+            sensor.children[0].values[self.gateway.const.SetReq.V_POSITION],
+            '10.0,10.0,10.0')
+        self.gateway.logic('1;0;1;0;49;bad,format\n')
+        self.assertEqual(
+            sensor.children[0].values[self.gateway.const.SetReq.V_POSITION],
+            '10.0,10.0,10.0')
+        self.gateway.logic('1;0;1;0;41;bad,bad,bad\n')
+        self.assertEqual(
+            sensor.children[0].values[self.gateway.const.SetReq.V_POSITION],
+            '10.0,10.0,10.0')
 
 
 class TestMessage(TestCase):

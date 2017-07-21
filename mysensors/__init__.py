@@ -7,12 +7,36 @@ import pickle
 import threading
 import time
 from collections import deque
+# pylint: disable=import-error, no-name-in-module
+from distutils.version import LooseVersion as parse_ver
 from importlib import import_module
 from queue import Queue
+
+import voluptuous as vol
 
 from .ota import OTAFirmware
 
 _LOGGER = logging.getLogger(__name__)
+
+BROADCAST_ID = 255
+LOADED_CONST = {}
+SYSTEM_CHILD_ID = 255
+
+
+def get_const(protocol_version):
+    """Return the const module for the protocol_version."""
+    version = str(protocol_version)
+    if parse_ver('1.5') <= parse_ver(version) < parse_ver('2.0'):
+        path = 'mysensors.const_15'
+    elif parse_ver(version) >= parse_ver('2.0'):
+        path = 'mysensors.const_20'
+    else:
+        path = 'mysensors.const_14'
+    if path in LOADED_CONST:
+        return LOADED_CONST[path]
+    const = import_module(path)
+    LOADED_CONST[path] = const  # Cache the module
+    return const
 
 
 class Gateway(object):
@@ -31,21 +55,15 @@ class Gateway(object):
         self.persistence = persistence  # if true - save sensors to disk
         self.persistence_file = persistence_file  # path to persistence file
         self.persistence_bak = '{}.bak'.format(self.persistence_file)
-        self.protocol_version = float(protocol_version)
-        if 1.5 <= self.protocol_version < 2.0:
-            _const = import_module('mysensors.const_15')
-        elif self.protocol_version >= 2.0:
-            _const = import_module('mysensors.const_20')
-        else:
-            _const = import_module('mysensors.const_14')
-        self.const = _const
+        self.protocol_version = protocol_version
+        self.const = get_const(self.protocol_version)
         self.ota = OTAFirmware(self.sensors, self.const)
         if persistence:
             self._safe_load_sensors()
 
     def _handle_presentation(self, msg):
         """Process a presentation message."""
-        if msg.child_id == 255:
+        if msg.child_id == SYSTEM_CHILD_ID:
             # this is a presentation of the sensor platform
             sensorid = self.add_sensor(msg.node_id)
             if sensorid is None:
@@ -82,8 +100,8 @@ class Gateway(object):
         # Check if reboot is true
         if self.sensors[msg.node_id].reboot:
             return msg.modify(
-                child_id=255, type=self.const.MessageType.internal, ack=0,
-                sub_type=self.const.Internal.I_REBOOT, payload='')
+                child_id=SYSTEM_CHILD_ID, type=self.const.MessageType.internal,
+                ack=0, sub_type=self.const.Internal.I_REBOOT, payload='')
 
     def _handle_req(self, msg):
         """Process a req message.
@@ -106,7 +124,9 @@ class Gateway(object):
             self.fill_queue(str, (self.sensors[msg.node_id].queue.popleft(), ))
         for child in self.sensors[msg.node_id].children.values():
             new_child = self.sensors[msg.node_id].new_state.get(
-                child.id, ChildSensor(child.id, child.type, child.description))
+                child.id, ChildSensor(
+                    child.id, child.type, child.description,
+                    self.protocol_version))
             self.sensors[msg.node_id].new_state[child.id] = new_child
             for value_type, value in child.values.items():
                 new_value = new_child.values.get(value_type)
@@ -166,7 +186,9 @@ class Gateway(object):
         ret = None
         try:
             msg = Message(data, self)
-        except ValueError:
+            msg.validate(self.protocol_version)
+        except (ValueError, vol.Invalid) as exc:
+            _LOGGER.warning('Not a valid message: %s', exc)
             return
 
         if msg.type == self.const.MessageType.presentation:
@@ -205,8 +227,9 @@ class Gateway(object):
     def _load_json(self, filename):
         """Load sensors from json file."""
         with open(filename, 'r') as file_handle:
-            self.sensors.update(
-                json.load(file_handle, cls=MySensorsJSONDecoder))
+            self.sensors.update(json.load(
+                file_handle, cls=MySensorsJSONDecoder,
+                protocol_version=self.protocol_version))
 
     def _save_sensors(self):
         """Save sensors to file."""
@@ -292,7 +315,7 @@ class Gateway(object):
             next_id = max(self.sensors.keys()) + 1
         else:
             next_id = 1
-        if next_id <= 254:
+        if next_id <= self.const.MAX_NODE_ID:
             return next_id
 
     def add_sensor(self, sensorid=None):
@@ -312,11 +335,11 @@ class Gateway(object):
             ret = child_id in self.sensors[sensorid].children
             if not ret:
                 _LOGGER.warning('Child %s is unknown', child_id)
-        if not ret and self.protocol_version >= 2.0:
+        if not ret and parse_ver(self.protocol_version) >= parse_ver('2.0'):
             _LOGGER.info('Requesting new presentation for node %s',
                          sensorid)
             msg = Message(gateway=self).modify(
-                node_id=sensorid, child_id=255,
+                node_id=sensorid, child_id=SYSTEM_CHILD_ID,
                 type=self.const.MessageType.internal,
                 sub_type=self.const.Internal.I_PRESENTATION)
             if self._route_message(msg):
@@ -400,7 +423,7 @@ class Sensor(object):
         self.sketch_name = None
         self.sketch_version = None
         self._battery_level = 0
-        self.protocol_version = None
+        self.protocol_version = '1.4'
         self.new_state = {}
         self.queue = deque()
         self.reboot = False
@@ -433,7 +456,7 @@ class Sensor(object):
                 'cannot add child', child_id, self.sensor_id)
             return
         self.children[child_id] = ChildSensor(
-            child_id, child_type, description)
+            child_id, child_type, description, self.protocol_version)
         return child_id
 
     def set_child_value(self, child_id, value_type, value, **kwargs):
@@ -443,7 +466,7 @@ class Sensor(object):
             return
         msg_type = kwargs.get('msg_type', 1)
         ack = kwargs.get('ack', 0)
-        msg = Message(gateway=self).modify(
+        msg = Message().modify(
             node_id=self.sensor_id, child_id=child_id, type=msg_type, ack=ack,
             sub_type=value_type, payload=value)
         msg_string = msg.encode()
@@ -454,11 +477,15 @@ class Sensor(object):
                 self.sensor_id, child_id, msg_type, ack, value_type, value)
             return
         try:
-            msg = Message(msg_string)  # Validate child values
-        except (ValueError, AttributeError) as exception:
-            _LOGGER.error('Error validating child values: %s', exception)
+            msg = Message(msg_string)
+            msg.validate(self.protocol_version)
+        except (ValueError, AttributeError, vol.Invalid) as exc:
+            _LOGGER.error('Not a valid message: %s', exc)
             return
-        children[msg.child_id].values[msg.sub_type] = msg.payload
+        child = children[msg.child_id]
+        # Make sure protocol_version is updated for the child.
+        child.protocol_version = self.protocol_version
+        child.values[msg.sub_type] = msg.payload
         return msg_string
 
 
@@ -467,13 +494,16 @@ class ChildSensor(object):
 
     # pylint: disable=too-few-public-methods
 
-    def __init__(self, child_id, child_type, description=''):
+    def __init__(
+            self, child_id, child_type, description='',
+            protocol_version='1.4'):
         """Set up child sensor."""
         # pylint: disable=invalid-name
         self.id = child_id
         self.type = child_type
         self.description = description
         self.values = {}
+        self.protocol_version = protocol_version
 
     def __setstate__(self, state):
         """Set state when loading pickle."""
@@ -482,6 +512,8 @@ class ChildSensor(object):
         # Make sure all attributes exist
         if 'description' not in self.__dict__:
             self.description = ''
+        if '_protocol_version' not in self.__dict__:
+            self.protocol_version = '1.4'
 
     def __repr__(self):
         """Return the representation."""
@@ -492,6 +524,26 @@ class ChildSensor(object):
         ret = ('child_id={0!s}, child_type={1!s}, description={2!s}, '
                'values = {3!s}')
         return ret.format(self.id, self.type, self.description, self.values)
+
+    @property
+    def schema(self):
+        """Return a voluptuous dict schema."""
+        # A voluptuous schema is not pickable, so a property is used.
+        return vol.Schema(self.get_schema())
+
+    def get_schema(self):
+        """Return the schema for the correct const version."""
+        const = get_const(self.protocol_version)
+        return {
+            typ.value: const.VALID_SETREQ[typ]
+            for typ in const.VALID_TYPES[self.type]}
+
+    def validate(self, values=None):
+        """Validate child value types and values."""
+        if values is None:
+            values = self.values
+        # pylint: disable=not-callable
+        return self.schema(values)
 
 
 class Message(object):
@@ -551,6 +603,46 @@ class Message(object):
         except ValueError:
             _LOGGER.error('Error encoding message to gateway')
 
+    def validate(self, protocol_version):
+        """Validate message."""
+        const = get_const(protocol_version)
+        valid_node_ids = vol.All(vol.Coerce(int), vol.Range(
+            min=0, max=BROADCAST_ID, msg='Not valid node_id: {}'.format(
+                self.node_id)))
+        valid_child_ids = vol.All(vol.Coerce(int), vol.Range(
+            min=0, max=SYSTEM_CHILD_ID, msg='Not valid child_id: {}'.format(
+                self.child_id)))
+        if self.type in (const.MessageType.internal, const.MessageType.stream):
+            valid_child_ids = vol.All(vol.Coerce(int), vol.In(
+                [SYSTEM_CHILD_ID],
+                msg='When message type is {}, child_id must be {}'.format(
+                    self.type, SYSTEM_CHILD_ID)))
+        valid_types = vol.All(vol.Coerce(int), vol.In(
+            [member.value for member in const.VALID_MESSAGE_TYPES],
+            msg='Not valid message type: {}'.format(self.type)))
+        if self.child_id == SYSTEM_CHILD_ID:
+            valid_types = vol.All(vol.Coerce(int), vol.In(
+                [const.MessageType.presentation.value,
+                 const.MessageType.internal.value,
+                 const.MessageType.stream.value],
+                msg=(
+                    'When child_id is {}, {} is not a valid '
+                    'message type'.format(SYSTEM_CHILD_ID, self.type))))
+        valid_ack = vol.In([0, 1], msg='Not valid ack flag: {}'.format(
+            self.ack))
+        valid_sub_types = vol.In(
+            [member.value for member
+             in const.VALID_MESSAGE_TYPES.get(self.type, [])],
+            msg='Not valid message sub-type: {}'.format(self.sub_type))
+        valid_payload = const.VALID_PAYLOADS.get(
+            self.type, {}).get(self.sub_type, '')
+        schema = vol.Schema({
+            'node_id': valid_node_ids, 'child_id': valid_child_ids,
+            'type': valid_types, 'ack': valid_ack, 'sub_type': valid_sub_types,
+            'payload': valid_payload})
+        to_validate = {attr: getattr(self, attr) for attr in schema.schema}
+        return schema(to_validate)
+
 
 class MySensorsJSONEncoder(json.JSONEncoder):
     """JSON encoder."""
@@ -574,6 +666,7 @@ class MySensorsJSONEncoder(json.JSONEncoder):
                 'type': obj.type,
                 'description': obj.description,
                 'values': obj.values,
+                'protocol_version': obj.protocol_version,
             }
         return json.JSONEncoder.default(self, obj)
 
@@ -581,9 +674,10 @@ class MySensorsJSONEncoder(json.JSONEncoder):
 class MySensorsJSONDecoder(json.JSONDecoder):
     """JSON decoder."""
 
-    def __init__(self):
+    def __init__(self, protocol_version=None):
         """Set up decoder."""
         json.JSONDecoder.__init__(self, object_hook=self.dict_to_object)
+        self._protocol_version = protocol_version
 
     def dict_to_object(self, obj):  # pylint: disable=no-self-use
         """Return object from dict."""
@@ -595,11 +689,9 @@ class MySensorsJSONDecoder(json.JSONDecoder):
                 setattr(sensor, key, val)
             return sensor
         elif all(k in obj for k in ['id', 'type', 'values']):
-            # Handle new optional description attribute
-            if 'description' in obj:
-                child = ChildSensor(obj['id'], obj['type'], obj['description'])
-            else:
-                child = ChildSensor(obj['id'], obj['type'])
+            child = ChildSensor(
+                obj['id'], obj['type'], obj.get('description', ''),
+                obj.get('protocol_version', self._protocol_version))
             child.values = obj['values']
             return child
         elif all(k.isdigit() for k in obj.keys()):
