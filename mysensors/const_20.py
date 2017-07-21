@@ -22,8 +22,8 @@ class Presentation(IntEnum):
     S_DOOR = 0                      # Door and window sensors
     S_MOTION = 1                    # Motion sensors
     S_SMOKE = 2                     # Smoke sensor
-    S_LIGHT = 3                     # Light Actuator (on/off)
     S_BINARY = 3                    # Binary device (on/off), Alias for S_LIGHT
+    S_LIGHT = 3                     # Light Actuator (on/off)
     S_DIMMER = 4                    # Dimmable device of some kind
     S_COVER = 5                     # Window covers or shades
     S_TEMP = 6                      # Temperature sensor
@@ -131,6 +131,7 @@ class SetReq(IntEnum):
     # S_DUST, S_AIR_QUALITY, S_SOUND (dB), S_VIBRATION (hz),
     # S_LIGHT_LEVEL (lux).
     V_LEVEL = 37
+    V_DUST_LEVEL = 37       # Dust level
     V_VOLTAGE = 38          # S_MULTIMETER. Voltage level.
     V_CURRENT = 39          # S_MULTIMETER. Current level.
     # S_RGB_LIGHT, S_COLOR_SENSOR.

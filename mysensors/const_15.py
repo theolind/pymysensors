@@ -22,8 +22,8 @@ class Presentation(IntEnum):
     S_DOOR = 0                      # Door and window sensors
     S_MOTION = 1                    # Motion sensors
     S_SMOKE = 2                     # Smoke sensor
-    S_LIGHT = 3                     # Light Actuator (on/off)
     S_BINARY = 3                    # Binary device (on/off), Alias for S_LIGHT
+    S_LIGHT = 3                     # Light Actuator (on/off)
     S_DIMMER = 4                    # Dimmable device of some kind
     S_COVER = 5                     # Window covers or shades
     S_TEMP = 6                      # Temperature sensor
@@ -112,6 +112,7 @@ class SetReq(IntEnum):
     V_VOLUME = 35               # Water volume
     V_LOCK_STATUS = 36          # Set or get lock status. 1=Locked, 0=Unlocked
     V_LEVEL = 37                # Used for sending level-value
+    V_DUST_LEVEL = 37       # Dust level
     V_VOLTAGE = 38              # Voltage level
     V_CURRENT = 39              # Current level
     # RGB value transmitted as ASCII hex string (I.e "ff0000" for red)
