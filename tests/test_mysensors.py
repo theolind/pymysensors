@@ -17,7 +17,7 @@ class TestGateway(TestCase):
     # pylint: disable=too-many-public-methods
 
     def setUp(self):
-        """Setup gateway."""
+        """Set up gateway."""
         self.gateway = Gateway()
 
     def _add_sensor(self, sensorid):
@@ -524,7 +524,7 @@ class TestGateway15(TestGateway):
     """Use protocol_version 1.5."""
 
     def setUp(self):
-        """Setup gateway."""
+        """Set up gateway."""
         self.gateway = Gateway(protocol_version='1.5')
 
 
@@ -532,7 +532,7 @@ class TestGateway20(TestGateway):
     """Use protocol_version 2.0."""
 
     def setUp(self):
-        """Setup gateway."""
+        """Set up gateway."""
         self.gateway = Gateway(protocol_version='2.0')
 
     def test_non_presented_sensor(self):
