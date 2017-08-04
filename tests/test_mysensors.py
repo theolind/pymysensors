@@ -528,13 +528,13 @@ class TestGateway(TestCase):
             0, self.gateway.const.Presentation.S_LIGHT_LEVEL)
         sensor.children[0].values[
             self.gateway.const.SetReq.V_LIGHT_LEVEL] = '43'
-        sensor.children[0].validate()
+        sensor.children[0].validate(self.gateway.protocol_version)
         self.assertEqual(
             sensor.children[0].values[self.gateway.const.SetReq.V_LIGHT_LEVEL],
             '43')
         sensor.children[0].values[self.gateway.const.SetReq.V_TRIPPED] = '1'
         with self.assertRaises(vol.Invalid):
-            sensor.children[0].validate()
+            sensor.children[0].validate(self.gateway.protocol_version)
 
     def test_set_forecast(self):
         """Test set of V_FORECAST."""

@@ -124,9 +124,7 @@ class Gateway(object):
             self.fill_queue(str, (self.sensors[msg.node_id].queue.popleft(), ))
         for child in self.sensors[msg.node_id].children.values():
             new_child = self.sensors[msg.node_id].new_state.get(
-                child.id, ChildSensor(
-                    child.id, child.type, child.description,
-                    self.protocol_version))
+                child.id, ChildSensor(child.id, child.type, child.description))
             self.sensors[msg.node_id].new_state[child.id] = new_child
             for value_type, value in child.values.items():
                 new_value = new_child.values.get(value_type)
@@ -228,8 +226,7 @@ class Gateway(object):
         """Load sensors from json file."""
         with open(filename, 'r') as file_handle:
             self.sensors.update(json.load(
-                file_handle, cls=MySensorsJSONDecoder,
-                protocol_version=self.protocol_version))
+                file_handle, cls=MySensorsJSONDecoder))
 
     def _save_sensors(self):
         """Save sensors to file."""
@@ -456,7 +453,7 @@ class Sensor(object):
                 'cannot add child', child_id, self.sensor_id)
             return
         self.children[child_id] = ChildSensor(
-            child_id, child_type, description, self.protocol_version)
+            child_id, child_type, description)
         return child_id
 
     def set_child_value(self, child_id, value_type, value, **kwargs):
@@ -483,8 +480,6 @@ class Sensor(object):
             _LOGGER.error('Not a valid message: %s', exc)
             return
         child = children[msg.child_id]
-        # Make sure protocol_version is updated for the child.
-        child.protocol_version = self.protocol_version
         child.values[msg.sub_type] = msg.payload
         return msg_string
 
@@ -494,16 +489,13 @@ class ChildSensor(object):
 
     # pylint: disable=too-few-public-methods
 
-    def __init__(
-            self, child_id, child_type, description='',
-            protocol_version='1.4'):
+    def __init__(self, child_id, child_type, description=''):
         """Set up child sensor."""
         # pylint: disable=invalid-name
         self.id = child_id
         self.type = child_type
         self.description = description
         self.values = {}
-        self.protocol_version = protocol_version
 
     def __setstate__(self, state):
         """Set state when loading pickle."""
@@ -512,8 +504,6 @@ class ChildSensor(object):
         # Make sure all attributes exist
         if 'description' not in self.__dict__:
             self.description = ''
-        if '_protocol_version' not in self.__dict__:
-            self.protocol_version = '1.4'
 
     def __repr__(self):
         """Return the representation."""
@@ -525,25 +515,18 @@ class ChildSensor(object):
                'values = {3!s}')
         return ret.format(self.id, self.type, self.description, self.values)
 
-    @property
-    def schema(self):
-        """Return a voluptuous dict schema."""
-        # A voluptuous schema is not pickable, so a property is used.
-        return vol.Schema(self.get_schema())
-
-    def get_schema(self):
-        """Return the schema for the correct const version."""
-        const = get_const(self.protocol_version)
-        return {
+    def get_schema(self, protocol_version):
+        """Return the child schema for the correct const version."""
+        const = get_const(protocol_version)
+        return vol.Schema({
             typ.value: const.VALID_SETREQ[typ]
-            for typ in const.VALID_TYPES[self.type]}
+            for typ in const.VALID_TYPES[self.type]})
 
-    def validate(self, values=None):
-        """Validate child value types and values."""
+    def validate(self, protocol_version, values=None):
+        """Validate child value types and values against protocol_version."""
         if values is None:
             values = self.values
-        # pylint: disable=not-callable
-        return self.schema(values)
+        return self.get_schema(protocol_version)(values)
 
 
 class Message(object):
@@ -666,7 +649,6 @@ class MySensorsJSONEncoder(json.JSONEncoder):
                 'type': obj.type,
                 'description': obj.description,
                 'values': obj.values,
-                'protocol_version': obj.protocol_version,
             }
         return json.JSONEncoder.default(self, obj)
 
@@ -674,10 +656,9 @@ class MySensorsJSONEncoder(json.JSONEncoder):
 class MySensorsJSONDecoder(json.JSONDecoder):
     """JSON decoder."""
 
-    def __init__(self, protocol_version=None):
+    def __init__(self):
         """Set up decoder."""
         json.JSONDecoder.__init__(self, object_hook=self.dict_to_object)
-        self._protocol_version = protocol_version
 
     def dict_to_object(self, obj):  # pylint: disable=no-self-use
         """Return object from dict."""
@@ -690,8 +671,7 @@ class MySensorsJSONDecoder(json.JSONDecoder):
             return sensor
         elif all(k in obj for k in ['id', 'type', 'values']):
             child = ChildSensor(
-                obj['id'], obj['type'], obj.get('description', ''),
-                obj.get('protocol_version', self._protocol_version))
+                obj['id'], obj['type'], obj.get('description', ''))
             child.values = obj['values']
             return child
         elif all(k.isdigit() for k in obj.keys()):
