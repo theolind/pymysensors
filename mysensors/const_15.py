@@ -1,7 +1,14 @@
 """MySensors constants for version 1.5 of MySensors."""
+import binascii
 from enum import IntEnum
+
+import voluptuous as vol
+
 # pylint: disable=unused-import
-from mysensors.const_14 import HANDLE_INTERNAL  # noqa: F401
+from mysensors.const_14 import HANDLE_INTERNAL, MAX_NODE_ID  # noqa: F401
+from mysensors.const_14 import (AUTO_CHANGE_OVER, COOL_ON, FORECASTS, HEAT_ON,
+                                LOGICAL_ONE, LOGICAL_ZERO, OFF, VALID_INTERNAL,
+                                VALID_STREAM)
 
 
 class MessageType(IntEnum):
@@ -190,3 +197,191 @@ class Stream(IntEnum):
     ST_FIRMWARE_RESPONSE = 3  # Response FW block
     ST_SOUND = 4  # Sound
     ST_IMAGE = 5  # Image
+
+
+VALID_MESSAGE_TYPES = {
+    MessageType.presentation: list(Presentation),
+    MessageType.set: list(SetReq),
+    MessageType.req: list(SetReq),
+    MessageType.internal: list(Internal),
+    MessageType.stream: list(Stream),
+}
+
+VALID_PRESENTATION = {
+    member: str for member in list(Presentation)
+}
+
+VALID_TYPES = {
+    Presentation.S_DOOR: [SetReq.V_TRIPPED, SetReq.V_ARMED],
+    Presentation.S_MOTION: [SetReq.V_TRIPPED, SetReq.V_ARMED],
+    Presentation.S_SMOKE: [SetReq.V_TRIPPED, SetReq.V_ARMED],
+    Presentation.S_BINARY: [SetReq.V_STATUS, SetReq.V_WATT],
+    Presentation.S_DIMMER: [
+        SetReq.V_STATUS, SetReq.V_PERCENTAGE, SetReq.V_WATT],
+    Presentation.S_COVER: [
+        SetReq.V_UP, SetReq.V_DOWN, SetReq.V_STOP, SetReq.V_DIMMER],
+    Presentation.S_TEMP: [SetReq.V_TEMP],
+    Presentation.S_HUM: [SetReq.V_HUM],
+    Presentation.S_BARO: [
+        SetReq.V_PRESSURE, SetReq.V_FORECAST],
+    Presentation.S_WIND: [
+        SetReq.V_WIND, SetReq.V_GUST, SetReq.V_DIRECTION],
+    Presentation.S_RAIN: [
+        SetReq.V_RAIN, SetReq.V_RAINRATE],
+    Presentation.S_UV: [SetReq.V_UV],
+    Presentation.S_WEIGHT: [
+        SetReq.V_WEIGHT, SetReq.V_IMPEDANCE],
+    Presentation.S_POWER: [SetReq.V_WATT, SetReq.V_KWH],
+    Presentation.S_HEATER: [SetReq.V_TEMP],
+    Presentation.S_DISTANCE: [SetReq.V_DISTANCE],
+    Presentation.S_LIGHT_LEVEL: [SetReq.V_LIGHT_LEVEL],
+    Presentation.S_ARDUINO_NODE: [],
+    Presentation.S_ARDUINO_REPEATER_NODE: [],
+    Presentation.S_LOCK: [SetReq.V_LOCK_STATUS],
+    Presentation.S_IR: [SetReq.V_IR_SEND, SetReq.V_IR_RECEIVE],
+    Presentation.S_WATER: [SetReq.V_FLOW, SetReq.V_VOLUME],
+    Presentation.S_AIR_QUALITY: [SetReq.V_DUST_LEVEL],
+    Presentation.S_CUSTOM: [
+        SetReq.V_VAR1, SetReq.V_VAR2, SetReq.V_VAR3, SetReq.V_VAR4,
+        SetReq.V_VAR5],
+    Presentation.S_DUST: [SetReq.V_DUST_LEVEL],
+    Presentation.S_SCENE_CONTROLLER: [SetReq.V_SCENE_ON, SetReq.V_SCENE_OFF],
+    Presentation.S_RGB_LIGHT: [SetReq.V_RGB, SetReq.V_WATT],
+    Presentation.S_RGBW_LIGHT: [SetReq.V_RGBW, SetReq.V_WATT],
+    Presentation.S_COLOR_SENSOR: [SetReq.V_RGB],
+    Presentation.S_HVAC: [
+        SetReq.V_STATUS, SetReq.V_TEMP, SetReq.V_HVAC_SETPOINT_HEAT,
+        SetReq.V_HVAC_SETPOINT_COOL, SetReq.V_HVAC_FLOW_STATE,
+        SetReq.V_HVAC_FLOW_MODE, SetReq.V_HVAC_SPEED],
+    Presentation.S_MULTIMETER: [
+        SetReq.V_VOLTAGE, SetReq.V_CURRENT, SetReq.V_IMPEDANCE],
+    Presentation.S_SPRINKLER: [SetReq.V_STATUS, SetReq.V_TRIPPED],
+    Presentation.S_WATER_LEAK: [SetReq.V_TRIPPED, SetReq.V_ARMED],
+    Presentation.S_SOUND: [SetReq.V_LEVEL, SetReq.V_TRIPPED, SetReq.V_ARMED],
+    Presentation.S_VIBRATION: [
+        SetReq.V_LEVEL, SetReq.V_TRIPPED, SetReq.V_ARMED],
+    Presentation.S_MOISTURE: [
+        SetReq.V_LEVEL, SetReq.V_TRIPPED, SetReq.V_ARMED],
+}
+
+
+def validate_hex(value):
+    """Validate that value has hex format."""
+    try:
+        binascii.unhexlify(value)
+    except Exception:
+        raise vol.Invalid(
+            '{} is not of hex format'.format(value))
+    return value
+
+
+def validate_v_rgb(value):
+    """Validate a V_RGB value."""
+    if len(value) != 6:
+        raise vol.Invalid(
+            '{} is not six characters long'.format(value))
+    return validate_hex(value)
+
+
+def validate_v_rgbw(value):
+    """Validate a V_RGBW value."""
+    if len(value) != 8:
+        raise vol.Invalid(
+            '{} is not eight characters long'.format(value))
+    return validate_hex(value)
+
+
+AUTO = 'Auto'
+MAX = 'Max'
+MIN = 'Min'
+NORMAL = 'Normal'
+
+# Define this again for version 1.5 to avoid conflicts with version 1.4.
+VALID_SETREQ = {
+    SetReq.V_TEMP: str,
+    SetReq.V_HUM: str,
+    SetReq.V_STATUS: vol.In(
+        [LOGICAL_ZERO, LOGICAL_ONE],
+        msg='value must be either {} or {}'.format(LOGICAL_ZERO, LOGICAL_ONE)),
+    SetReq.V_PERCENTAGE: vol.All(
+        vol.Coerce(int), vol.Range(min=0, max=100), vol.Coerce(str),
+        msg='value must be between {} and {}'.format(0, 100)),
+    SetReq.V_PRESSURE: str,
+    SetReq.V_FORECAST: vol.Any(str, vol.In(
+        FORECASTS,
+        msg='forecast must be one of: {}, {}, {}, {}, {}, {}'.format(
+            *FORECASTS))),
+    SetReq.V_RAIN: str,
+    SetReq.V_RAINRATE: str,
+    SetReq.V_WIND: str,
+    SetReq.V_GUST: str,
+    SetReq.V_DIRECTION: str,
+    SetReq.V_UV: str,
+    SetReq.V_WEIGHT: str,
+    SetReq.V_DISTANCE: str,
+    SetReq.V_IMPEDANCE: str,
+    SetReq.V_ARMED: vol.In(
+        [LOGICAL_ZERO, LOGICAL_ONE],
+        msg='value must be either {} or {}'.format(LOGICAL_ZERO, LOGICAL_ONE)),
+    SetReq.V_TRIPPED: vol.In(
+        [LOGICAL_ZERO, LOGICAL_ONE],
+        msg='value must be either {} or {}'.format(LOGICAL_ZERO, LOGICAL_ONE)),
+    SetReq.V_WATT: str,
+    SetReq.V_KWH: str,
+    SetReq.V_SCENE_ON: str,
+    SetReq.V_SCENE_OFF: str,
+    SetReq.V_HVAC_FLOW_STATE: vol.In(
+        [OFF, HEAT_ON, COOL_ON, AUTO_CHANGE_OVER],
+        msg='value must be one of: {}, {}, {} or {}'.format(
+            OFF, HEAT_ON, COOL_ON, AUTO_CHANGE_OVER)),
+    SetReq.V_HVAC_SPEED: vol.In(
+        [MIN, NORMAL, MAX, AUTO],
+        msg='value must be one of: {}, {}, {} or {}'.format(
+            MIN, NORMAL, MAX, AUTO)),
+    SetReq.V_LIGHT_LEVEL: vol.All(
+        vol.Coerce(int), vol.Range(min=0, max=100), vol.Coerce(str),
+        msg='value must be between {} and {}'.format(0, 100)),
+    SetReq.V_VAR1: str,
+    SetReq.V_VAR2: str,
+    SetReq.V_VAR3: str,
+    SetReq.V_VAR4: str,
+    SetReq.V_VAR5: str,
+    SetReq.V_UP: str,
+    SetReq.V_DOWN: str,
+    SetReq.V_STOP: str,
+    SetReq.V_IR_SEND: str,
+    SetReq.V_IR_RECEIVE: str,
+    SetReq.V_FLOW: str,
+    SetReq.V_VOLUME: str,
+    SetReq.V_LOCK_STATUS: vol.In(
+        [LOGICAL_ZERO, LOGICAL_ONE],
+        msg='value must be either {} or {}'.format(LOGICAL_ZERO, LOGICAL_ONE)),
+    SetReq.V_LEVEL: str,
+    SetReq.V_VOLTAGE: str,
+    SetReq.V_CURRENT: str,
+    SetReq.V_RGB: vol.All(str, validate_v_rgb),
+    SetReq.V_RGBW: vol.All(str, validate_v_rgbw),
+    SetReq.V_ID: str,
+    SetReq.V_UNIT_PREFIX: str,
+    SetReq.V_HVAC_SETPOINT_COOL: vol.All(
+        vol.Coerce(float), vol.Range(min=0.0, max=100.0), vol.Coerce(str),
+        msg='value must be between {} and {}'.format(0.0, 100.0)),
+    SetReq.V_HVAC_SETPOINT_HEAT: vol.All(
+        vol.Coerce(float), vol.Range(min=0.0, max=100.0), vol.Coerce(str),
+        msg='value must be between {} and {}'.format(0.0, 100.0)),
+    SetReq.V_HVAC_FLOW_MODE: str,
+}
+
+VALID_INTERNAL.update({
+    Internal.I_REQUEST_SIGNING: str,
+    Internal.I_GET_NONCE: str,
+    Internal.I_GET_NONCE_RESPONSE: str,
+})
+
+VALID_PAYLOADS = {
+    MessageType.presentation: VALID_PRESENTATION,
+    MessageType.set: VALID_SETREQ,
+    MessageType.req: {member: '' for member in list(SetReq)},
+    MessageType.internal: VALID_INTERNAL,
+    MessageType.stream: VALID_STREAM,
+}

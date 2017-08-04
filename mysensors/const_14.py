@@ -1,6 +1,8 @@
 """MySensors constants for version 1.4 of MySensors."""
 from enum import IntEnum
 
+import voluptuous as vol
+
 
 class MessageType(IntEnum):
     """MySensors message types."""
@@ -149,6 +151,175 @@ class Stream(IntEnum):
     ST_SOUND = 4  # Sound
     ST_IMAGE = 5  # Image
 
+
+VALID_MESSAGE_TYPES = {
+    MessageType.presentation: list(Presentation),
+    MessageType.set: list(SetReq),
+    MessageType.req: list(SetReq),
+    MessageType.internal: list(Internal),
+    MessageType.stream: list(Stream),
+}
+
+VALID_PRESENTATION = {
+    member: str for member in list(Presentation)
+}
+
+VALID_TYPES = {
+    Presentation.S_DOOR: [SetReq.V_TRIPPED, SetReq.V_ARMED],
+    Presentation.S_MOTION: [SetReq.V_TRIPPED, SetReq.V_ARMED],
+    Presentation.S_SMOKE: [SetReq.V_TRIPPED, SetReq.V_ARMED],
+    Presentation.S_LIGHT: [SetReq.V_LIGHT, SetReq.V_WATT],
+    Presentation.S_DIMMER: [SetReq.V_LIGHT, SetReq.V_DIMMER, SetReq.V_WATT],
+    Presentation.S_COVER: [
+        SetReq.V_UP, SetReq.V_DOWN, SetReq.V_STOP, SetReq.V_DIMMER],
+    Presentation.S_TEMP: [SetReq.V_TEMP],
+    Presentation.S_HUM: [SetReq.V_HUM],
+    Presentation.S_BARO: [
+        SetReq.V_PRESSURE, SetReq.V_FORECAST],
+    Presentation.S_WIND: [
+        SetReq.V_WIND, SetReq.V_GUST, SetReq.V_DIRECTION],
+    Presentation.S_RAIN: [
+        SetReq.V_RAIN, SetReq.V_RAINRATE],
+    Presentation.S_UV: [SetReq.V_UV],
+    Presentation.S_WEIGHT: [
+        SetReq.V_WEIGHT, SetReq.V_IMPEDANCE],
+    Presentation.S_POWER: [SetReq.V_WATT, SetReq.V_KWH],
+    Presentation.S_HEATER: [SetReq.V_TEMP],
+    Presentation.S_DISTANCE: [SetReq.V_DISTANCE],
+    Presentation.S_LIGHT_LEVEL: [SetReq.V_LIGHT_LEVEL],
+    Presentation.S_ARDUINO_NODE: [],
+    Presentation.S_ARDUINO_RELAY: [],
+    Presentation.S_LOCK: [SetReq.V_LOCK_STATUS],
+    Presentation.S_IR: [SetReq.V_IR_SEND, SetReq.V_IR_RECEIVE],
+    Presentation.S_WATER: [SetReq.V_FLOW, SetReq.V_VOLUME],
+    Presentation.S_AIR_QUALITY: [SetReq.V_DUST_LEVEL],
+    Presentation.S_CUSTOM: [
+        SetReq.V_VAR1, SetReq.V_VAR2, SetReq.V_VAR3, SetReq.V_VAR4,
+        SetReq.V_VAR5],
+    Presentation.S_DUST: [SetReq.V_DUST_LEVEL],
+    Presentation.S_SCENE_CONTROLLER: [SetReq.V_SCENE_ON, SetReq.V_SCENE_OFF],
+}
+
+LOGICAL_ZERO = '0'
+LOGICAL_ONE = '1'
+OFF = 'Off'
+HEAT_ON = 'HeatOn'
+COOL_ON = 'CoolOn'
+AUTO_CHANGE_OVER = 'AutoChangeOver'
+STABLE = 'stable'
+SUNNY = 'sunny'
+CLOUDY = 'cloudy'
+UNSTABLE = 'unstable'
+THUNDERSTORM = 'thunderstorm'
+UNKNOWN = 'unknown'
+FORECASTS = (STABLE, SUNNY, CLOUDY, UNSTABLE, THUNDERSTORM, UNKNOWN)
+
+VALID_SETREQ = {
+    SetReq.V_TEMP: str,
+    SetReq.V_HUM: str,
+    SetReq.V_LIGHT: vol.In(
+        [LOGICAL_ZERO, LOGICAL_ONE],
+        msg='value must be either {} or {}'.format(LOGICAL_ZERO, LOGICAL_ONE)),
+    SetReq.V_DIMMER: vol.All(
+        vol.Coerce(int), vol.Range(min=0, max=100), vol.Coerce(str),
+        msg='value must be between {} and {}'.format(0, 100)),
+    SetReq.V_PRESSURE: str,
+    SetReq.V_FORECAST: vol.Any(str, vol.In(
+        FORECASTS,
+        msg='forecast must be one of: {}, {}, {}, {}, {}, {}'.format(
+            *FORECASTS))),
+    SetReq.V_RAIN: str,
+    SetReq.V_RAINRATE: str,
+    SetReq.V_WIND: str,
+    SetReq.V_GUST: str,
+    SetReq.V_DIRECTION: str,
+    SetReq.V_UV: str,
+    SetReq.V_WEIGHT: str,
+    SetReq.V_DISTANCE: str,
+    SetReq.V_IMPEDANCE: str,
+    SetReq.V_ARMED: vol.In(
+        [LOGICAL_ZERO, LOGICAL_ONE],
+        msg='value must be either {} or {}'.format(LOGICAL_ZERO, LOGICAL_ONE)),
+    SetReq.V_TRIPPED: vol.In(
+        [LOGICAL_ZERO, LOGICAL_ONE],
+        msg='value must be either {} or {}'.format(LOGICAL_ZERO, LOGICAL_ONE)),
+    SetReq.V_WATT: str,
+    SetReq.V_KWH: str,
+    SetReq.V_SCENE_ON: str,
+    SetReq.V_SCENE_OFF: str,
+    SetReq.V_HEATER: vol.In(
+        [OFF, HEAT_ON, COOL_ON, AUTO_CHANGE_OVER],
+        msg='value must be one of: {}, {}, {} or {}'.format(
+            OFF, HEAT_ON, COOL_ON, AUTO_CHANGE_OVER)),
+    SetReq.V_HEATER_SW: vol.In(
+        [LOGICAL_ZERO, LOGICAL_ONE],
+        msg='value must be either {} or {}'.format(LOGICAL_ZERO, LOGICAL_ONE)),
+    SetReq.V_LIGHT_LEVEL: vol.All(
+        vol.Coerce(int), vol.Range(min=0, max=100), vol.Coerce(str),
+        msg='value must be between {} and {}'.format(0, 100)),
+    SetReq.V_VAR1: str,
+    SetReq.V_VAR2: str,
+    SetReq.V_VAR3: str,
+    SetReq.V_VAR4: str,
+    SetReq.V_VAR5: str,
+    SetReq.V_UP: str,
+    SetReq.V_DOWN: str,
+    SetReq.V_STOP: str,
+    SetReq.V_IR_SEND: str,
+    SetReq.V_IR_RECEIVE: str,
+    SetReq.V_FLOW: str,
+    SetReq.V_VOLUME: str,
+    SetReq.V_LOCK_STATUS: vol.In(
+        [LOGICAL_ZERO, LOGICAL_ONE],
+        msg='value must be either {} or {}'.format(LOGICAL_ZERO, LOGICAL_ONE)),
+    SetReq.V_DUST_LEVEL: str,
+    SetReq.V_VOLTAGE: str,
+    SetReq.V_CURRENT: str,
+}
+
+CONF_METRIC = 'M'
+CONF_IMPERIAL = 'I'
+MAX_NODE_ID = 254
+
+VALID_INTERNAL = {
+    Internal.I_BATTERY_LEVEL: vol.All(
+        vol.Coerce(int), vol.Range(min=0, max=100), vol.Coerce(str)),
+    Internal.I_TIME: vol.Any('', vol.All(vol.Coerce(int), vol.Coerce(str))),
+    Internal.I_VERSION: str,
+    Internal.I_ID_REQUEST: '',
+    Internal.I_ID_RESPONSE: vol.All(
+        vol.Coerce(int), vol.Range(min=1, max=MAX_NODE_ID), vol.Coerce(str)),
+    Internal.I_INCLUSION_MODE: vol.In([LOGICAL_ZERO, LOGICAL_ONE]),
+    Internal.I_CONFIG: vol.Any(
+        vol.All(vol.Coerce(int), vol.Range(min=0, max=MAX_NODE_ID)),
+        CONF_METRIC, CONF_IMPERIAL),
+    Internal.I_FIND_PARENT: '',
+    Internal.I_FIND_PARENT_RESPONSE: vol.All(
+        vol.Coerce(int), vol.Range(min=0, max=MAX_NODE_ID), vol.Coerce(str)),
+    Internal.I_LOG_MESSAGE: str,
+    Internal.I_CHILDREN: str,
+    Internal.I_SKETCH_NAME: str,
+    Internal.I_SKETCH_VERSION: str,
+    Internal.I_REBOOT: '',
+    Internal.I_GATEWAY_READY: str,
+}
+
+VALID_STREAM = {
+    Stream.ST_FIRMWARE_CONFIG_REQUEST: str,
+    Stream.ST_FIRMWARE_CONFIG_RESPONSE: str,
+    Stream.ST_FIRMWARE_REQUEST: str,
+    Stream.ST_FIRMWARE_RESPONSE: str,
+    Stream.ST_SOUND: str,
+    Stream.ST_IMAGE: str,
+}
+
+VALID_PAYLOADS = {
+    MessageType.presentation: VALID_PRESENTATION,
+    MessageType.set: VALID_SETREQ,
+    MessageType.req: {member: '' for member in list(SetReq)},
+    MessageType.internal: VALID_INTERNAL,
+    MessageType.stream: VALID_STREAM,
+}
 
 HANDLE_INTERNAL = {
     Internal.I_BATTERY_LEVEL: {
