@@ -184,7 +184,8 @@ VALID_TYPES = {
     Presentation.S_WEIGHT: [
         SetReq.V_WEIGHT, SetReq.V_IMPEDANCE],
     Presentation.S_POWER: [SetReq.V_WATT, SetReq.V_KWH],
-    Presentation.S_HEATER: [SetReq.V_TEMP],
+    Presentation.S_HEATER: [
+        SetReq.V_HEATER, SetReq.V_HEATER_SW, SetReq.V_TEMP],
     Presentation.S_DISTANCE: [SetReq.V_DISTANCE],
     Presentation.S_LIGHT_LEVEL: [SetReq.V_LIGHT_LEVEL],
     Presentation.S_ARDUINO_NODE: [],

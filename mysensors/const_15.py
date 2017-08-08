@@ -220,7 +220,7 @@ VALID_TYPES = {
         SetReq.V_STATUS, SetReq.V_PERCENTAGE, SetReq.V_WATT],
     Presentation.S_COVER: [
         SetReq.V_UP, SetReq.V_DOWN, SetReq.V_STOP, SetReq.V_PERCENTAGE],
-    Presentation.S_TEMP: [SetReq.V_TEMP],
+    Presentation.S_TEMP: [SetReq.V_TEMP, SetReq.V_ID],
     Presentation.S_HUM: [SetReq.V_HUM],
     Presentation.S_BARO: [
         SetReq.V_PRESSURE, SetReq.V_FORECAST],
@@ -232,9 +232,11 @@ VALID_TYPES = {
     Presentation.S_WEIGHT: [
         SetReq.V_WEIGHT, SetReq.V_IMPEDANCE],
     Presentation.S_POWER: [SetReq.V_WATT, SetReq.V_KWH],
-    Presentation.S_HEATER: [SetReq.V_TEMP],
-    Presentation.S_DISTANCE: [SetReq.V_DISTANCE],
-    Presentation.S_LIGHT_LEVEL: [SetReq.V_LIGHT_LEVEL],
+    Presentation.S_HEATER: [
+        SetReq.V_STATUS, SetReq.V_TEMP, SetReq.V_HVAC_SETPOINT_HEAT,
+        SetReq.V_HVAC_FLOW_STATE],
+    Presentation.S_DISTANCE: [SetReq.V_DISTANCE],  # FIXME: unit prefix where?
+    Presentation.S_LIGHT_LEVEL: [SetReq.V_LIGHT_LEVEL, SetReq.V_LEVEL],
     Presentation.S_ARDUINO_NODE: [],
     Presentation.S_ARDUINO_REPEATER_NODE: [],
     Presentation.S_LOCK: [SetReq.V_LOCK_STATUS],
