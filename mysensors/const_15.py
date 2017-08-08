@@ -136,7 +136,7 @@ class SetReq(IntEnum):
     V_HVAC_SETPOINT_COOL = 44   # HVAC cold setpoint (Integer between 0-100)
     V_HVAC_SETPOINT_HEAT = 45   # HVAC/Heater setpoint (Integer between 0-100)
     # Flow mode for HVAC ("Auto", "ContinuousOn", "PeriodicOn")
-    V_HVAC_FLOW_MODE = 45
+    V_HVAC_FLOW_MODE = 46
 
 
 class Internal(IntEnum):
@@ -219,7 +219,7 @@ VALID_TYPES = {
     Presentation.S_DIMMER: [
         SetReq.V_STATUS, SetReq.V_PERCENTAGE, SetReq.V_WATT],
     Presentation.S_COVER: [
-        SetReq.V_UP, SetReq.V_DOWN, SetReq.V_STOP, SetReq.V_DIMMER],
+        SetReq.V_UP, SetReq.V_DOWN, SetReq.V_STOP, SetReq.V_PERCENTAGE],
     Presentation.S_TEMP: [SetReq.V_TEMP],
     Presentation.S_HUM: [SetReq.V_HUM],
     Presentation.S_BARO: [
@@ -240,14 +240,16 @@ VALID_TYPES = {
     Presentation.S_LOCK: [SetReq.V_LOCK_STATUS],
     Presentation.S_IR: [SetReq.V_IR_SEND, SetReq.V_IR_RECEIVE],
     Presentation.S_WATER: [SetReq.V_FLOW, SetReq.V_VOLUME],
-    Presentation.S_AIR_QUALITY: [SetReq.V_DUST_LEVEL],
+    Presentation.S_AIR_QUALITY: [SetReq.V_LEVEL],
     Presentation.S_CUSTOM: [
         SetReq.V_VAR1, SetReq.V_VAR2, SetReq.V_VAR3, SetReq.V_VAR4,
         SetReq.V_VAR5],
-    Presentation.S_DUST: [SetReq.V_DUST_LEVEL],
+    Presentation.S_DUST: [SetReq.V_LEVEL],
     Presentation.S_SCENE_CONTROLLER: [SetReq.V_SCENE_ON, SetReq.V_SCENE_OFF],
-    Presentation.S_RGB_LIGHT: [SetReq.V_RGB, SetReq.V_WATT],
-    Presentation.S_RGBW_LIGHT: [SetReq.V_RGBW, SetReq.V_WATT],
+    Presentation.S_RGB_LIGHT: [
+        SetReq.V_RGB, SetReq.V_WATT, SetReq.V_PERCENTAGE],
+    Presentation.S_RGBW_LIGHT: [
+        SetReq.V_RGBW, SetReq.V_WATT, SetReq.V_PERCENTAGE],
     Presentation.S_COLOR_SENSOR: [SetReq.V_RGB],
     Presentation.S_HVAC: [
         SetReq.V_STATUS, SetReq.V_TEMP, SetReq.V_HVAC_SETPOINT_HEAT,
