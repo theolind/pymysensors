@@ -271,18 +271,18 @@ VALID_PRESENTATION = {
 VALID_TYPES.update({
     Presentation.S_POWER: [
         SetReq.V_WATT, SetReq.V_KWH, SetReq.V_VAR, SetReq.V_VA,
-        SetReq.V_POWER_FACTOR],
+        SetReq.V_POWER_FACTOR, SetReq.V_UNIT_PREFIX],
     Presentation.S_IR: [
         SetReq.V_IR_SEND, SetReq.V_IR_RECEIVE, SetReq.V_IR_RECORD],
     Presentation.S_CUSTOM: [
         SetReq.V_VAR1, SetReq.V_VAR2, SetReq.V_VAR3, SetReq.V_VAR4,
-        SetReq.V_VAR5, SetReq.V_CUSTOM],
+        SetReq.V_VAR5, SetReq.V_CUSTOM, SetReq.V_UNIT_PREFIX],
     Presentation.S_INFO: [SetReq.V_TEXT],
-    Presentation.S_GAS: [SetReq.V_FLOW, SetReq.V_VOLUME],
+    Presentation.S_GAS: [SetReq.V_FLOW, SetReq.V_VOLUME, SetReq.V_UNIT_PREFIX],
     Presentation.S_GPS: [SetReq.V_POSITION],
     Presentation.S_WATER_QUALITY: [
         SetReq.V_TEMP, SetReq.V_PH, SetReq.V_ORP, SetReq.V_EC,
-        SetReq.V_STATUS],
+        SetReq.V_STATUS, SetReq.V_UNIT_PREFIX],
 })
 
 
