@@ -2,6 +2,8 @@
 import os
 from setuptools import setup, find_packages
 
+from mysensors.const import __version__
+
 if os.path.exists('README.rst'):
     README = open('README.rst').read()
 else:
@@ -13,7 +15,7 @@ REQUIRES = [
 
 setup(
     name='pymysensors',
-    version='0.11.0.dev0',
+    version=__version__,
     description='Python API for talking to a MySensors gateway',
     long_description=README,
     url='https://github.com/theolind/pymysensors',
