@@ -384,6 +384,7 @@ VALID_SETREQ = {
     SetReq.V_HVAC_FLOW_MODE: str,
 }
 
+VALID_INTERNAL = dict(VALID_INTERNAL)
 VALID_INTERNAL.update({
     Internal.I_REQUEST_SIGNING: str,
     Internal.I_GET_NONCE: str,

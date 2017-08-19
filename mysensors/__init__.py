@@ -600,6 +600,11 @@ class Message(object):
                 [SYSTEM_CHILD_ID],
                 msg='When message type is {}, child_id must be {}'.format(
                     self.type, SYSTEM_CHILD_ID)))
+        if (self.type == const.MessageType.internal and
+                self.sub_type in [
+                    const.Internal.I_ID_REQUEST,
+                    const.Internal.I_ID_RESPONSE]):
+            valid_child_ids = vol.Coerce(int)
         valid_types = vol.All(vol.Coerce(int), vol.In(
             [member.value for member in const.VALID_MESSAGE_TYPES],
             msg='Not valid message type: {}'.format(self.type)))

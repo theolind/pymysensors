@@ -224,10 +224,13 @@ class Internal(IntEnum):
     I_GATEWAY_READY = 14
     # Provides signing related preferences (first byte is preference version).
     I_SIGNING_PRESENTATION = 15
+    I_REQUEST_SIGNING = 15  # alias from version 1.5
     # Request for a nonce.
     I_NONCE_REQUEST = 16
+    I_GET_NONCE = 16  # alias from version 1.5
     # Payload is nonce data.
     I_NONCE_RESPONSE = 17
+    I_GET_NONCE_RESPONSE = 17  # alias from version 1.5
     I_HEARTBEAT = 18
     I_PRESENTATION = 19
     I_DISCOVER = 20
@@ -268,6 +271,7 @@ VALID_PRESENTATION = {
     member: str for member in list(Presentation)
 }
 
+VALID_TYPES = dict(VALID_TYPES)
 VALID_TYPES.update({
     Presentation.S_POWER: [
         SetReq.V_WATT, SetReq.V_KWH, SetReq.V_VAR, SetReq.V_VA,
@@ -299,6 +303,7 @@ def validate_gps(value):
     return value
 
 
+VALID_SETREQ = dict(VALID_SETREQ)
 VALID_SETREQ.update({
     SetReq.V_TEXT: str,
     SetReq.V_CUSTOM: str,
@@ -314,11 +319,13 @@ VALID_SETREQ.update({
         msg='value should be between -1.0 and 1.0'),
 })
 
+VALID_INTERNAL = dict(VALID_INTERNAL)
 VALID_INTERNAL.update({
     Internal.I_HEARTBEAT: '',
     Internal.I_PRESENTATION: '',
     Internal.I_DISCOVER: '',
-    Internal.I_DISCOVER_RESPONSE: str,
+    Internal.I_DISCOVER_RESPONSE: vol.All(
+        vol.Coerce(int), vol.Range(min=0, max=MAX_NODE_ID), vol.Coerce(str)),
     Internal.I_HEARTBEAT_RESPONSE: str,
     Internal.I_LOCKED: str,
     Internal.I_PING: vol.All(vol.Coerce(int), vol.Coerce(str)),
@@ -336,6 +343,7 @@ VALID_PAYLOADS = {
     MessageType.stream: VALID_STREAM,
 }
 
+HANDLE_INTERNAL = dict(HANDLE_INTERNAL)
 HANDLE_INTERNAL.update({
     Internal.I_GATEWAY_READY: {
         'log': 'info', 'msg': {
