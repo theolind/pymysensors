@@ -136,7 +136,7 @@ class SetReq(IntEnum):
     V_HVAC_SETPOINT_COOL = 44   # HVAC cold setpoint (Integer between 0-100)
     V_HVAC_SETPOINT_HEAT = 45   # HVAC/Heater setpoint (Integer between 0-100)
     # Flow mode for HVAC ("Auto", "ContinuousOn", "PeriodicOn")
-    V_HVAC_FLOW_MODE = 45
+    V_HVAC_FLOW_MODE = 46
 
 
 class Internal(IntEnum):
@@ -219,49 +219,61 @@ VALID_TYPES = {
     Presentation.S_DIMMER: [
         SetReq.V_STATUS, SetReq.V_PERCENTAGE, SetReq.V_WATT],
     Presentation.S_COVER: [
-        SetReq.V_UP, SetReq.V_DOWN, SetReq.V_STOP, SetReq.V_DIMMER],
-    Presentation.S_TEMP: [SetReq.V_TEMP],
-    Presentation.S_HUM: [SetReq.V_HUM],
+        SetReq.V_UP, SetReq.V_DOWN, SetReq.V_STOP, SetReq.V_PERCENTAGE],
+    Presentation.S_TEMP: [SetReq.V_TEMP, SetReq.V_ID, SetReq.V_UNIT_PREFIX],
+    Presentation.S_HUM: [SetReq.V_HUM, SetReq.V_UNIT_PREFIX],
     Presentation.S_BARO: [
-        SetReq.V_PRESSURE, SetReq.V_FORECAST],
+        SetReq.V_PRESSURE, SetReq.V_FORECAST, SetReq.V_UNIT_PREFIX],
     Presentation.S_WIND: [
-        SetReq.V_WIND, SetReq.V_GUST, SetReq.V_DIRECTION],
+        SetReq.V_WIND, SetReq.V_GUST, SetReq.V_DIRECTION,
+        SetReq.V_UNIT_PREFIX],
     Presentation.S_RAIN: [
-        SetReq.V_RAIN, SetReq.V_RAINRATE],
-    Presentation.S_UV: [SetReq.V_UV],
+        SetReq.V_RAIN, SetReq.V_RAINRATE, SetReq.V_UNIT_PREFIX],
+    Presentation.S_UV: [SetReq.V_UV, SetReq.V_UNIT_PREFIX],
     Presentation.S_WEIGHT: [
-        SetReq.V_WEIGHT, SetReq.V_IMPEDANCE],
-    Presentation.S_POWER: [SetReq.V_WATT, SetReq.V_KWH],
-    Presentation.S_HEATER: [SetReq.V_TEMP],
-    Presentation.S_DISTANCE: [SetReq.V_DISTANCE],
-    Presentation.S_LIGHT_LEVEL: [SetReq.V_LIGHT_LEVEL],
+        SetReq.V_WEIGHT, SetReq.V_IMPEDANCE, SetReq.V_UNIT_PREFIX],
+    Presentation.S_POWER: [SetReq.V_WATT, SetReq.V_KWH, SetReq.V_UNIT_PREFIX],
+    Presentation.S_HEATER: [
+        SetReq.V_STATUS, SetReq.V_TEMP, SetReq.V_HVAC_SETPOINT_HEAT,
+        SetReq.V_HVAC_FLOW_STATE],
+    Presentation.S_DISTANCE: [SetReq.V_DISTANCE, SetReq.V_UNIT_PREFIX],
+    Presentation.S_LIGHT_LEVEL: [
+        SetReq.V_LIGHT_LEVEL, SetReq.V_LEVEL, SetReq.V_UNIT_PREFIX],
     Presentation.S_ARDUINO_NODE: [],
     Presentation.S_ARDUINO_REPEATER_NODE: [],
     Presentation.S_LOCK: [SetReq.V_LOCK_STATUS],
     Presentation.S_IR: [SetReq.V_IR_SEND, SetReq.V_IR_RECEIVE],
-    Presentation.S_WATER: [SetReq.V_FLOW, SetReq.V_VOLUME],
-    Presentation.S_AIR_QUALITY: [SetReq.V_DUST_LEVEL],
+    Presentation.S_WATER: [
+        SetReq.V_FLOW, SetReq.V_VOLUME, SetReq.V_UNIT_PREFIX],
+    Presentation.S_AIR_QUALITY: [SetReq.V_LEVEL, SetReq.V_UNIT_PREFIX],
     Presentation.S_CUSTOM: [
         SetReq.V_VAR1, SetReq.V_VAR2, SetReq.V_VAR3, SetReq.V_VAR4,
-        SetReq.V_VAR5],
-    Presentation.S_DUST: [SetReq.V_DUST_LEVEL],
+        SetReq.V_VAR5, SetReq.V_UNIT_PREFIX],
+    Presentation.S_DUST: [SetReq.V_LEVEL, SetReq.V_UNIT_PREFIX],
     Presentation.S_SCENE_CONTROLLER: [SetReq.V_SCENE_ON, SetReq.V_SCENE_OFF],
-    Presentation.S_RGB_LIGHT: [SetReq.V_RGB, SetReq.V_WATT],
-    Presentation.S_RGBW_LIGHT: [SetReq.V_RGBW, SetReq.V_WATT],
-    Presentation.S_COLOR_SENSOR: [SetReq.V_RGB],
+    Presentation.S_RGB_LIGHT: [
+        SetReq.V_RGB, SetReq.V_WATT, SetReq.V_PERCENTAGE],
+    Presentation.S_RGBW_LIGHT: [
+        SetReq.V_RGBW, SetReq.V_WATT, SetReq.V_PERCENTAGE],
+    Presentation.S_COLOR_SENSOR: [SetReq.V_RGB, SetReq.V_UNIT_PREFIX],
     Presentation.S_HVAC: [
         SetReq.V_STATUS, SetReq.V_TEMP, SetReq.V_HVAC_SETPOINT_HEAT,
         SetReq.V_HVAC_SETPOINT_COOL, SetReq.V_HVAC_FLOW_STATE,
         SetReq.V_HVAC_FLOW_MODE, SetReq.V_HVAC_SPEED],
     Presentation.S_MULTIMETER: [
-        SetReq.V_VOLTAGE, SetReq.V_CURRENT, SetReq.V_IMPEDANCE],
+        SetReq.V_VOLTAGE, SetReq.V_CURRENT, SetReq.V_IMPEDANCE,
+        SetReq.V_UNIT_PREFIX],
     Presentation.S_SPRINKLER: [SetReq.V_STATUS, SetReq.V_TRIPPED],
     Presentation.S_WATER_LEAK: [SetReq.V_TRIPPED, SetReq.V_ARMED],
-    Presentation.S_SOUND: [SetReq.V_LEVEL, SetReq.V_TRIPPED, SetReq.V_ARMED],
+    Presentation.S_SOUND: [
+        SetReq.V_LEVEL, SetReq.V_TRIPPED, SetReq.V_ARMED,
+        SetReq.V_UNIT_PREFIX],
     Presentation.S_VIBRATION: [
-        SetReq.V_LEVEL, SetReq.V_TRIPPED, SetReq.V_ARMED],
+        SetReq.V_LEVEL, SetReq.V_TRIPPED, SetReq.V_ARMED,
+        SetReq.V_UNIT_PREFIX],
     Presentation.S_MOISTURE: [
-        SetReq.V_LEVEL, SetReq.V_TRIPPED, SetReq.V_ARMED],
+        SetReq.V_LEVEL, SetReq.V_TRIPPED, SetReq.V_ARMED,
+        SetReq.V_UNIT_PREFIX],
 }
 
 
@@ -372,6 +384,7 @@ VALID_SETREQ = {
     SetReq.V_HVAC_FLOW_MODE: str,
 }
 
+VALID_INTERNAL = dict(VALID_INTERNAL)
 VALID_INTERNAL.update({
     Internal.I_REQUEST_SIGNING: str,
     Internal.I_GET_NONCE: str,

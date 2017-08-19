@@ -10,7 +10,6 @@ import voluptuous as vol
 
 from mysensors import (ChildSensor, Gateway, Message, MySensorsJSONEncoder,
                        Sensor)
-from mysensors.const_14 import Internal, MessageType
 
 
 class TestGateway(TestCase):
@@ -734,7 +733,7 @@ class TestGateway20(TestGateway):
         self.gateway.logic('1;255;3;0;21;0')
         assert mock_is_sensor.called
 
-    def test_set_rgbw(self):
+    def test_set_position(self):
         """Test set of V_POSITION."""
         sensor = self._add_sensor(1)
         sensor.protocol_version = '2.0'
@@ -752,48 +751,6 @@ class TestGateway20(TestGateway):
         self.assertEqual(
             sensor.children[0].values[self.gateway.const.SetReq.V_POSITION],
             '10.0,10.0,10.0')
-
-
-class TestMessage(TestCase):
-    """Test the Message class and it's encode/decode functions."""
-
-    def test_encode(self):
-        """Test encode of message."""
-        msg = Message()
-        cmd = msg.encode()
-        self.assertEqual(cmd, '0;0;0;0;0;\n')
-
-        msg.node_id = 255
-        msg.child_id = 255
-        msg.type = MessageType.internal
-        msg.sub_type = Internal.I_BATTERY_LEVEL
-        msg.ack = 0
-        msg.payload = 57
-
-        cmd = msg.encode()
-        self.assertEqual(cmd, '255;255;3;0;0;57\n')
-
-    def test_encode_bad_message(self):
-        """Test encode of bad message."""
-        msg = Message()
-        msg.sub_type = 'bad'
-        cmd = msg.encode()
-        self.assertEqual(cmd, None)
-
-    def test_decode(self):
-        """Test decode of message."""
-        msg = Message('255;255;3;0;0;57\n')
-        self.assertEqual(msg.node_id, 255)
-        self.assertEqual(msg.child_id, 255)
-        self.assertEqual(msg.type, MessageType.internal)
-        self.assertEqual(msg.sub_type, Internal.I_BATTERY_LEVEL)
-        self.assertEqual(msg.ack, 0)
-        self.assertEqual(msg.payload, '57')
-
-    def test_decode_bad_message(self):
-        """Test decode of bad message."""
-        with self.assertRaises(ValueError):
-            Message('bad;bad;bad;bad;bad;bad\n')
 
 
 class MySensorsJSONEncoderTestUpgrade(MySensorsJSONEncoder):

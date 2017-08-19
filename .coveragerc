@@ -1,0 +1,8 @@
+[report]
+exclude_lines =
+    # need to re-specify the default pragma
+    pragma: no cover
+
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
