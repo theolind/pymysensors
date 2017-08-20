@@ -9,39 +9,40 @@ fi
 
 cd "$(dirname "$0")/.."
 
-head -n 4 mysensors/const.py | tail -n 1 | grep PATCH_VERSION > /dev/null
+head -n 4 mysensors/version.py | tail -n 1 | grep PATCH_VERSION > /dev/null
 if [ $? -eq 1 ]
 then
-  echo "Patch version not found on mysensors/const.py line 4"
+  echo "Patch version not found on mysensors/version.py line 4"
   exit 1
 fi
 
-head -n 4 mysensors/const.py | tail -n 1 | grep dev > /dev/null
+head -n 4 mysensors/version.py | tail -n 1 | grep dev > /dev/null
 if [ $? -eq 0 ]
 then
   echo "Release version should not contain dev tag"
   exit 1
 fi
-PATCH_VERSION=$(head -n 4 mysensors/const.py | tail -n 1 | grep PATCH_VERSION \
-  | sed 's/.*=.//' | sed 's/[^0-9]*//g')
 
-head -n 3 mysensors/const.py | tail -n 1 | grep MINOR_VERSION > /dev/null
+PATCH_VERSION=$(head -n 4 mysensors/version.py | tail -n 1 \
+  | grep PATCH_VERSION | sed 's/.*=.//' | sed 's/[^0-9]*//g')
+
+head -n 3 mysensors/version.py | tail -n 1 | grep MINOR_VERSION > /dev/null
 if [ $? -eq 1 ]
 then
-  echo "Minor version not found on mysensors/const.py line 3"
+  echo "Minor version not found on mysensors/version.py line 3"
   exit 1
 fi
-MINOR_VERSION=$(head -n 3 mysensors/const.py | tail -n 1 | grep MINOR_VERSION \
-  | sed 's/.*=.//')
+MINOR_VERSION=$(head -n 3 mysensors/version.py | tail -n 1 \
+  | grep MINOR_VERSION | sed 's/.*=.//')
 
-head -n 2 mysensors/const.py | tail -n 1 | grep MAJOR_VERSION > /dev/null
+head -n 2 mysensors/version.py | tail -n 1 | grep MAJOR_VERSION > /dev/null
 if [ $? -eq 1 ]
 then
-  echo "Major version not found on mysensors/const.py line 2"
+  echo "Major version not found on mysensors/version.py line 2"
   exit 1
 fi
-MAJOR_VERSION=$(head -n 2 mysensors/const.py | tail -n 1 | grep MAJOR_VERSION \
-  | sed 's/.*=.//')
+MAJOR_VERSION=$(head -n 2 mysensors/version.py | tail -n 1 \
+  | grep MAJOR_VERSION | sed 's/.*=.//')
 
 VERSION="$MAJOR_VERSION.$MINOR_VERSION.$PATCH_VERSION"
 

@@ -15,6 +15,7 @@ from queue import Queue
 import voluptuous as vol
 
 from .ota import OTAFirmware
+from .version import __version__  # noqa: F401
 
 _LOGGER = logging.getLogger(__name__)
 

@@ -2,7 +2,7 @@
 import os
 from setuptools import setup, find_packages
 
-from mysensors.const import __version__
+exec(open('mysensors/version.py').read())
 
 if os.path.exists('README.rst'):
     README = open('README.rst').read()
