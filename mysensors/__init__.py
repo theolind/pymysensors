@@ -11,6 +11,7 @@ from collections import deque
 from distutils.version import LooseVersion as parse_ver
 from importlib import import_module
 from queue import Queue
+from timeit import default_timer as timer
 
 import voluptuous as vol
 
@@ -61,6 +62,10 @@ class Gateway(object):
         self.ota = OTAFirmware(self.sensors, self.const)
         if persistence:
             self._safe_load_sensors()
+
+    def __repr__(self):
+        """Return the representation."""
+        return self.__class__.__name__
 
     def _handle_presentation(self, msg):
         """Process a presentation message."""
@@ -363,9 +368,15 @@ class Gateway(object):
         if queue is None:
             queue = self.queue
         if not queue.empty():
+            start = timer()
             func, args, kwargs = queue.get()
             reply = func(*args, **kwargs)
             queue.task_done()
+            end = timer()
+            if end - start > 0.1:
+                _LOGGER.debug(
+                    'Handle queue with call %s(%s, %s) took %.3f seconds',
+                    func, args, kwargs, end - start)
             return reply
 
     def fill_queue(self, func, args=None, kwargs=None, queue=None):
@@ -435,6 +446,11 @@ class Sensor(object):
         self.new_state = {}
         self.queue = deque()
         self.reboot = False
+
+    def __repr__(self):
+        """Return the representation."""
+        return '<Sensor sensor_id={}, children: {}>'.format(
+            self.sensor_id, self.children)
 
     @property
     def battery_level(self):
@@ -508,12 +524,8 @@ class ChildSensor(object):
 
     def __repr__(self):
         """Return the representation."""
-        return self.__str__()
-
-    def __str__(self):
-        """Return the string representation."""
-        ret = ('child_id={0!s}, child_type={1!s}, description={2!s}, '
-               'values = {3!s}')
+        ret = ('<ChildSensor child_id={0!s}, child_type={1!s}, '
+               'description={2!s}, values: {3!s}>')
         return ret.format(self.id, self.type, self.description, self.values)
 
     def get_schema(self, protocol_version):
@@ -544,6 +556,12 @@ class Message(object):
         self.gateway = gateway
         if data is not None:
             self.decode(data)
+
+    def __repr__(self):
+        """Return the representation."""
+        return '<Message data="{};{};{};{};{};{}">'.format(
+            self.node_id, self.child_id, self.type, self.ack, self.sub_type,
+            self.payload)
 
     def copy(self, **kwargs):
         """Copy a message, optionally replace attributes with kwargs."""
