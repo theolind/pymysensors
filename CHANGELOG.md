@@ -1,6 +1,19 @@
 # Change Log
 
-## [0.10](https://github.com/theolind/pymysensors/tree/0.10) (2017-05-07)
+## [0.11.0](https://github.com/theolind/pymysensors/tree/0.11.0) (2017-08-21)
+[Full Changelog](https://github.com/theolind/pymysensors/compare/0.10...0.11.0)
+
+**Merged pull requests:**
+
+- Add debug timer logging if handle queue is slow [\#105](https://github.com/theolind/pymysensors/pull/105) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Update gen\_changelog and release procedure [\#104](https://github.com/theolind/pymysensors/pull/104) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Update type schema and add message tests [\#103](https://github.com/theolind/pymysensors/pull/103) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Add validation of message and child values [\#102](https://github.com/theolind/pymysensors/pull/102) [[breaking change](https://github.com/theolind/pymysensors/labels/breaking%20change)] ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Upgrade test requirements [\#101](https://github.com/theolind/pymysensors/pull/101) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Update const for version 1.5 and 2.0 [\#100](https://github.com/theolind/pymysensors/pull/100) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Fix subscription to topics with nested prefix [\#99](https://github.com/theolind/pymysensors/pull/99) ([MartinHjelmare](https://github.com/MartinHjelmare))
+
+## [0.10](https://github.com/theolind/pymysensors/tree/0.10) (2017-05-06)
 [Full Changelog](https://github.com/theolind/pymysensors/compare/0.9.1...0.10)
 
 **Closed issues:**
@@ -9,6 +22,7 @@
 
 **Merged pull requests:**
 
+- 0.10 [\#98](https://github.com/theolind/pymysensors/pull/98) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Add release instructions and update setup [\#97](https://github.com/theolind/pymysensors/pull/97) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Add manifest and update setup files [\#96](https://github.com/theolind/pymysensors/pull/96) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Add changelog [\#95](https://github.com/theolind/pymysensors/pull/95) ([MartinHjelmare](https://github.com/MartinHjelmare))
@@ -40,7 +54,7 @@
 - Move gateways into separate modules [\#84](https://github.com/theolind/pymysensors/pull/84) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Return local time instead of UTC time from Controller [\#81](https://github.com/theolind/pymysensors/pull/81) ([proddy](https://github.com/proddy))
 - Add discover [\#79](https://github.com/theolind/pymysensors/pull/79) ([MartinHjelmare](https://github.com/MartinHjelmare))
-- Event callback extensions [\#78](https://github.com/theolind/pymysensors/pull/78) ([steve-bate](https://github.com/steve-bate))
+- Event callback extensions [\#78](https://github.com/theolind/pymysensors/pull/78) [[breaking change](https://github.com/theolind/pymysensors/labels/breaking%20change)] ([steve-bate](https://github.com/steve-bate))
 - tcp\_check to reconnect in case of connection lost [\#67](https://github.com/theolind/pymysensors/pull/67) ([afeno](https://github.com/afeno))
 
 ## [0.8](https://github.com/theolind/pymysensors/tree/0.8) (2016-10-19)
@@ -96,7 +110,7 @@
 - Fix and add missing set,req and internal api types [\#52](https://github.com/theolind/pymysensors/pull/52) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Update pyserial to version 3.1.1 [\#50](https://github.com/theolind/pymysensors/pull/50) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Add MQTT client Gateway layer [\#49](https://github.com/theolind/pymysensors/pull/49) ([MartinHjelmare](https://github.com/MartinHjelmare))
-- Update handle\_req to return zero values [\#48](https://github.com/theolind/pymysensors/pull/48) ([myallh](https://github.com/myallh))
+- Update handle\_req to return zero values [\#48](https://github.com/theolind/pymysensors/pull/48) ([mch3000](https://github.com/mch3000))
 - Handle heartbeat message [\#46](https://github.com/theolind/pymysensors/pull/46) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Add class for testing protocol\_version 1.5 [\#45](https://github.com/theolind/pymysensors/pull/45) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Add const for mysensors 2.0 [\#44](https://github.com/theolind/pymysensors/pull/44) ([MartinHjelmare](https://github.com/MartinHjelmare))
