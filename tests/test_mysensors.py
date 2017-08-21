@@ -6,9 +6,10 @@ import time
 from collections import deque
 from unittest import TestCase, main, mock
 
+import voluptuous as vol
+
 from mysensors import (ChildSensor, Gateway, Message, MySensorsJSONEncoder,
                        Sensor)
-from mysensors.const_14 import Internal, MessageType
 
 
 class TestGateway(TestCase):
@@ -17,7 +18,7 @@ class TestGateway(TestCase):
     # pylint: disable=too-many-public-methods
 
     def setUp(self):
-        """Setup gateway."""
+        """Set up gateway."""
         self.gateway = Gateway()
 
     def _add_sensor(self, sensorid):
@@ -519,20 +520,87 @@ class TestGateway(TestCase):
         self.assertEqual(child_values, sensor.children[0].values)
         self.assertEqual(ret, '1;0;1;0;2;1\n')
 
+    def test_child_validate(self):
+        """Test child validate method."""
+        sensor = self._add_sensor(1)
+        sensor.children[0] = ChildSensor(
+            0, self.gateway.const.Presentation.S_LIGHT_LEVEL)
+        sensor.children[0].values[
+            self.gateway.const.SetReq.V_LIGHT_LEVEL] = '43'
+        sensor.children[0].validate(self.gateway.protocol_version)
+        self.assertEqual(
+            sensor.children[0].values[self.gateway.const.SetReq.V_LIGHT_LEVEL],
+            '43')
+        sensor.children[0].values[self.gateway.const.SetReq.V_TRIPPED] = '1'
+        with self.assertRaises(vol.Invalid):
+            sensor.children[0].validate(self.gateway.protocol_version)
+
+    def test_set_forecast(self):
+        """Test set of V_FORECAST."""
+        sensor = self._add_sensor(1)
+        sensor.children[0] = ChildSensor(
+            0, self.gateway.const.Presentation.S_BARO)
+        self.gateway.logic('1;0;1;0;5;sunny\n')
+        self.assertEqual(
+            sensor.children[0].values[self.gateway.const.SetReq.V_FORECAST],
+            'sunny')
+        self.gateway.logic('1;0;1;0;5;rainy\n')
+        self.assertEqual(
+            sensor.children[0].values[self.gateway.const.SetReq.V_FORECAST],
+            'rainy')
+
 
 class TestGateway15(TestGateway):
     """Use protocol_version 1.5."""
 
     def setUp(self):
-        """Setup gateway."""
+        """Set up gateway."""
         self.gateway = Gateway(protocol_version='1.5')
+
+    def test_set_rgb(self):
+        """Test set of V_RGB."""
+        sensor = self._add_sensor(1)
+        sensor.protocol_version = '1.5'
+        sensor.children[0] = ChildSensor(
+            0, self.gateway.const.Presentation.S_RGB_LIGHT)
+        self.gateway.logic('1;0;1;0;40;ffffff\n')
+        self.assertEqual(
+            sensor.children[0].values[self.gateway.const.SetReq.V_RGB],
+            'ffffff')
+        self.gateway.logic('1;0;1;0;40;ffffff00\n')
+        self.assertEqual(
+            sensor.children[0].values[self.gateway.const.SetReq.V_RGB],
+            'ffffff')
+        self.gateway.logic('1;0;1;0;40;nothex\n')
+        self.assertEqual(
+            sensor.children[0].values[self.gateway.const.SetReq.V_RGB],
+            'ffffff')
+
+    def test_set_rgbw(self):
+        """Test set of V_RGBW."""
+        sensor = self._add_sensor(1)
+        sensor.protocol_version = '1.5'
+        sensor.children[0] = ChildSensor(
+            0, self.gateway.const.Presentation.S_RGBW_LIGHT)
+        self.gateway.logic('1;0;1;0;41;ffffffff\n')
+        self.assertEqual(
+            sensor.children[0].values[self.gateway.const.SetReq.V_RGBW],
+            'ffffffff')
+        self.gateway.logic('1;0;1;0;41;ffffffff00\n')
+        self.assertEqual(
+            sensor.children[0].values[self.gateway.const.SetReq.V_RGBW],
+            'ffffffff')
+        self.gateway.logic('1;0;1;0;41;nothexxx\n')
+        self.assertEqual(
+            sensor.children[0].values[self.gateway.const.SetReq.V_RGBW],
+            'ffffffff')
 
 
 class TestGateway20(TestGateway):
     """Use protocol_version 2.0."""
 
     def setUp(self):
-        """Setup gateway."""
+        """Set up gateway."""
         self.gateway = Gateway(protocol_version='2.0')
 
     def test_non_presented_sensor(self):
@@ -567,7 +635,7 @@ class TestGateway20(TestGateway):
         ret = self.gateway.handle_queue()
         self.assertEqual(ret, '1;255;3;0;19;\n')
 
-        self.gateway.logic('1;1;2;0;1;75\n')
+        self.gateway.logic('1;1;2;0;1;\n')
         self.assertNotIn(1, self.gateway.sensors[1].children)
         ret = self.gateway.handle_queue()
         self.assertEqual(ret, '1;255;3;0;19;\n')
@@ -665,47 +733,24 @@ class TestGateway20(TestGateway):
         self.gateway.logic('1;255;3;0;21;0')
         assert mock_is_sensor.called
 
-
-class TestMessage(TestCase):
-    """Test the Message class and it's encode/decode functions."""
-
-    def test_encode(self):
-        """Test encode of message."""
-        msg = Message()
-        cmd = msg.encode()
-        self.assertEqual(cmd, '0;0;0;0;0;\n')
-
-        msg.node_id = 255
-        msg.child_id = 255
-        msg.type = MessageType.internal
-        msg.sub_type = Internal.I_BATTERY_LEVEL
-        msg.ack = 0
-        msg.payload = 57
-
-        cmd = msg.encode()
-        self.assertEqual(cmd, '255;255;3;0;0;57\n')
-
-    def test_encode_bad_message(self):
-        """Test encode of bad message."""
-        msg = Message()
-        msg.sub_type = 'bad'
-        cmd = msg.encode()
-        self.assertEqual(cmd, None)
-
-    def test_decode(self):
-        """Test decode of message."""
-        msg = Message('255;255;3;0;0;57\n')
-        self.assertEqual(msg.node_id, 255)
-        self.assertEqual(msg.child_id, 255)
-        self.assertEqual(msg.type, MessageType.internal)
-        self.assertEqual(msg.sub_type, Internal.I_BATTERY_LEVEL)
-        self.assertEqual(msg.ack, 0)
-        self.assertEqual(msg.payload, '57')
-
-    def test_decode_bad_message(self):
-        """Test decode of bad message."""
-        with self.assertRaises(ValueError):
-            Message('bad;bad;bad;bad;bad;bad\n')
+    def test_set_position(self):
+        """Test set of V_POSITION."""
+        sensor = self._add_sensor(1)
+        sensor.protocol_version = '2.0'
+        sensor.children[0] = ChildSensor(
+            0, self.gateway.const.Presentation.S_GPS)
+        self.gateway.logic('1;0;1;0;49;10.0,10.0,10.0\n')
+        self.assertEqual(
+            sensor.children[0].values[self.gateway.const.SetReq.V_POSITION],
+            '10.0,10.0,10.0')
+        self.gateway.logic('1;0;1;0;49;bad,format\n')
+        self.assertEqual(
+            sensor.children[0].values[self.gateway.const.SetReq.V_POSITION],
+            '10.0,10.0,10.0')
+        self.gateway.logic('1;0;1;0;41;bad,bad,bad\n')
+        self.assertEqual(
+            sensor.children[0].values[self.gateway.const.SetReq.V_POSITION],
+            '10.0,10.0,10.0')
 
 
 class MySensorsJSONEncoderTestUpgrade(MySensorsJSONEncoder):

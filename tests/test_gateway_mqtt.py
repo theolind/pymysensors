@@ -160,5 +160,40 @@ class TestMQTTGateway(TestCase):
         self.mock_sub.assert_has_calls(calls)
 
 
+class TestMQTTGatewayCustomPrefix(TestCase):
+    """Test the MQTT Gateway with custom topic prefix."""
+
+    def setUp(self):
+        """Set up test."""
+        self.mock_pub = mock.Mock()
+        self.mock_sub = mock.Mock()
+        self.gateway = None
+
+    def _setup(self, in_prefix, out_prefix):
+        """Set up gateway."""
+        self.gateway = MQTTGateway(
+            self.mock_pub, self.mock_sub, in_prefix=in_prefix,
+            out_prefix=out_prefix)
+
+    def _add_sensor(self, sensorid):
+        """Add sensor node. Return sensor node instance."""
+        self.gateway.sensors[sensorid] = Sensor(sensorid)
+        return self.gateway.sensors[sensorid]
+
+    def test_nested_prefix(self):
+        """Test recv method with nested topic prefix."""
+        self._setup('test/test-in', 'test/test-out')
+        sensor = self._add_sensor(1)
+        sensor.children[1] = ChildSensor(
+            1, self.gateway.const.Presentation.S_HUM)
+        sensor.children[1].values[self.gateway.const.SetReq.V_HUM] = '20'
+        self.gateway.recv('test/test-in/1/1/2/0/1', '', 0)
+        ret = self.gateway.handle_queue()
+        self.assertEqual(ret, '1;1;1;0;1;20\n')
+        self.gateway.recv('test/test-in/1/1/2/0/1', '', 1)
+        ret = self.gateway.handle_queue()
+        self.assertEqual(ret, '1;1;1;1;1;20\n')
+
+
 if __name__ == '__main__':
     main()

@@ -39,11 +39,11 @@ class MQTTGateway(Gateway, threading.Thread):
         for topic in topics:
             topic_levels = topic.split('/')
             try:
-                qos = int(topic_levels[4])
+                qos = int(topic_levels[-2])
             except ValueError:
                 qos = 0
             try:
-                _LOGGER.debug('Subscribing to: %s', topic)
+                _LOGGER.debug('Subscribing to: %s, qos: %s', topic, qos)
                 self._sub_callback(topic, self.recv, qos)
             except Exception as exception:  # pylint: disable=broad-except
                 _LOGGER.exception(
@@ -64,7 +64,9 @@ class MQTTGateway(Gateway, threading.Thread):
         Return a mysensors command string.
         """
         topic_levels = topic.split('/')
-        prefix = topic_levels.pop(0)
+        topic_levels = not_prefix = topic_levels[-5:]
+        prefix_end_idx = topic.find('/'.join(not_prefix)) - 1
+        prefix = topic[:prefix_end_idx]
         if prefix != self._in_prefix:
             return
         if qos and qos > 0:
