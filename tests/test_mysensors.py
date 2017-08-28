@@ -182,6 +182,12 @@ class TestGateway(TestCase):
         self.gateway.logic('1;255;3;0;0;79\n')
         self.assertEqual(sensor.battery_level, 79)
 
+    def test_bad_battery_level(self):
+        """Test internal receive of bad battery level."""
+        sensor = self._add_sensor(1)
+        self.gateway.logic('1;255;3;0;0;-1\n')
+        self.assertEqual(sensor.battery_level, 0)
+
     def test_req(self):
         """Test req message in case where value exists."""
         sensor = self._add_sensor(1)
@@ -371,6 +377,10 @@ class TestGateway(TestCase):
         del self.gateway.sensors[1].__dict__['_battery_level']
         self.assertNotIn('_battery_level', self.gateway.sensors[1].__dict__)
         self.gateway.sensors[1].__dict__['battery_level'] = 58
+        del self.gateway.sensors[1].__dict__['_protocol_version']
+        self.assertNotIn('_protocol_version', self.gateway.sensors[1].__dict__)
+        self.gateway.sensors[1].__dict__[
+            'protocol_version'] = self.gateway.protocol_version
         del self.gateway.sensors[1].children[0].__dict__['description']
         self.assertNotIn(
             'description', self.gateway.sensors[1].children[0].__dict__)
@@ -383,6 +393,9 @@ class TestGateway(TestCase):
             self.assertNotIn(1, self.gateway.sensors)
             self.gateway._safe_load_sensors()
             self.assertEqual(self.gateway.sensors[1].battery_level, 58)
+            self.assertEqual(
+                self.gateway.sensors[1].protocol_version,
+                self.gateway.protocol_version)
             self.assertEqual(self.gateway.sensors[1].new_state, {})
             self.assertEqual(self.gateway.sensors[1].queue, deque())
             self.assertEqual(self.gateway.sensors[1].reboot, False)
@@ -548,6 +561,12 @@ class TestGateway(TestCase):
         self.assertEqual(
             sensor.children[0].values[self.gateway.const.SetReq.V_FORECAST],
             'rainy')
+
+    def test_set_bad_battery_attribute(self):
+        """Test set a bad battery_level attribute on a node."""
+        sensor = self._add_sensor(1)
+        sensor.battery_level = None
+        self.assertEqual(sensor.battery_level, 0)
 
 
 class TestGateway15(TestGateway):
@@ -751,6 +770,18 @@ class TestGateway20(TestGateway):
         self.assertEqual(
             sensor.children[0].values[self.gateway.const.SetReq.V_POSITION],
             '10.0,10.0,10.0')
+
+
+def test_gateway_bad_protocol():
+    """Test initializing gateway with a bad protocol_version."""
+    gateway = Gateway(protocol_version=None)
+    assert gateway.protocol_version == '1.4'
+
+
+def test_gateway_low_protocol():
+    """Test initializing gateway with too low protocol_version."""
+    gateway = Gateway(protocol_version='1.3')
+    assert gateway.protocol_version == '1.4'
 
 
 class MySensorsJSONEncoderTestUpgrade(MySensorsJSONEncoder):

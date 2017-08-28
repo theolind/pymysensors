@@ -24,6 +24,17 @@ def is_version(value):
             '{} is not a valid version specifier'.format(value))
 
 
+def safe_is_version(value):
+    """Validate that value is a valid version string."""
+    try:
+        return is_version(value)
+    except vol.Invalid:
+        _LOGGER.warning(
+            '%s is not a valid version specifier, '
+            'falling back to version 1.4', value)
+        return '1.4'
+
+
 def is_battery_level(value):
     """Validate that value is a valid battery level integer."""
     try:

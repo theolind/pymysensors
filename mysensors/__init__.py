@@ -15,7 +15,7 @@ from timeit import default_timer as timer
 
 import voluptuous as vol
 
-from .validation import is_battery_level, is_version
+from .validation import is_battery_level, safe_is_version
 from .ota import OTAFirmware
 from .version import __version__  # noqa: F401
 
@@ -58,13 +58,7 @@ class Gateway(object):
         self.persistence = persistence  # if true - save sensors to disk
         self.persistence_file = persistence_file  # path to persistence file
         self.persistence_bak = '{}.bak'.format(self.persistence_file)
-        try:
-            self.protocol_version = is_version(protocol_version)
-        except vol.Invalid as exc:
-            _LOGGER.warning(exc)
-            self.protocol_version = '1.4'
-            _LOGGER.info(
-                'Falling back to protocol version %s', self.protocol_version)
+        self.protocol_version = safe_is_version(protocol_version)
         self.const = get_const(self.protocol_version)
         self.ota = OTAFirmware(self.sensors, self.const)
         if persistence:
@@ -479,7 +473,7 @@ class Sensor(object):
 
     @battery_level.setter
     def battery_level(self, value):
-        """Set battery level as int."""
+        """Set valid battery level."""
         self._battery_level = is_battery_level(value)
 
     @property
@@ -489,14 +483,8 @@ class Sensor(object):
 
     @protocol_version.setter
     def protocol_version(self, value):
-        """Set protocol version."""
-        try:
-            self._protocol_version = is_version(value)
-        except vol.Invalid as exc:
-            _LOGGER.warning(exc)
-            self._protocol_version = '1.4'
-            _LOGGER.info(
-                'Falling back to protocol version %s', self._protocol_version)
+        """Set valid protocol version."""
+        self._protocol_version = safe_is_version(value)
 
     def add_child_sensor(self, child_id, child_type, description=''):
         """Create and add a child sensor."""

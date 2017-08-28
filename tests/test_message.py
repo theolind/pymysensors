@@ -4,6 +4,29 @@ from unittest import TestCase
 from mysensors import get_const, Message
 from mysensors.const_14 import Internal, MessageType
 
+PRES_FIXTURES_14 = {
+    'S_DOOR': 'Front Door',
+    'S_ARDUINO_NODE': '1.4',
+    'S_ARDUINO_RELAY': '1.4',
+}
+
+PRES_FIXTURES_15 = {
+    'S_DOOR': 'Front Door',
+    'S_ARDUINO_NODE': '1.5',
+    'S_ARDUINO_REPEATER_NODE': '1.5',
+    'S_ARDUINO_RELAY': '1.5',
+    'S_MOISTURE': 'Moisture Sensor',
+}
+
+PRES_FIXTURES_20 = {
+    'S_DOOR': 'Front Door',
+    'S_ARDUINO_NODE': '2.0',
+    'S_ARDUINO_REPEATER_NODE': '2.0',
+    'S_ARDUINO_RELAY': '2.0',
+    'S_MOISTURE': 'Moisture Sensor',
+    'S_WATER_QUALITY': 'Water Quality Sensor',
+}
+
 SET_FIXTURES_14 = {
     'V_TEMP': '20.0',
     'V_HUM': '30',
@@ -160,6 +183,22 @@ class TestMessage(TestCase):
         """Test decode of bad message."""
         with self.assertRaises(ValueError):
             Message('bad;bad;bad;bad;bad;bad\n')
+
+
+def test_validate_pres():
+    """Test Presentation messages."""
+    versions = [
+        ('1.4', PRES_FIXTURES_14), ('1.5', PRES_FIXTURES_15),
+        ('2.0', PRES_FIXTURES_20)]
+    for protocol_version, fixture in versions:
+        const = get_const(protocol_version)
+        for name, payload in fixture.items():
+            sub_type = const.Presentation[name]
+            msg = Message('1;0;0;0;{};{}\n'.format(sub_type, payload))
+            valid = msg.validate(protocol_version)
+            assert valid == {
+                'node_id': 1, 'child_id': 0, 'type': 0, 'ack': 0,
+                'sub_type': sub_type, 'payload': payload}
 
 
 def test_validate_set():
