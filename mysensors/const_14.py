@@ -3,6 +3,8 @@ from enum import IntEnum
 
 import voluptuous as vol
 
+from mysensors.validation import is_version, percent_int
+
 
 class MessageType(IntEnum):
     """MySensors message types."""
@@ -163,6 +165,9 @@ VALID_MESSAGE_TYPES = {
 VALID_PRESENTATION = {
     member: str for member in list(Presentation)
 }
+VALID_PRESENTATION.update({
+    Presentation.S_ARDUINO_NODE: is_version,
+    Presentation.S_ARDUINO_RELAY: is_version})
 
 VALID_TYPES = {
     Presentation.S_DOOR: [SetReq.V_TRIPPED, SetReq.V_ARMED],
@@ -222,7 +227,7 @@ VALID_SETREQ = {
         [LOGICAL_ZERO, LOGICAL_ONE],
         msg='value must be either {} or {}'.format(LOGICAL_ZERO, LOGICAL_ONE)),
     SetReq.V_DIMMER: vol.All(
-        vol.Coerce(int), vol.Range(min=0, max=100), vol.Coerce(str),
+        percent_int, vol.Coerce(str),
         msg='value must be between {} and {}'.format(0, 100)),
     SetReq.V_PRESSURE: str,
     SetReq.V_FORECAST: vol.Any(str, vol.In(
@@ -256,7 +261,7 @@ VALID_SETREQ = {
         [LOGICAL_ZERO, LOGICAL_ONE],
         msg='value must be either {} or {}'.format(LOGICAL_ZERO, LOGICAL_ONE)),
     SetReq.V_LIGHT_LEVEL: vol.All(
-        vol.Coerce(int), vol.Range(min=0, max=100), vol.Coerce(str),
+        percent_int, vol.Coerce(str),
         msg='value must be between {} and {}'.format(0, 100)),
     SetReq.V_VAR1: str,
     SetReq.V_VAR2: str,
@@ -284,7 +289,7 @@ MAX_NODE_ID = 254
 
 VALID_INTERNAL = {
     Internal.I_BATTERY_LEVEL: vol.All(
-        vol.Coerce(int), vol.Range(min=0, max=100), vol.Coerce(str)),
+        percent_int, vol.Coerce(str)),
     Internal.I_TIME: vol.Any('', vol.All(vol.Coerce(int), vol.Coerce(str))),
     Internal.I_VERSION: str,
     Internal.I_ID_REQUEST: '',
