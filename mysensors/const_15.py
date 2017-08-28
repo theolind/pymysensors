@@ -323,7 +323,7 @@ VALID_SETREQ = {
         msg='value must be either {} or {}'.format(LOGICAL_ZERO, LOGICAL_ONE)),
     SetReq.V_PERCENTAGE: vol.All(
         percent_int, vol.Coerce(str),
-        msg='value must be between {} and {}'.format(0, 100)),
+        msg='value must be integer between {} and {}'.format(0, 100)),
     SetReq.V_PRESSURE: str,
     SetReq.V_FORECAST: vol.Any(str, vol.In(
         FORECASTS,
@@ -357,8 +357,8 @@ VALID_SETREQ = {
         msg='value must be one of: {}, {}, {} or {}'.format(
             MIN, NORMAL, MAX, AUTO)),
     SetReq.V_LIGHT_LEVEL: vol.All(
-        percent_int, vol.Coerce(str),
-        msg='value must be between {} and {}'.format(0, 100)),
+        vol.Coerce(float), vol.Range(min=0.0, max=100.0), vol.Coerce(str),
+        msg='value must be float between {} and {}'.format(0.0, 100.0)),
     SetReq.V_VAR1: str,
     SetReq.V_VAR2: str,
     SetReq.V_VAR3: str,

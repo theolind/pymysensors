@@ -51,7 +51,7 @@ SET_FIXTURES_14 = {
     'V_SCENE_OFF': 'scene_4',
     'V_HEATER': 'AutoChangeOver',
     'V_HEATER_SW': '1',
-    'V_LIGHT_LEVEL': '99',
+    'V_LIGHT_LEVEL': '99.0',
     'V_VAR1': 'test1',
     'V_VAR2': 'test2',
     'V_VAR3': 'test3',
