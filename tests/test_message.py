@@ -1,8 +1,51 @@
 """Test mysensors messages."""
 from unittest import TestCase
 
+import pytest
+import voluptuous as vol
+
 from mysensors import get_const, Message
 from mysensors.const_14 import Internal, MessageType
+
+PRES_FIXTURES_14 = {
+    'S_DOOR': 'Front Door',
+    'S_ARDUINO_NODE': '1.4',
+    'S_ARDUINO_RELAY': '1.4',
+}
+
+PRES_FIXTURES_15 = {
+    'S_DOOR': 'Front Door',
+    'S_ARDUINO_NODE': '1.5',
+    'S_ARDUINO_REPEATER_NODE': '1.5',
+    'S_ARDUINO_RELAY': '1.5',
+    'S_MOISTURE': 'Moisture Sensor',
+}
+
+PRES_FIXTURES_20 = {
+    'S_DOOR': 'Front Door',
+    'S_ARDUINO_NODE': '2.0',
+    'S_ARDUINO_REPEATER_NODE': '2.0',
+    'S_ARDUINO_RELAY': '2.0',
+    'S_MOISTURE': 'Moisture Sensor',
+    'S_WATER_QUALITY': 'Water Quality Sensor',
+}
+
+PRES_BAD_FIXTURES_14 = {
+    'S_ARDUINO_NODE': 'None',
+    'S_ARDUINO_RELAY': '-1',
+}
+
+PRES_BAD_FIXTURES_15 = {
+    'S_ARDUINO_NODE': 'None',
+    'S_ARDUINO_REPEATER_NODE': '1.3',
+    'S_ARDUINO_RELAY': '-1',
+}
+
+PRES_BAD_FIXTURES_20 = {
+    'S_ARDUINO_NODE': 'None',
+    'S_ARDUINO_REPEATER_NODE': '1.3',
+    'S_ARDUINO_RELAY': '-1',
+}
 
 SET_FIXTURES_14 = {
     'V_TEMP': '20.0',
@@ -28,7 +71,7 @@ SET_FIXTURES_14 = {
     'V_SCENE_OFF': 'scene_4',
     'V_HEATER': 'AutoChangeOver',
     'V_HEATER_SW': '1',
-    'V_LIGHT_LEVEL': '99',
+    'V_LIGHT_LEVEL': '99.0',
     'V_VAR1': 'test1',
     'V_VAR2': 'test2',
     'V_VAR3': 'test3',
@@ -160,6 +203,36 @@ class TestMessage(TestCase):
         """Test decode of bad message."""
         with self.assertRaises(ValueError):
             Message('bad;bad;bad;bad;bad;bad\n')
+
+
+def test_validate_pres():
+    """Test Presentation messages."""
+    versions = [
+        ('1.4', PRES_FIXTURES_14), ('1.5', PRES_FIXTURES_15),
+        ('2.0', PRES_FIXTURES_20)]
+    for protocol_version, fixture in versions:
+        const = get_const(protocol_version)
+        for name, payload in fixture.items():
+            sub_type = const.Presentation[name]
+            msg = Message('1;0;0;0;{};{}\n'.format(sub_type, payload))
+            valid = msg.validate(protocol_version)
+            assert valid == {
+                'node_id': 1, 'child_id': 0, 'type': 0, 'ack': 0,
+                'sub_type': sub_type, 'payload': payload}
+
+
+def test_validate_bad_pres():
+    """Test bad Presentation messages."""
+    versions = [
+        ('1.4', PRES_BAD_FIXTURES_14), ('1.5', PRES_BAD_FIXTURES_15),
+        ('2.0', PRES_BAD_FIXTURES_20)]
+    for protocol_version, fixture in versions:
+        const = get_const(protocol_version)
+        for name, payload in fixture.items():
+            sub_type = const.Presentation[name]
+            msg = Message('1;0;0;0;{};{}\n'.format(sub_type, payload))
+            with pytest.raises(vol.Invalid):
+                msg.validate(protocol_version)
 
 
 def test_validate_set():

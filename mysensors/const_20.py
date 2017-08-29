@@ -7,6 +7,7 @@ import voluptuous as vol
 from mysensors.const_15 import MAX_NODE_ID  # noqa: F401
 from mysensors.const_15 import (HANDLE_INTERNAL, VALID_INTERNAL, VALID_SETREQ,
                                 VALID_STREAM, VALID_TYPES)
+from mysensors.validation import is_version
 
 
 class MessageType(IntEnum):
@@ -44,6 +45,7 @@ class Presentation(IntEnum):
     S_LIGHT_LEVEL = 16              # Light sensor
     S_ARDUINO_NODE = 17             # Arduino node device
     S_ARDUINO_REPEATER_NODE = 18    # Arduino repeating node device
+    S_ARDUINO_RELAY = 18            # Alias for compatability
     S_LOCK = 19                     # Lock device
     S_IR = 20                       # Ir sender/receiver device
     S_WATER = 21                    # Water meter
@@ -270,6 +272,10 @@ VALID_MESSAGE_TYPES = {
 VALID_PRESENTATION = {
     member: str for member in list(Presentation)
 }
+VALID_PRESENTATION.update({
+    Presentation.S_ARDUINO_NODE: is_version,
+    Presentation.S_ARDUINO_REPEATER_NODE: is_version,
+    Presentation.S_ARDUINO_RELAY: is_version})
 
 VALID_TYPES = dict(VALID_TYPES)
 VALID_TYPES.update({

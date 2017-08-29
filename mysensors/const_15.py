@@ -9,6 +9,7 @@ from mysensors.const_14 import HANDLE_INTERNAL, MAX_NODE_ID  # noqa: F401
 from mysensors.const_14 import (AUTO_CHANGE_OVER, COOL_ON, FORECASTS, HEAT_ON,
                                 LOGICAL_ONE, LOGICAL_ZERO, OFF, VALID_INTERNAL,
                                 VALID_STREAM)
+from mysensors.validation import is_version, percent_int
 
 
 class MessageType(IntEnum):
@@ -46,6 +47,7 @@ class Presentation(IntEnum):
     S_LIGHT_LEVEL = 16              # Light sensor
     S_ARDUINO_NODE = 17             # Arduino node device
     S_ARDUINO_REPEATER_NODE = 18    # Arduino repeating node device
+    S_ARDUINO_RELAY = 18            # Alias for compatability
     S_LOCK = 19                     # Lock device
     S_IR = 20                       # Ir sender/receiver device
     S_WATER = 21                    # Water meter
@@ -210,6 +212,10 @@ VALID_MESSAGE_TYPES = {
 VALID_PRESENTATION = {
     member: str for member in list(Presentation)
 }
+VALID_PRESENTATION.update({
+    Presentation.S_ARDUINO_NODE: is_version,
+    Presentation.S_ARDUINO_REPEATER_NODE: is_version,
+    Presentation.S_ARDUINO_RELAY: is_version})
 
 VALID_TYPES = {
     Presentation.S_DOOR: [SetReq.V_TRIPPED, SetReq.V_ARMED],
@@ -316,8 +322,8 @@ VALID_SETREQ = {
         [LOGICAL_ZERO, LOGICAL_ONE],
         msg='value must be either {} or {}'.format(LOGICAL_ZERO, LOGICAL_ONE)),
     SetReq.V_PERCENTAGE: vol.All(
-        vol.Coerce(int), vol.Range(min=0, max=100), vol.Coerce(str),
-        msg='value must be between {} and {}'.format(0, 100)),
+        percent_int, vol.Coerce(str),
+        msg='value must be integer between {} and {}'.format(0, 100)),
     SetReq.V_PRESSURE: str,
     SetReq.V_FORECAST: vol.Any(str, vol.In(
         FORECASTS,
@@ -351,8 +357,8 @@ VALID_SETREQ = {
         msg='value must be one of: {}, {}, {} or {}'.format(
             MIN, NORMAL, MAX, AUTO)),
     SetReq.V_LIGHT_LEVEL: vol.All(
-        vol.Coerce(int), vol.Range(min=0, max=100), vol.Coerce(str),
-        msg='value must be between {} and {}'.format(0, 100)),
+        vol.Coerce(float), vol.Range(min=0.0, max=100.0), vol.Coerce(str),
+        msg='value must be float between {} and {}'.format(0.0, 100.0)),
     SetReq.V_VAR1: str,
     SetReq.V_VAR2: str,
     SetReq.V_VAR3: str,
