@@ -15,6 +15,7 @@ from timeit import default_timer as timer
 
 import voluptuous as vol
 
+from .validation import is_battery_level, safe_is_version
 from .ota import OTAFirmware
 from .version import __version__  # noqa: F401
 
@@ -27,7 +28,7 @@ SYSTEM_CHILD_ID = 255
 
 def get_const(protocol_version):
     """Return the const module for the protocol_version."""
-    version = str(protocol_version)
+    version = protocol_version
     if parse_ver('1.5') <= parse_ver(version) < parse_ver('2.0'):
         path = 'mysensors.const_15'
     elif parse_ver(version) >= parse_ver('2.0'):
@@ -57,7 +58,7 @@ class Gateway(object):
         self.persistence = persistence  # if true - save sensors to disk
         self.persistence_file = persistence_file  # path to persistence file
         self.persistence_bak = '{}.bak'.format(self.persistence_file)
-        self.protocol_version = protocol_version
+        self.protocol_version = safe_is_version(protocol_version)
         self.const = get_const(self.protocol_version)
         self.ota = OTAFirmware(self.sensors, self.const)
         if persistence:
@@ -432,10 +433,23 @@ class Sensor(object):
         self.sketch_name = None
         self.sketch_version = None
         self._battery_level = 0
-        self.protocol_version = '1.4'
+        self._protocol_version = '1.4'
         self.new_state = {}
         self.queue = deque()
         self.reboot = False
+
+    def __getstate__(self):
+        """Get state to save as pickle."""
+        state = self.__dict__.copy()
+        for attr in ('_battery_level', '_protocol_version'):
+            value = state.pop(attr, None)
+            prop = attr
+            if prop.startswith('_'):
+                prop = prop[1:]
+            if value is not None:
+                state[prop] = value
+
+        return state
 
     def __setstate__(self, state):
         """Set state when loading pickle."""
@@ -459,8 +473,18 @@ class Sensor(object):
 
     @battery_level.setter
     def battery_level(self, value):
-        """Set battery level as int."""
-        self._battery_level = int(value)
+        """Set valid battery level."""
+        self._battery_level = is_battery_level(value)
+
+    @property
+    def protocol_version(self):
+        """Return protocol version."""
+        return self._protocol_version
+
+    @protocol_version.setter
+    def protocol_version(self, value):
+        """Set valid protocol version."""
+        self._protocol_version = safe_is_version(value)
 
     def add_child_sensor(self, child_id, child_type, description=''):
         """Create and add a child sensor."""
@@ -664,7 +688,7 @@ class MySensorsJSONEncoder(json.JSONEncoder):
                 'type': obj.type,
                 'sketch_name': obj.sketch_name,
                 'sketch_version': obj.sketch_version,
-                '_battery_level': obj.battery_level,
+                'battery_level': obj.battery_level,
                 'protocol_version': obj.protocol_version,
             }
         if isinstance(obj, ChildSensor):
