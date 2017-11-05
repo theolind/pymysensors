@@ -74,10 +74,11 @@ class Gateway(object):
             # this is a presentation of the sensor platform
             sensorid = self.add_sensor(msg.node_id)
             if sensorid is None:
+                if msg.node_id in self.sensors:
+                    self.sensors[msg.node_id].reboot = False
                 return
             self.sensors[msg.node_id].type = msg.sub_type
             self.sensors[msg.node_id].protocol_version = msg.payload
-            self.sensors[msg.node_id].reboot = False
             self.alert(msg)
             return msg
         else:
