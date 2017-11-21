@@ -226,7 +226,8 @@ class Gateway(object):
     def _save_json(self, filename):
         """Save sensors to json file."""
         with open(filename, 'w') as file_handle:
-            json.dump(self.sensors, file_handle, cls=MySensorsJSONEncoder)
+            json.dump(self.sensors, file_handle, cls=MySensorsJSONEncoder
+                      indent=4)
             file_handle.flush()
             os.fsync(file_handle.fileno())
 
