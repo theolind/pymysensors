@@ -1,11 +1,26 @@
 # Change Log
 
+## [0.12.0](https://github.com/theolind/pymysensors/tree/0.12.0) (2018-01-14)
+[Full Changelog](https://github.com/theolind/pymysensors/compare/0.11.1...0.12.0)
+
+**Closed issues:**
+
+- Problem after pull \#102 [\#109](https://github.com/theolind/pymysensors/issues/109)
+
+**Merged pull requests:**
+
+- Upgrade lint and test requirements [\#114](https://github.com/theolind/pymysensors/pull/114) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Dump JSON file with indentation [\#113](https://github.com/theolind/pymysensors/pull/113) ([Mirodin](https://github.com/Mirodin))
+- Fix reboot not returning to False [\#111](https://github.com/theolind/pymysensors/pull/111) ([MartinHjelmare](https://github.com/MartinHjelmare))
+
 ## [0.11.1](https://github.com/theolind/pymysensors/tree/0.11.1) (2017-08-29)
 [Full Changelog](https://github.com/theolind/pymysensors/compare/0.11...0.11.1)
 
 **Merged pull requests:**
 
+- 0.11.1 [\#110](https://github.com/theolind/pymysensors/pull/110) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Fix protocol version null and enhance validation [\#108](https://github.com/theolind/pymysensors/pull/108) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Update release instructions [\#107](https://github.com/theolind/pymysensors/pull/107) ([MartinHjelmare](https://github.com/MartinHjelmare))
 
 ## [0.11](https://github.com/theolind/pymysensors/tree/0.11) (2017-08-21)
 [Full Changelog](https://github.com/theolind/pymysensors/compare/0.10...0.11)

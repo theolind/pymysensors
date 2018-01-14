@@ -466,6 +466,8 @@ class TestGateway(TestCase):
         sensor.reboot = True
         ret = self.gateway.logic('1;0;1;0;23;43\n')
         self.assertEqual(ret, '1;255;3;0;13;\n')
+        self.gateway.logic('1;255;0;0;17;1.4.1\n')
+        self.assertEqual(sensor.reboot, False)
 
     def test_set_child_value(self):
         """Test Gateway method set_child_value."""

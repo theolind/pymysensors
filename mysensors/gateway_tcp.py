@@ -50,8 +50,8 @@ class TCPGateway(Gateway, threading.Thread):
     def _handle_internal(self, msg):
         if msg.sub_type == self.const.Internal.I_VERSION:
             self.tcp_disconnect_timer = time.time()
-        else:
-            return super()._handle_internal(msg)
+            return None
+        return super()._handle_internal(msg)
 
     def connect(self):
         """Connect to the socket object, on host and port."""

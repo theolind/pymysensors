@@ -74,10 +74,11 @@ class Gateway(object):
             # this is a presentation of the sensor platform
             sensorid = self.add_sensor(msg.node_id)
             if sensorid is None:
-                return
+                if msg.node_id in self.sensors:
+                    self.sensors[msg.node_id].reboot = False
+                return None
             self.sensors[msg.node_id].type = msg.sub_type
             self.sensors[msg.node_id].protocol_version = msg.payload
-            self.sensors[msg.node_id].reboot = False
             self.alert(msg)
             return msg
         else:
@@ -85,18 +86,18 @@ class Gateway(object):
             if not self.is_sensor(msg.node_id):
                 _LOGGER.error('Node %s is unknown, will not add child %s.',
                               msg.node_id, msg.child_id)
-                return
+                return None
             child_id = self.sensors[msg.node_id].add_child_sensor(
                 msg.child_id, msg.sub_type, msg.payload)
             if child_id is None:
-                return
+                return None
             self.alert(msg)
             return msg
 
     def _handle_set(self, msg):
         """Process a set message."""
         if not self.is_sensor(msg.node_id, msg.child_id):
-            return
+            return None
         self.sensors[msg.node_id].set_child_value(
             msg.child_id, msg.sub_type, msg.payload)
         if self.sensors[msg.node_id].new_state:
@@ -109,6 +110,7 @@ class Gateway(object):
             return msg.modify(
                 child_id=SYSTEM_CHILD_ID, type=self.const.MessageType.internal,
                 ack=0, sub_type=self.const.Internal.I_REBOOT, payload='')
+        return None
 
     def _handle_req(self, msg):
         """Process a req message.
@@ -116,12 +118,14 @@ class Gateway(object):
         This will return the value if it exists. If no value exists,
         nothing is returned.
         """
-        if self.is_sensor(msg.node_id, msg.child_id):
-            value = self.sensors[msg.node_id].children[
-                msg.child_id].values.get(msg.sub_type)
-            if value is not None:
-                return msg.modify(
-                    type=self.const.MessageType.set, payload=value)
+        if not self.is_sensor(msg.node_id, msg.child_id):
+            return None
+        value = self.sensors[msg.node_id].children[
+            msg.child_id].values.get(msg.sub_type)
+        if value is not None:
+            return msg.modify(
+                type=self.const.MessageType.set, payload=value)
+        return None
 
     def _handle_heartbeat(self, msg):
         """Process a heartbeat message."""
@@ -151,10 +155,8 @@ class Gateway(object):
         elif msg.sub_type == self.const.Internal.I_TIME:
             return msg.modify(ack=0, payload=calendar.timegm(time.localtime()))
         actions = self.const.HANDLE_INTERNAL.get(msg.sub_type)
-        if not actions:
-            return
         if actions.get('is_sensor') and not self.is_sensor(msg.node_id):
-            return
+            return None
         if actions.get('setattr'):
             setattr(self.sensors[msg.node_id], actions['setattr'], msg.payload)
         if actions.get('fun'):
@@ -168,15 +170,17 @@ class Gateway(object):
                                              msg.payload)
         if actions.get('msg'):
             return msg.modify(**actions['msg'])
+        return None
 
     def _handle_stream(self, msg):
         """Process a stream type message."""
         if not self.is_sensor(msg.node_id):
-            return
+            return None
         if msg.sub_type == self.const.Stream.ST_FIRMWARE_CONFIG_REQUEST:
             return self.ota.respond_fw_config(msg)
         elif msg.sub_type == self.const.Stream.ST_FIRMWARE_REQUEST:
             return self.ota.respond_fw(msg)
+        return None
 
     def send(self, message):
         """Implement this method in a child class."""
@@ -194,7 +198,7 @@ class Gateway(object):
             msg.validate(self.protocol_version)
         except (ValueError, vol.Invalid) as exc:
             _LOGGER.warning('Not a valid message: %s', exc)
-            return
+            return None
 
         if msg.type == self.const.MessageType.presentation:
             ret = self._handle_presentation(msg)
@@ -225,7 +229,8 @@ class Gateway(object):
     def _save_json(self, filename):
         """Save sensors to json file."""
         with open(filename, 'w') as file_handle:
-            json.dump(self.sensors, file_handle, cls=MySensorsJSONEncoder)
+            json.dump(self.sensors, file_handle, cls=MySensorsJSONEncoder,
+                      indent=4)
             file_handle.flush()
             os.fsync(file_handle.fileno())
 
@@ -321,6 +326,7 @@ class Gateway(object):
             next_id = 1
         if next_id <= self.const.MAX_NODE_ID:
             return next_id
+        return None
 
     def add_sensor(self, sensorid=None):
         """Add a sensor to the gateway."""
@@ -329,6 +335,7 @@ class Gateway(object):
         if sensorid is not None and sensorid not in self.sensors:
             self.sensors[sensorid] = Sensor(sensorid)
             return sensorid
+        return None
 
     def is_sensor(self, sensorid, child_id=None):
         """Return True if a sensor and its child exist."""
@@ -353,12 +360,13 @@ class Gateway(object):
     def _route_message(self, msg):
         if not isinstance(msg, Message) or \
                 msg.type == self.const.MessageType.presentation:
-            return
+            return None
         if (msg.node_id not in self.sensors or
                 msg.type == self.const.MessageType.stream or
                 not self.sensors[msg.node_id].new_state):
             return msg
         self.sensors[msg.node_id].queue.append(msg.encode())
+        return None
 
     def handle_queue(self, queue=None):
         """Handle queue.
@@ -368,17 +376,18 @@ class Gateway(object):
         """
         if queue is None:
             queue = self.queue
-        if not queue.empty():
-            start = timer()
-            func, args, kwargs = queue.get()
-            reply = func(*args, **kwargs)
-            queue.task_done()
-            end = timer()
-            if end - start > 0.1:
-                _LOGGER.debug(
-                    'Handle queue with call %s(%s, %s) took %.3f seconds',
-                    func, args, kwargs, end - start)
-            return reply
+        if queue.empty():
+            return None
+        start = timer()
+        func, args, kwargs = queue.get()
+        reply = func(*args, **kwargs)
+        queue.task_done()
+        end = timer()
+        if end - start > 0.1:
+            _LOGGER.debug(
+                'Handle queue with call %s(%s, %s) took %.3f seconds',
+                func, args, kwargs, end - start)
+        return reply
 
     def fill_queue(self, func, args=None, kwargs=None, queue=None):
         """Put a function in a queue.
@@ -492,7 +501,7 @@ class Sensor(object):
             _LOGGER.warning(
                 'child_id %s already exists in children of node %s, '
                 'cannot add child', child_id, self.sensor_id)
-            return
+            return None
         self.children[child_id] = ChildSensor(
             child_id, child_type, description)
         return child_id
@@ -501,7 +510,7 @@ class Sensor(object):
         """Set a child sensor's value."""
         children = kwargs.get('children', self.children)
         if not isinstance(children, dict) or child_id not in children:
-            return
+            return None
         msg_type = kwargs.get('msg_type', 1)
         ack = kwargs.get('ack', 0)
         msg = Message().modify(
@@ -513,13 +522,13 @@ class Sensor(object):
                 'Not a valid message: node %s, child %s, type %s, ack %s, '
                 'sub_type %s, payload %s',
                 self.sensor_id, child_id, msg_type, ack, value_type, value)
-            return
+            return None
         try:
             msg = Message(msg_string)
             msg.validate(self.protocol_version)
         except (ValueError, AttributeError, vol.Invalid) as exc:
             _LOGGER.error('Not a valid message: %s', exc)
-            return
+            return None
         child = children[msg.child_id]
         child.values[msg.sub_type] = msg.payload
         return msg_string
