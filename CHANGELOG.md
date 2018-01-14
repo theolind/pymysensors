@@ -1,10 +1,18 @@
 # Change Log
 
-## [0.11.0](https://github.com/theolind/pymysensors/tree/0.11.0) (2017-08-21)
-[Full Changelog](https://github.com/theolind/pymysensors/compare/0.10...0.11.0)
+## [0.11.1](https://github.com/theolind/pymysensors/tree/0.11.1) (2017-08-29)
+[Full Changelog](https://github.com/theolind/pymysensors/compare/0.11...0.11.1)
 
 **Merged pull requests:**
 
+- Fix protocol version null and enhance validation [\#108](https://github.com/theolind/pymysensors/pull/108) ([MartinHjelmare](https://github.com/MartinHjelmare))
+
+## [0.11](https://github.com/theolind/pymysensors/tree/0.11) (2017-08-21)
+[Full Changelog](https://github.com/theolind/pymysensors/compare/0.10...0.11)
+
+**Merged pull requests:**
+
+- 0.11 [\#106](https://github.com/theolind/pymysensors/pull/106) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Add debug timer logging if handle queue is slow [\#105](https://github.com/theolind/pymysensors/pull/105) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Update gen\_changelog and release procedure [\#104](https://github.com/theolind/pymysensors/pull/104) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Update type schema and add message tests [\#103](https://github.com/theolind/pymysensors/pull/103) ([MartinHjelmare](https://github.com/MartinHjelmare))
