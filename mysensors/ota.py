@@ -45,7 +45,7 @@ def check_fw(path):
         bin_string = intel_hex.tobinstr()
     except (IntelHexError, TypeError, ValueError) as exception:
         _LOGGER.error(exception)
-        return
+        return None
     pads = len(bin_string) % 128  # 128 bytes per page for atmega328
     for _ in range(128 - pads):  # pad up to even 128 bytes
         bin_string += b'\xff'
@@ -106,7 +106,7 @@ class OTAFirmware(object):
         fw_type, fw_ver, fware = self._get_fw(
             msg, (self.unstarted, self.started), req_fw_type, req_fw_ver)
         if fware is None:
-            return
+            return None
         blk_data = fware['data'][
             req_blk * FIRMWARE_BLOCK_SIZE:
             req_blk * FIRMWARE_BLOCK_SIZE + FIRMWARE_BLOCK_SIZE]
@@ -130,7 +130,7 @@ class OTAFirmware(object):
         fw_type, fw_ver, fware = self._get_fw(
             msg, (self.requested, self.unstarted))
         if fware is None:
-            return
+            return None
         if fw_type != req_fw_type:
             _LOGGER.warning(
                 'Firmware type %s of update is not identical to existing '

@@ -68,7 +68,7 @@ class MQTTGateway(Gateway, threading.Thread):
         prefix_end_idx = topic.find('/'.join(not_prefix)) - 1
         prefix = topic[:prefix_end_idx]
         if prefix != self._in_prefix:
-            return
+            return None
         if qos and qos > 0:
             ack = '1'
         else:
