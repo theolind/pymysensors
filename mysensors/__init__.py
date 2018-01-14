@@ -154,7 +154,7 @@ class Gateway(object):
             return msg.modify(ack=0, payload='M' if self.metric else 'I')
         elif msg.sub_type == self.const.Internal.I_TIME:
             return msg.modify(ack=0, payload=calendar.timegm(time.localtime()))
-        actions = self.const.HANDLE_INTERNAL.get(msg.sub_type)
+        actions = self.const.HANDLE_INTERNAL.get(msg.sub_type, {})
         if actions.get('is_sensor') and not self.is_sensor(msg.node_id):
             return None
         if actions.get('setattr'):

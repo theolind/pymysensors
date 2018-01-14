@@ -4,7 +4,7 @@ from unittest import TestCase
 import pytest
 import voluptuous as vol
 
-from mysensors import get_const, Message
+from mysensors import Gateway, Message, get_const
 from mysensors.const_14 import Internal, MessageType
 
 PRES_FIXTURES_14 = {
@@ -124,12 +124,12 @@ SET_FIXTURES_20.update({
 
 INTERNAL_FIXTURES_14 = {
     'I_BATTERY_LEVEL': '99',
-    'I_TIME': '1500000000',
+    'I_TIME': {'payload': '1500000000', 'return': True},
     'I_VERSION': '1.4.1',
-    'I_ID_REQUEST': '',
+    'I_ID_REQUEST': {'payload': '', 'return': True},
     'I_ID_RESPONSE': '254',
     'I_INCLUSION_MODE': '1',
-    'I_CONFIG': 'M',
+    'I_CONFIG': {'payload': 'M', 'return': True},
     'I_FIND_PARENT': '',
     'I_FIND_PARENT_RESPONSE': '254',
     'I_LOG_MESSAGE': 'test log message',
@@ -149,6 +149,8 @@ INTERNAL_FIXTURES_15.update({
 
 INTERNAL_FIXTURES_20 = dict(INTERNAL_FIXTURES_15)
 INTERNAL_FIXTURES_20.update({
+    'I_GATEWAY_READY': {
+        'payload': 'Gateway startup complete.', 'return': True},
     'I_HEARTBEAT': '',
     'I_PRESENTATION': '',
     'I_DISCOVER': '',
@@ -161,6 +163,12 @@ INTERNAL_FIXTURES_20.update({
     'I_REGISTRATION_RESPONSE': '1',
     'I_DEBUG': 'test debug',
 })
+
+
+def get_gateway(protocol_version):
+    """Return a gateway."""
+    gateway = Gateway(protocol_version=protocol_version)
+    return gateway
 
 
 class TestMessage(TestCase):
@@ -211,6 +219,7 @@ def test_validate_pres():
         ('1.4', PRES_FIXTURES_14), ('1.5', PRES_FIXTURES_15),
         ('2.0', PRES_FIXTURES_20)]
     for protocol_version, fixture in versions:
+        gateway = get_gateway(protocol_version)
         const = get_const(protocol_version)
         for name, payload in fixture.items():
             sub_type = const.Presentation[name]
@@ -219,6 +228,8 @@ def test_validate_pres():
             assert valid == {
                 'node_id': 1, 'child_id': 0, 'type': 0, 'ack': 0,
                 'sub_type': sub_type, 'payload': payload}
+            ret = gateway.logic('1;0;0;0;{};{}\n'.format(sub_type, payload))
+            assert ret is None
 
 
 def test_validate_bad_pres():
@@ -241,6 +252,7 @@ def test_validate_set():
         ('1.4', SET_FIXTURES_14), ('1.5', SET_FIXTURES_15),
         ('2.0', SET_FIXTURES_20)]
     for protocol_version, fixture in versions:
+        gateway = get_gateway(protocol_version)
         const = get_const(protocol_version)
         for name, payload in fixture.items():
             sub_type = const.SetReq[name]
@@ -249,6 +261,8 @@ def test_validate_set():
             assert valid == {
                 'node_id': 1, 'child_id': 0, 'type': 1, 'ack': 0,
                 'sub_type': sub_type, 'payload': payload}
+            ret = gateway.logic('1;0;1;0;{};{}\n'.format(sub_type, payload))
+            assert ret is None
 
 
 def test_validate_internal():
@@ -257,11 +271,25 @@ def test_validate_internal():
         ('1.4', INTERNAL_FIXTURES_14), ('1.5', INTERNAL_FIXTURES_15),
         ('2.0', INTERNAL_FIXTURES_20)]
     for protocol_version, fixture in versions:
+        gateway = get_gateway(protocol_version)
         const = get_const(protocol_version)
         for name, payload in fixture.items():
+            if isinstance(payload, dict):
+                _payload = payload.get('payload')
+                return_value = payload.get('return')
+            else:
+                _payload = payload
+                return_value = None
             sub_type = const.Internal[name]
-            msg = Message('1;255;3;0;{};{}\n'.format(sub_type, payload))
+            msg = Message('1;255;3;0;{};{}\n'.format(sub_type, _payload))
             valid = msg.validate(protocol_version)
             assert valid == {
                 'node_id': 1, 'child_id': 255, 'type': 3, 'ack': 0,
-                'sub_type': sub_type, 'payload': payload}
+                'sub_type': sub_type, 'payload': _payload}
+            ret = gateway.logic('1;255;3;0;{};{}\n'.format(sub_type, _payload))
+            if return_value is None:
+                assert ret is None, 'Version: {} Message: {}'.format(
+                    protocol_version, msg)
+            else:
+                assert ret, 'Version: {} Message: {}'.format(
+                    protocol_version, msg)
