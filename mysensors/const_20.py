@@ -246,6 +246,11 @@ class Internal(IntEnum):
     I_REGISTRATION_REQUEST = 26  # Register request to GW
     I_REGISTRATION_RESPONSE = 27  # Register response from GW
     I_DEBUG = 28  # Debug message
+    I_SIGNAL_REPORT_REQUEST     = 29  # Device signal strength request
+    I_SIGNAL_REPORT_REVERSE     = 30  # Internal
+    I_SIGNAL_REPORT_RESPONSE	= 31  # Device signal strength response (RSSI)
+    I_PRE_SLEEP_NOTIFICATION	= 32  # Message sent before node is going to sleep
+    I_POST_SLEEP_NOTIFICATION	= 33  # Message sent after node woke up (if enabled)
 
 
 class Stream(IntEnum):
