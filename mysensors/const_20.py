@@ -250,7 +250,7 @@ class Internal(IntEnum):
     I_SIGNAL_REPORT_REVERSE = 30  # Internal
     I_SIGNAL_REPORT_RESPONSE = 31  # Device signal strength response (RSSI)
     I_PRE_SLEEP_NOTIFICATION = 32  # Message sent before node is going to sleep
-    I_POST_SLEEP_NOTIFICATION = 33  # Message sent after node woke up (if enabled)
+    I_POST_SLEEP_NOTIFICATION = 33  # Message sent after node woke up
 
 
 class Stream(IntEnum):
