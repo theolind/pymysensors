@@ -345,10 +345,14 @@ VALID_INTERNAL.update({
     Internal.I_REGISTRATION_RESPONSE: str,
     Internal.I_DEBUG: str,
     Internal.I_SIGNAL_REPORT_REQUEST: str,
-    Internal.I_SIGNAL_REPORT_REVERSE: vol.Coerce(int),
-    Internal.I_SIGNAL_REPORT_RESPONSE: vol.Coerce(int),
-    Internal.I_PRE_SLEEP_NOTIFICATION: vol.Coerce(int),
-    Internal.I_POST_SLEEP_NOTIFICATION: vol.Coerce(int),
+    Internal.I_SIGNAL_REPORT_REVERSE: vol.All(
+        vol.Coerce(int), vol.Coerce(str)),
+    Internal.I_SIGNAL_REPORT_RESPONSE: vol.All(
+        vol.Coerce(int), vol.Coerce(str)),
+    Internal.I_PRE_SLEEP_NOTIFICATION: vol.All(
+        vol.Coerce(int), vol.Coerce(str)),
+    Internal.I_POST_SLEEP_NOTIFICATION: vol.All(
+        vol.Coerce(int), vol.Coerce(str)),
 })
 
 VALID_PAYLOADS = {
