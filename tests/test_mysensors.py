@@ -708,8 +708,8 @@ class TestGateway20(TestGateway):
         # nothing has changed
         self.assertEqual(ret, None)
 
-    def test_heartbeat_from_unknown(self):
-        """Test heartbeat message from unknown node."""
+    def test_smartsleep_from_unknown(self):
+        """Test smartsleep message from unknown node."""
         self.gateway.logic('1;255;3;0;22;\n')
         ret = self.gateway.handle_queue()
         self.assertEqual(ret, '1;255;3;0;19;\n')
@@ -783,7 +783,7 @@ class TestGateway21(TestGateway20):
 
 
 class TestGateway22(TestGateway21):
-    """Use protocol_version 2.1."""
+    """Use protocol_version 2.2."""
 
     def setUp(self):
         """Set up gateway."""
@@ -797,7 +797,7 @@ class TestGateway22(TestGateway21):
         self.gateway.logic('1;0;1;0;23;43\n')
         ret = self.gateway.handle_queue()
         self.assertEqual(ret, None)
-        # heartbeat
+        # pre sleep message
         self.gateway.logic('1;255;3;0;32;500\n')
         ret = self.gateway.handle_queue()
         # nothing has changed
@@ -806,9 +806,9 @@ class TestGateway22(TestGateway21):
         self.gateway.set_child_value(
             1, 0, self.gateway.const.SetReq.V_LIGHT_LEVEL, '57')
         ret = self.gateway.handle_queue()
-        # no heartbeat
+        # no pre sleep message
         self.assertEqual(ret, None)
-        # heartbeat comes in
+        # pre sleep message comes in
         self.gateway.logic('1;255;3;0;32;500\n')
         ret = self.gateway.handle_queue()
         # instance responds with new values
@@ -816,21 +816,21 @@ class TestGateway22(TestGateway21):
         # request from node
         self.gateway.logic('1;0;2;0;23;\n')
         ret = self.gateway.handle_queue()
-        # no heartbeat
+        # no pre sleep message
         self.assertEqual(ret, None)
-        # heartbeat
+        # pre sleep message
         self.gateway.logic('1;255;3;0;32;500\n')
         ret = self.gateway.handle_queue()
         # instance responds to request with current value
         self.assertEqual(ret, '1;0;1;0;23;57\n')
-        # heartbeat
+        # pre sleep message
         self.gateway.logic('1;255;3;0;32;500\n')
         ret = self.gateway.handle_queue()
         # nothing has changed
         self.assertEqual(ret, None)
 
-    def test_heartbeat_from_unknown(self):
-        """Test heartbeat message from unknown node."""
+    def test_smartsleep_from_unknown(self):
+        """Test smartsleep message from unknown node."""
         self.gateway.logic('1;255;3;0;32;500\n')
         ret = self.gateway.handle_queue()
         self.assertEqual(ret, '1;255;3;0;19;\n')

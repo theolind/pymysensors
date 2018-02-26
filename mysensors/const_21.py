@@ -1,4 +1,4 @@
-"""MySensors constants for version 1.5 of MySensors."""
+"""MySensors constants for version 2.1 of MySensors."""
 from enum import IntEnum
 
 # pylint: disable=unused-import
