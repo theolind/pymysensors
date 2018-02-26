@@ -31,6 +31,10 @@ def get_const(protocol_version):
     version = protocol_version
     if parse_ver('1.5') <= parse_ver(version) < parse_ver('2.0'):
         path = 'mysensors.const_15'
+    elif parse_ver(version) >= parse_ver('2.2'):
+        path = 'mysensors.const_22'
+    elif parse_ver(version) >= parse_ver('2.1'):
+        path = 'mysensors.const_21'
     elif parse_ver(version) >= parse_ver('2.0'):
         path = 'mysensors.const_20'
     else:
@@ -127,8 +131,8 @@ class Gateway(object):
                 type=self.const.MessageType.set, payload=value)
         return None
 
-    def _handle_heartbeat(self, msg):
-        """Process a heartbeat message."""
+    def _handle_smartsleep(self, msg):
+        """Process a message before going back to smartsleep."""
         if not self.is_sensor(msg.node_id):
             return
         while self.sensors[msg.node_id].queue:
@@ -411,8 +415,8 @@ class Gateway(object):
         thread has sent all previously queued commands to the FIFO queue.
         If the sensor attribute new_state returns True, the command will not be
         put on the queue, but the internal sensor state will be updated. When a
-        heartbeat response is received, the internal state will be pushed to
-        the sensor, via _handle_heartbeat method.
+        smartsleep message is received, the internal state will be pushed to
+        the sensor, via _handle_smartsleep method.
         """
         if not self.is_sensor(sensor_id, child_id):
             return
