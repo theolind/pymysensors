@@ -668,8 +668,8 @@ class TestGateway20(TestGateway):
         ret = self.gateway.handle_queue()
         self.assertEqual(ret, '1;255;3;0;19;\n')
 
-    def test_heartbeat(self):
-        """Test heartbeat message."""
+    def test_smartsleep(self):
+        """Test smartsleep feature."""
         sensor = self._add_sensor(1)
         sensor.children[0] = ChildSensor(
             0, self.gateway.const.Presentation.S_LIGHT_LEVEL)
@@ -708,8 +708,8 @@ class TestGateway20(TestGateway):
         # nothing has changed
         self.assertEqual(ret, None)
 
-    def test_heartbeat_from_unknown(self):
-        """Test heartbeat message from unknown node."""
+    def test_smartsleep_from_unknown(self):
+        """Test smartsleep message from unknown node."""
         self.gateway.logic('1;255;3;0;22;\n')
         ret = self.gateway.handle_queue()
         self.assertEqual(ret, '1;255;3;0;19;\n')
@@ -772,6 +772,81 @@ class TestGateway20(TestGateway):
         self.assertEqual(
             sensor.children[0].values[self.gateway.const.SetReq.V_POSITION],
             '10.0,10.0,10.0')
+
+
+class TestGateway21(TestGateway20):
+    """Use protocol_version 2.1."""
+
+    def setUp(self):
+        """Set up gateway."""
+        self.gateway = Gateway(protocol_version='2.1')
+
+
+class TestGateway22(TestGateway21):
+    """Use protocol_version 2.2."""
+
+    def setUp(self):
+        """Set up gateway."""
+        self.gateway = Gateway(protocol_version='2.2')
+
+    def test_smartsleep(self):
+        """Test smartsleep feature."""
+        sensor = self._add_sensor(1)
+        sensor.children[0] = ChildSensor(
+            0, self.gateway.const.Presentation.S_LIGHT_LEVEL)
+        self.gateway.logic('1;0;1;0;23;43\n')
+        ret = self.gateway.handle_queue()
+        self.assertEqual(ret, None)
+        # pre sleep message
+        self.gateway.logic('1;255;3;0;32;500\n')
+        ret = self.gateway.handle_queue()
+        # nothing has changed
+        self.assertEqual(ret, None)
+        # change from controller side
+        self.gateway.set_child_value(
+            1, 0, self.gateway.const.SetReq.V_LIGHT_LEVEL, '57')
+        ret = self.gateway.handle_queue()
+        # no pre sleep message
+        self.assertEqual(ret, None)
+        # pre sleep message comes in
+        self.gateway.logic('1;255;3;0;32;500\n')
+        ret = self.gateway.handle_queue()
+        # instance responds with new values
+        self.assertEqual(ret, '1;0;1;0;23;57\n')
+        # request from node
+        self.gateway.logic('1;0;2;0;23;\n')
+        ret = self.gateway.handle_queue()
+        # no pre sleep message
+        self.assertEqual(ret, None)
+        # pre sleep message
+        self.gateway.logic('1;255;3;0;32;500\n')
+        ret = self.gateway.handle_queue()
+        # instance responds to request with current value
+        self.assertEqual(ret, '1;0;1;0;23;57\n')
+        # pre sleep message
+        self.gateway.logic('1;255;3;0;32;500\n')
+        ret = self.gateway.handle_queue()
+        # nothing has changed
+        self.assertEqual(ret, None)
+
+    def test_smartsleep_from_unknown(self):
+        """Test smartsleep message from unknown node."""
+        self.gateway.logic('1;255;3;0;32;500\n')
+        ret = self.gateway.handle_queue()
+        self.assertEqual(ret, '1;255;3;0;19;\n')
+
+    def test_set_with_new_state(self):
+        """Test set message with populated new_state."""
+        sensor = self._add_sensor(1)
+        sensor.children[0] = ChildSensor(
+            0, self.gateway.const.Presentation.S_LIGHT_LEVEL)
+        self.gateway.logic('1;0;1;0;23;43\n')
+        self.gateway.logic('1;255;3;0;32;500\n')
+        self.gateway.logic('1;0;1;0;23;57\n')
+        self.assertEqual(
+            sensor.children[0].values[self.gateway.const.SetReq.V_LIGHT_LEVEL],
+            sensor.new_state[0].values[
+                self.gateway.const.SetReq.V_LIGHT_LEVEL])
 
 
 def test_gateway_bad_protocol():
