@@ -50,6 +50,7 @@ class SerialGateway(Gateway, threading.Thread):
         except serial.SerialException:
             _LOGGER.error('Unable to connect to %s', self.port)
             return False
+        self._schedule_save_sensors()
         return True
 
     def disconnect(self):
@@ -65,6 +66,8 @@ class SerialGateway(Gateway, threading.Thread):
         """Stop the background thread."""
         _LOGGER.info('Stopping thread')
         self._stop_event.set()
+        if self.scheduled_save is not None:
+            self.scheduled_save.cancel()
 
     def run(self):
         """Background thread that reads messages from the gateway."""
@@ -99,6 +102,8 @@ class SerialGateway(Gateway, threading.Thread):
                 continue
             self.fill_queue(self.logic, (string,))
         self.disconnect()  # Disconnect after stop event is set
+        if self.persistence:
+            self._save_sensors()
 
     def send(self, message):
         """Write a Message to the gateway."""

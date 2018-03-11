@@ -65,6 +65,7 @@ class TCPGateway(Gateway, threading.Thread):
             self.sock = socket.create_connection(
                 self.server_address, self.reconnect_timeout)
             _LOGGER.info('Connected to %s', self.server_address)
+            self._schedule_save_sensors()
             return True
 
         except TimeoutError:
@@ -94,6 +95,8 @@ class TCPGateway(Gateway, threading.Thread):
         """Stop the background thread."""
         _LOGGER.info('Stopping thread')
         self._stop_event.set()
+        if self.scheduled_save is not None:
+            self.scheduled_save.cancel()
 
     def _check_socket(self, sock=None, timeout=None):
         """Check if socket is readable/writable."""
@@ -192,3 +195,5 @@ class TCPGateway(Gateway, threading.Thread):
                     self.fill_queue(self.logic, (line,))
             self._check_connection()
         self.disconnect()
+        if self.persistence:
+            self._save_sensors()

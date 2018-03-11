@@ -62,6 +62,7 @@ class Gateway(object):
         self.persistence = persistence  # if true - save sensors to disk
         self.persistence_file = persistence_file  # path to persistence file
         self.persistence_bak = '{}.bak'.format(self.persistence_file)
+        self.scheduled_save = None
         self.protocol_version = safe_is_version(protocol_version)
         self.const = get_const(self.protocol_version)
         self.ota = OTAFirmware(self.sensors, self.const)
@@ -249,19 +250,30 @@ class Gateway(object):
         fname = os.path.realpath(self.persistence_file)
         exists = os.path.isfile(fname)
         dirname = os.path.dirname(fname)
-        if exists and os.access(fname, os.W_OK) and \
-           os.access(dirname, os.W_OK) or \
-           not exists and os.access(dirname, os.W_OK):
-            split_fname = os.path.splitext(fname)
-            tmp_fname = '{}.tmp{}'.format(split_fname[0], split_fname[1])
-            self._perform_file_action(tmp_fname, 'save')
-            if exists:
-                os.rename(fname, self.persistence_bak)
-            os.rename(tmp_fname, fname)
-            if exists:
-                os.remove(self.persistence_bak)
-        else:
+        if (not os.access(dirname, os.W_OK) or exists and
+                not os.access(fname, os.W_OK)):
             _LOGGER.error('Permission denied when writing to %s', fname)
+            return
+        split_fname = os.path.splitext(fname)
+        tmp_fname = '{}.tmp{}'.format(split_fname[0], split_fname[1])
+        self._perform_file_action(tmp_fname, 'save')
+        if exists:
+            os.rename(fname, self.persistence_bak)
+        os.rename(tmp_fname, fname)
+        if exists:
+            os.remove(self.persistence_bak)
+
+    def _schedule_save_sensors(self):
+        """Schedule a call to save sensors every 10 seconds.
+
+        Call this method once when the connection is established.
+        """
+        if not self.persistence:
+            return
+        self._save_sensors()
+        self.scheduled_save = threading.Timer(
+            10.0, self._schedule_save_sensors)
+        self.scheduled_save.start()
 
     def _load_sensors(self, path=None):
         """Load sensors from file."""
@@ -318,9 +330,6 @@ class Gateway(object):
                 self.event_callback(msg)
             except Exception as exception:  # pylint: disable=broad-except
                 _LOGGER.exception(exception)
-
-        if self.persistence:
-            self._save_sensors()
 
     def _get_next_id(self):
         """Return the next available sensor id."""
