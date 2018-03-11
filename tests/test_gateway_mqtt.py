@@ -105,8 +105,10 @@ class TestMQTTGateway(TestCase):
             'ERROR:mysensors.gateway_mqtt:Subscribe to /1/1/1/+/+ failed: '
             'No topic specified, or incorrect topic type.')
 
-    def test_start_stop_gateway(self):
+    @mock.patch('mysensors.Gateway._schedule_save_sensors')
+    def test_start_stop_gateway(self, mock_schedule_save):
         """Test start and stop of MQTT gateway."""
+        self.gateway.scheduled_save = mock.MagicMock()
         self.assertFalse(self.gateway.is_alive())
         sensor = self._add_sensor(1)
         sensor.children[1] = ChildSensor(
@@ -117,6 +119,7 @@ class TestMQTTGateway(TestCase):
         self.gateway.recv('/1/1/2/0/1', '', 0)
         self.gateway.start()
         self.assertTrue(self.gateway.is_alive())
+        assert mock_schedule_save.call_count == 1
         calls = [
             mock.call('/+/+/0/+/+', self.gateway.recv, 0),
             mock.call('/+/+/3/+/+', self.gateway.recv, 0)]
@@ -129,6 +132,7 @@ class TestMQTTGateway(TestCase):
         self.gateway.stop()
         self.gateway.join(timeout=0.5)
         self.assertFalse(self.gateway.is_alive())
+        assert self.gateway.scheduled_save.cancel.call_count == 1
 
     def test_mqtt_load_persistence(self):
         """Test load persistence file for MQTTGateway."""

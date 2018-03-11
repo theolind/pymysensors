@@ -346,7 +346,7 @@ class TestGateway(TestCase):
     def test_persistence_at_init(self, mock_load_sensors):
         """Test call to load persistence_file at init of Gateway."""
         self.gateway = Gateway(persistence=True)
-        assert mock_load_sensors.called
+        assert mock_load_sensors.call_count == 1
 
     def _save_json_upgrade(self, filename):
         """Save sensors to json file.
@@ -418,6 +418,30 @@ class TestGateway(TestCase):
         # pylint: disable=no-value-for-parameter
         self._test_persistence_upgrade('file.json')
 
+    @mock.patch('mysensors.threading.Timer')
+    @mock.patch('mysensors.Gateway._save_sensors')
+    def test_schedule_save_sensors(self, mock_save, mock_timer_class):
+        """Test schedule save sensors."""
+        mock_timer = mock.MagicMock()
+        mock_timer_class.return_value = mock_timer
+        self.gateway.persistence = True
+        # pylint: disable=protected-access
+        self.gateway._schedule_save_sensors()
+        assert mock_save.call_count == 1
+        assert mock_timer.start.call_count == 1
+
+    @mock.patch('mysensors.threading.Timer')
+    @mock.patch('mysensors.Gateway._save_sensors')
+    def test_no_schedule_save_sensors(self, mock_save, mock_timer_class):
+        """Test schedule save sensors."""
+        mock_timer = mock.MagicMock()
+        mock_timer_class.return_value = mock_timer
+        self.gateway.persistence = False
+        # pylint: disable=protected-access
+        self.gateway._schedule_save_sensors()
+        assert mock_save.call_count == 0
+        assert mock_timer.start.call_count == 0
+
     def _callback(self, message):
         self.gateway.test_callback_message = message
 
@@ -449,7 +473,7 @@ class TestGateway(TestCase):
                 msg = Message()
                 msg.node_id = 1
                 self.gateway.alert(msg)
-            assert mock_callback.called
+            assert mock_callback.call_count == 1
             self.assertEqual(
                 # only check first line of error log
                 test_handle.output[0].split('\n', 1)[0],
@@ -749,7 +773,7 @@ class TestGateway20(TestGateway):
         # Test sensor 1 known.
         self._add_sensor(1)
         self.gateway.logic('1;255;3;0;21;0')
-        assert mock_is_sensor.called
+        assert mock_is_sensor.call_count == 1
 
     def test_set_position(self):
         """Test set of V_POSITION."""
