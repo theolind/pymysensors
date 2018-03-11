@@ -152,10 +152,13 @@ class MQTTGateway(Gateway, threading.Thread):
         """Stop the background thread."""
         _LOGGER.info('Stopping thread')
         self._stop_event.set()
+        if self.scheduled_save is not None:
+            self.scheduled_save.cancel()
 
     def run(self):
         """Background thread that sends messages to the gateway via MQTT."""
         self._init_topics()
+        self._schedule_save_sensors()
         while not self._stop_event.is_set():
             response = self.handle_queue()
             if response is not None:
@@ -163,3 +166,4 @@ class MQTTGateway(Gateway, threading.Thread):
             if not self.queue.empty():
                 continue
             time.sleep(0.02)  # short sleep to avoid burning 100% cpu
+        self._save_sensors()
