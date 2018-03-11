@@ -421,11 +421,9 @@ class TestGateway(TestCase):
     def _callback(self, message):
         self.gateway.test_callback_message = message
 
-    @mock.patch('mysensors.mysensors.Gateway._save_sensors')
-    def test_callback(self, mock_save_sensors):
+    def test_callback(self):
         """Test gateway callback function."""
         self.gateway.event_callback = self._callback
-        self.gateway.persistence = True
         self.gateway.test_callback_message = None
         sensor = self._add_sensor(1)
         sensor.children[0] = ChildSensor(
@@ -440,7 +438,6 @@ class TestGateway(TestCase):
         self.assertEqual(0, self.gateway.test_callback_message.ack)
         self.assertEqual(23, self.gateway.test_callback_message.sub_type)
         self.assertEqual('43', self.gateway.test_callback_message.payload)
-        assert mock_save_sensors.called
 
     def test_callback_exception(self):
         """Test gateway callback with exception."""
