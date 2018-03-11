@@ -249,19 +249,18 @@ class Gateway(object):
         fname = os.path.realpath(self.persistence_file)
         exists = os.path.isfile(fname)
         dirname = os.path.dirname(fname)
-        if exists and os.access(fname, os.W_OK) and \
-           os.access(dirname, os.W_OK) or \
-           not exists and os.access(dirname, os.W_OK):
-            split_fname = os.path.splitext(fname)
-            tmp_fname = '{}.tmp{}'.format(split_fname[0], split_fname[1])
-            self._perform_file_action(tmp_fname, 'save')
-            if exists:
-                os.rename(fname, self.persistence_bak)
-            os.rename(tmp_fname, fname)
-            if exists:
-                os.remove(self.persistence_bak)
-        else:
+        if (not os.access(dirname, os.W_OK) or exists and
+                not os.access(fname, os.W_OK)):
             _LOGGER.error('Permission denied when writing to %s', fname)
+            return
+        split_fname = os.path.splitext(fname)
+        tmp_fname = '{}.tmp{}'.format(split_fname[0], split_fname[1])
+        self._perform_file_action(tmp_fname, 'save')
+        if exists:
+            os.rename(fname, self.persistence_bak)
+        os.rename(tmp_fname, fname)
+        if exists:
+            os.remove(self.persistence_bak)
 
     def _load_sensors(self, path=None):
         """Load sensors from file."""
