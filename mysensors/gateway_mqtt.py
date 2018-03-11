@@ -166,4 +166,5 @@ class MQTTGateway(Gateway, threading.Thread):
             if not self.queue.empty():
                 continue
             time.sleep(0.02)  # short sleep to avoid burning 100% cpu
-        self._save_sensors()
+        if self.persistence:
+            self._save_sensors()

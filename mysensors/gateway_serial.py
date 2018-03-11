@@ -102,7 +102,8 @@ class SerialGateway(Gateway, threading.Thread):
                 continue
             self.fill_queue(self.logic, (string,))
         self.disconnect()  # Disconnect after stop event is set
-        self._save_sensors()
+        if self.persistence:
+            self._save_sensors()
 
     def send(self, message):
         """Write a Message to the gateway."""

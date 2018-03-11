@@ -195,4 +195,5 @@ class TCPGateway(Gateway, threading.Thread):
                     self.fill_queue(self.logic, (line,))
             self._check_connection()
         self.disconnect()
-        self._save_sensors()
+        if self.persistence:
+            self._save_sensors()
