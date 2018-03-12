@@ -8,8 +8,10 @@ from unittest import TestCase, main, mock
 
 import voluptuous as vol
 
-from mysensors import (ChildSensor, Gateway, Message, MySensorsJSONEncoder,
-                       Sensor)
+from mysensors import Gateway
+from mysensors.message import Message
+from mysensors.persistence import MySensorsJSONEncoder, Persistence
+from mysensors.sensor import ChildSensor, Sensor
 
 
 class TestGateway(TestCase):
@@ -234,14 +236,13 @@ class TestGateway(TestCase):
         self.gateway.sensors[1].protocol_version = '1.4.1'
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            self.gateway.persistence_file = os.path.join(temp_dir, filename)
-            self.gateway.persistence_bak = os.path.join(
-                temp_dir, '{}.bak'.format(filename))
-            # pylint: disable=protected-access
-            self.gateway._save_sensors()
+            persistence_file = os.path.join(temp_dir, filename)
+            self.gateway.persistence = Persistence(
+                self.gateway.sensors, persistence_file)
+            self.gateway.persistence.save_sensors()
             del self.gateway.sensors[1]
             self.assertNotIn(1, self.gateway.sensors)
-            self.gateway._safe_load_sensors()
+            self.gateway.persistence.safe_load_sensors()
             self.assertEqual(
                 self.gateway.sensors[1].sketch_name, sensor.sketch_name)
             self.assertEqual(self.gateway.sensors[1].sketch_version,
@@ -264,10 +265,10 @@ class TestGateway(TestCase):
             self.assertEqual(
                 self.gateway.sensors[1].children[0].values,
                 sensor.children[0].values)
-            self.gateway._save_sensors()
+            self.gateway.persistence.save_sensors()
             del self.gateway.sensors[1]
             self.assertNotIn(1, self.gateway.sensors)
-            self.gateway._safe_load_sensors()
+            self.gateway.persistence.safe_load_sensors()
             self.assertIn(1, self.gateway.sensors)
 
     def test_pickle_persistence(self):
@@ -282,37 +283,35 @@ class TestGateway(TestCase):
         """Test persistence with bad file name."""
         self._add_sensor(1)
         with tempfile.TemporaryDirectory() as temp_dir:
-            self.gateway.persistence_file = os.path.join(temp_dir, 'file.bad')
-            self.gateway.persistence_bak = os.path.join(
-                temp_dir, 'file.bad.bak')
+            persistence_file = os.path.join(temp_dir, 'file.bad')
+            self.gateway.persistence = Persistence(
+                self.gateway.sensors, persistence_file)
             with self.assertRaises(Exception):
-                # pylint: disable=protected-access
-                self.gateway._save_sensors()
+                self.gateway.persistence.save_sensors()
 
     def test_json_no_files(self):
         """Test json persistence with no files existing."""
         self.assertFalse(self.gateway.sensors)
         with tempfile.TemporaryDirectory() as temp_dir:
-            self.gateway.persistence_file = os.path.join(temp_dir, 'file.json')
-            self.gateway.persistence_bak = os.path.join(
-                temp_dir, 'file.json.bak')
-            # pylint: disable=protected-access
-            self.gateway._safe_load_sensors()
+            persistence_file = os.path.join(temp_dir, 'file.json')
+            self.gateway.persistence = Persistence(
+                self.gateway.sensors, persistence_file)
+            self.gateway.persistence.safe_load_sensors()
         self.assertFalse(self.gateway.sensors)
 
     def _test_empty_files(self, filename):
         """Test persistence with empty files."""
         self.assertFalse(self.gateway.sensors)
         with tempfile.TemporaryDirectory() as temp_dir:
-            self.gateway.persistence_file = os.path.join(temp_dir, filename)
-            self.gateway.persistence_bak = os.path.join(
-                temp_dir, '{}.bak'.format(filename))
-            with open(self.gateway.persistence_file, 'w') as file_handle:
+            persistence_file = os.path.join(temp_dir, filename)
+            self.gateway.persistence = Persistence(
+                self.gateway.sensors, persistence_file)
+            persistence = self.gateway.persistence
+            with open(persistence_file, 'w') as file_handle:
                 file_handle.write('')
-            with open(self.gateway.persistence_bak, 'w') as file_handle:
+            with open(persistence.persistence_bak, 'w') as file_handle:
                 file_handle.write('')
-            # pylint: disable=protected-access
-            self.gateway._safe_load_sensors()
+            self.gateway.persistence.safe_load_sensors()
         self.assertFalse(self.gateway.sensors)
 
     def test_pickle_empty_files(self):
@@ -328,27 +327,25 @@ class TestGateway(TestCase):
         self._add_sensor(1)
         self.assertIn(1, self.gateway.sensors)
         with tempfile.TemporaryDirectory() as temp_dir:
-            self.gateway.persistence_file = os.path.join(temp_dir, 'file.json')
-            self.gateway.persistence_bak = os.path.join(
-                temp_dir, 'file.json.bak')
-            # pylint: disable=protected-access
-            self.gateway._save_sensors()
+            persistence_file = os.path.join(temp_dir, 'file.json')
+            self.gateway.persistence = Persistence(
+                self.gateway.sensors, persistence_file)
+            self.gateway.persistence.save_sensors()
             del self.gateway.sensors[1]
             os.rename(
-                self.gateway.persistence_file, self.gateway.persistence_bak)
-            with open(self.gateway.persistence_file, 'w') as json_file:
+                persistence_file, self.gateway.persistence.persistence_bak)
+            with open(persistence_file, 'w') as json_file:
                 json_file.write('')
-            # pylint: disable=protected-access
-            self.gateway._safe_load_sensors()
+            self.gateway.persistence.safe_load_sensors()
         self.assertIn(1, self.gateway.sensors)
 
-    @mock.patch('mysensors.mysensors.Gateway._safe_load_sensors')
+    @mock.patch('mysensors.persistence.Persistence.safe_load_sensors')
     def test_persistence_at_init(self, mock_load_sensors):
         """Test call to load persistence_file at init of Gateway."""
         self.gateway = Gateway(persistence=True)
         assert mock_load_sensors.call_count == 1
 
-    def _save_json_upgrade(self, filename):
+    def save_json_upgrade(self, filename):
         """Save sensors to json file.
 
         Only used for testing upgrade with missing attributes.
@@ -360,11 +357,10 @@ class TestGateway(TestCase):
             file_handle.flush()
             os.fsync(file_handle.fileno())
 
-    @mock.patch('mysensors.mysensors.Gateway._save_json')
+    @mock.patch('mysensors.persistence.Persistence._save_json')
     def _test_persistence_upgrade(self, filename, mock_save_json):
         """Test that all attributes are present after persistence upgrade."""
-        # pylint: disable=protected-access
-        mock_save_json.side_effect = self._save_json_upgrade
+        mock_save_json.side_effect = self.save_json_upgrade
         sensor = self._add_sensor(1)
         sensor.children[0] = ChildSensor(
             0, self.gateway.const.Presentation.S_LIGHT_LEVEL)
@@ -385,13 +381,13 @@ class TestGateway(TestCase):
         self.assertNotIn(
             'description', self.gateway.sensors[1].children[0].__dict__)
         with tempfile.TemporaryDirectory() as temp_dir:
-            self.gateway.persistence_file = os.path.join(temp_dir, filename)
-            self.gateway.persistence_bak = os.path.join(
-                temp_dir, '{}.bak'.format(filename))
-            self.gateway._save_sensors()
+            persistence_file = os.path.join(temp_dir, filename)
+            self.gateway.persistence = Persistence(
+                self.gateway.sensors, persistence_file)
+            self.gateway.persistence.save_sensors()
             del self.gateway.sensors[1]
             self.assertNotIn(1, self.gateway.sensors)
-            self.gateway._safe_load_sensors()
+            self.gateway.persistence.safe_load_sensors()
             self.assertEqual(self.gateway.sensors[1].battery_level, 58)
             self.assertEqual(
                 self.gateway.sensors[1].protocol_version,
@@ -418,29 +414,16 @@ class TestGateway(TestCase):
         # pylint: disable=no-value-for-parameter
         self._test_persistence_upgrade('file.json')
 
-    @mock.patch('mysensors.threading.Timer')
-    @mock.patch('mysensors.Gateway._save_sensors')
+    @mock.patch('mysensors.persistence.threading.Timer')
+    @mock.patch('mysensors.persistence.Persistence.save_sensors')
     def test_schedule_save_sensors(self, mock_save, mock_timer_class):
         """Test schedule save sensors."""
         mock_timer = mock.MagicMock()
         mock_timer_class.return_value = mock_timer
-        self.gateway.persistence = True
-        # pylint: disable=protected-access
-        self.gateway._schedule_save_sensors()
+        self.gateway.persistence = Persistence(self.gateway.sensors)
+        self.gateway.persistence.schedule_save_sensors()
         assert mock_save.call_count == 1
         assert mock_timer.start.call_count == 1
-
-    @mock.patch('mysensors.threading.Timer')
-    @mock.patch('mysensors.Gateway._save_sensors')
-    def test_no_schedule_save_sensors(self, mock_save, mock_timer_class):
-        """Test schedule save sensors."""
-        mock_timer = mock.MagicMock()
-        mock_timer_class.return_value = mock_timer
-        self.gateway.persistence = False
-        # pylint: disable=protected-access
-        self.gateway._schedule_save_sensors()
-        assert mock_save.call_count == 0
-        assert mock_timer.start.call_count == 0
 
     def _callback(self, message):
         self.gateway.test_callback_message = message
@@ -767,7 +750,7 @@ class TestGateway20(TestGateway):
         ret = self.gateway.handle_queue()
         self.assertEqual(ret, '1;255;3;0;19;\n')
 
-    @mock.patch('mysensors.mysensors.Gateway.is_sensor')
+    @mock.patch('mysensors.Gateway.is_sensor')
     def test_discover_response_known(self, mock_is_sensor):
         """Test internal receive discover response."""
         # Test sensor 1 known.
