@@ -13,7 +13,7 @@ _LOGGER = logging.getLogger(__name__)
 class TCPGateway(Gateway, threading.Thread):
     """MySensors TCP ethernet gateway."""
 
-    # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-arguments, too-many-instance-attributes
 
     def __init__(self, host, event_callback=None,
                  persistence=False, persistence_file='mysensors.pickle',
@@ -23,6 +23,7 @@ class TCPGateway(Gateway, threading.Thread):
         threading.Thread.__init__(self)
         Gateway.__init__(self, event_callback, persistence,
                          persistence_file, protocol_version)
+        self.lock = threading.Lock()
         self.sock = None
         self.server_address = (host, port)
         self.timeout = timeout
@@ -65,7 +66,7 @@ class TCPGateway(Gateway, threading.Thread):
             self.sock = socket.create_connection(
                 self.server_address, self.reconnect_timeout)
             _LOGGER.info('Connected to %s', self.server_address)
-            self._schedule_save_sensors()
+            self.persistence.schedule_save_sensors()
             return True
 
         except TimeoutError:
@@ -95,8 +96,8 @@ class TCPGateway(Gateway, threading.Thread):
         """Stop the background thread."""
         _LOGGER.info('Stopping thread')
         self._stop_event.set()
-        if self.scheduled_save is not None:
-            self.scheduled_save.cancel()
+        if self.persistence.scheduled_save is not None:
+            self.persistence.scheduled_save.cancel()
 
     def _check_socket(self, sock=None, timeout=None):
         """Check if socket is readable/writable."""
@@ -196,4 +197,4 @@ class TCPGateway(Gateway, threading.Thread):
             self._check_connection()
         self.disconnect()
         if self.persistence:
-            self._save_sensors()
+            self.persistence.save_sensors()
