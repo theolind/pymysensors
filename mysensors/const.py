@@ -1,4 +1,5 @@
 """Helpers for const."""
+# pylint: disable=no-name-in-module, import-error
 from distutils.version import LooseVersion as parse_ver
 from importlib import import_module
 

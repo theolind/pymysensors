@@ -2,6 +2,7 @@
 import calendar
 import logging
 import time
+# pylint: disable=no-name-in-module, import-error
 from distutils.version import LooseVersion as parse_ver
 from queue import Queue
 from timeit import default_timer as timer
@@ -9,7 +10,7 @@ from timeit import default_timer as timer
 import voluptuous as vol
 
 from .const import get_const
-from .message import Message, SYSTEM_CHILD_ID
+from .message import SYSTEM_CHILD_ID, Message
 from .ota import OTAFirmware
 from .persistence import Persistence
 from .sensor import ChildSensor, Sensor
