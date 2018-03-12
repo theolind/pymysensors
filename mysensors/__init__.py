@@ -23,17 +23,19 @@ _LOGGER = logging.getLogger(__name__)
 class Gateway(object):
     """Base implementation for a MySensors Gateway."""
 
-    # pylint: disable=too-many-instance-attributes
+    # pylint: disable=too-many-instance-attributes, too-many-arguments
 
     def __init__(self, event_callback=None, persistence=False,
-                 persistence_file='mysensors.pickle', protocol_version='1.4'):
+                 persistence_file='mysensors.pickle', protocol_version='1.4',
+                 persistence_scheduler=None):
         """Set up Gateway."""
         self.queue = Queue()
         self.event_callback = event_callback
         self.sensors = {}
         self.metric = True  # if true - use metric, if false - use imperial
         if persistence:
-            self.persistence = Persistence(self.sensors, persistence_file)
+            self.persistence = Persistence(
+                self.sensors, persistence_file, persistence_scheduler)
         else:
             self.persistence = None
         self.protocol_version = safe_is_version(protocol_version)
