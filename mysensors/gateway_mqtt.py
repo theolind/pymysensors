@@ -1,25 +1,22 @@
 """Implement an MQTT gateway."""
 import logging
-import threading
 import time
 
-from mysensors import Gateway, Message
+from mysensors import ThreadingGateway, Message
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class MQTTGateway(Gateway, threading.Thread):
+class MQTTGateway(ThreadingGateway):
     """MySensors MQTT client gateway."""
 
     # pylint: disable=too-many-arguments, too-many-instance-attributes
 
-    def __init__(self, pub_callback, sub_callback, event_callback=None,
-                 persistence=False, persistence_file='mysensors.pickle',
-                 protocol_version='1.4', in_prefix='', out_prefix='',
-                 retain=True):
+    def __init__(
+            self, pub_callback, sub_callback, in_prefix='', out_prefix='',
+            retain=True, **kwargs):
         """Set up MQTT client gateway."""
-        threading.Thread.__init__(self)
-        self.lock = threading.Lock()
+        super().__init__(**kwargs)
         # Should accept topic, payload, qos, retain.
         self._pub_callback = pub_callback
         # Should accept topic, function callback for receive and qos.
@@ -27,12 +24,8 @@ class MQTTGateway(Gateway, threading.Thread):
         self._in_prefix = in_prefix  # prefix for topics gw -> controller
         self._out_prefix = out_prefix  # prefix for topics controller -> gw
         self._retain = retain  # flag to publish with retain
-        self._stop_event = threading.Event()
         # topic structure:
         # prefix/node/child/type/ack/subtype : payload
-        Gateway.__init__(self, event_callback, persistence,
-                         persistence_file, protocol_version)
-        self._cancel_save = None
 
     def _handle_subscription(self, topics):
         """Handle subscription of topics."""
@@ -148,18 +141,9 @@ class MQTTGateway(Gateway, threading.Thread):
             except Exception as exception:  # pylint: disable=broad-except
                 _LOGGER.exception('Publish to %s failed: %s', topic, exception)
 
-    def stop(self):
-        """Stop the background thread."""
-        _LOGGER.info('Stopping thread')
-        self._stop_event.set()
-        if self._cancel_save is not None:
-            self._cancel_save()
-            self._cancel_save = None
-
     def run(self):
         """Background thread that sends messages to the gateway via MQTT."""
         self._init_topics()
-        self._cancel_save = self.persistence.schedule_save_sensors()
         while not self._stop_event.is_set():
             response = self.handle_queue()
             if response is not None:
@@ -167,5 +151,3 @@ class MQTTGateway(Gateway, threading.Thread):
             if not self.queue.empty():
                 continue
             time.sleep(0.02)  # short sleep to avoid burning 100% cpu
-        if self.persistence:
-            self.persistence.save_sensors()

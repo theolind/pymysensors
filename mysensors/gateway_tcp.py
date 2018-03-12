@@ -2,36 +2,29 @@
 import logging
 import select
 import socket
-import threading
 import time
 
-from mysensors import Gateway, Message
+from mysensors import ThreadingGateway, Message
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class TCPGateway(Gateway, threading.Thread):
+class TCPGateway(ThreadingGateway):
     """MySensors TCP ethernet gateway."""
 
     # pylint: disable=too-many-arguments, too-many-instance-attributes
 
-    def __init__(self, host, event_callback=None,
-                 persistence=False, persistence_file='mysensors.pickle',
-                 protocol_version='1.4', port=5003, timeout=1.0,
-                 reconnect_timeout=10.0):
+    def __init__(
+            self, host, port=5003, timeout=1.0, reconnect_timeout=10.0,
+            **kwargs):
         """Set up TCP ethernet gateway."""
-        threading.Thread.__init__(self)
-        Gateway.__init__(self, event_callback, persistence,
-                         persistence_file, protocol_version)
-        self.lock = threading.Lock()
+        super().__init__(**kwargs)
         self.sock = None
         self.server_address = (host, port)
         self.timeout = timeout
+        self.reconnect_timeout = reconnect_timeout
         self.tcp_check_timer = time.time()
         self.tcp_disconnect_timer = time.time()
-        self.reconnect_timeout = reconnect_timeout
-        self._stop_event = threading.Event()
-        self._cancel_save = None
 
     def _check_connection(self):
         """Check if connection is alive every reconnect_timeout seconds."""
@@ -67,7 +60,6 @@ class TCPGateway(Gateway, threading.Thread):
             self.sock = socket.create_connection(
                 self.server_address, self.reconnect_timeout)
             _LOGGER.info('Connected to %s', self.server_address)
-            self._cancel_save = self.persistence.schedule_save_sensors()
             return True
 
         except TimeoutError:
@@ -92,14 +84,6 @@ class TCPGateway(Gateway, threading.Thread):
         self.sock.close()
         self.sock = None
         _LOGGER.info('Socket closed at %s.', self.server_address)
-
-    def stop(self):
-        """Stop the background thread."""
-        _LOGGER.info('Stopping thread')
-        self._stop_event.set()
-        if self._cancel_save is not None:
-            self._cancel_save()
-            self._cancel_save = None
 
     def _check_socket(self, sock=None, timeout=None):
         """Check if socket is readable/writable."""
@@ -198,5 +182,3 @@ class TCPGateway(Gateway, threading.Thread):
                     self.fill_queue(self.logic, (line,))
             self._check_connection()
         self.disconnect()
-        if self.persistence:
-            self.persistence.save_sensors()

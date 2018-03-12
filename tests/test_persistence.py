@@ -140,12 +140,6 @@ class TestPersistence(TestCase):
             self.gateway.persistence.safe_load_sensors()
         self.assertIn(1, self.gateway.sensors)
 
-    @mock.patch('mysensors.persistence.Persistence.safe_load_sensors')
-    def test_persistence_at_init(self, mock_load_sensors):
-        """Test call to load persistence_file at init of Gateway."""
-        self.gateway = Gateway(persistence=True)
-        assert mock_load_sensors.call_count == 1
-
     def save_json_upgrade(self, filename):
         """Save sensors to json file.
 

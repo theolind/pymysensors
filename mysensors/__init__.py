@@ -1,6 +1,7 @@
 """Python implementation of MySensors API."""
 import calendar
 import logging
+import threading
 import time
 # pylint: disable=no-name-in-module, import-error
 from distutils.version import LooseVersion as parse_ver
@@ -26,8 +27,8 @@ class Gateway(object):
     # pylint: disable=too-many-instance-attributes, too-many-arguments
 
     def __init__(self, event_callback=None, persistence=False,
-                 persistence_file='mysensors.pickle', protocol_version='1.4',
-                 persistence_scheduler=None):
+                 persistence_file='mysensors.pickle',
+                 persistence_scheduler=None, protocol_version='1.4'):
         """Set up Gateway."""
         self.queue = Queue()
         self.event_callback = event_callback
@@ -41,8 +42,6 @@ class Gateway(object):
         self.protocol_version = safe_is_version(protocol_version)
         self.const = get_const(self.protocol_version)
         self.ota = OTAFirmware(self.sensors, self.const)
-        if persistence:
-            self.persistence.safe_load_sensors()
 
     def __repr__(self):
         """Return the representation."""
@@ -161,10 +160,6 @@ class Gateway(object):
         elif msg.sub_type == self.const.Stream.ST_FIRMWARE_REQUEST:
             return self.ota.respond_fw(msg)
         return None
-
-    def send(self, message):
-        """Implement this method in a child class."""
-        raise NotImplementedError
 
     def logic(self, data):
         """Parse the data and respond to it appropriately.
@@ -314,3 +309,37 @@ class Gateway(object):
     def update_fw(self, nids, fw_type, fw_ver, fw_path=None):
         """Update firwmare of all node_ids in nids."""
         self.ota.make_update(nids, fw_type, fw_ver, fw_path)
+
+
+class ThreadingGateway(Gateway, threading.Thread):
+    """Gateway that implements a new thread."""
+
+    def __init__(self, **kwargs):
+        """Set up gateway instance."""
+        threading.Thread.__init__(self)
+        Gateway.__init__(self, **kwargs)
+        self.lock = threading.Lock()
+        self._stop_event = threading.Event()
+        self._cancel_save = None
+
+    def send(self, message):
+        """Implement this method in a child class."""
+        raise NotImplementedError
+
+    def start_persistence(self):
+        """Load persistence file and schedule saving of persistence file."""
+        if not self.persistence:
+            return
+        self.persistence.safe_load_sensors()
+        self._cancel_save = self.persistence.schedule_save_sensors()
+
+    def stop(self):
+        """Stop the background thread."""
+        _LOGGER.info('Stopping thread')
+        self._stop_event.set()
+        if not self.persistence:
+            return
+        if self._cancel_save is not None:
+            self._cancel_save()
+            self._cancel_save = None
+        self.persistence.save_sensors()
