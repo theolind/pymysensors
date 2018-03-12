@@ -11,7 +11,7 @@ _LOGGER = logging.getLogger(__name__)
 class MQTTGateway(Gateway, threading.Thread):
     """MySensors MQTT client gateway."""
 
-    # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-arguments, too-many-instance-attributes
 
     def __init__(self, pub_callback, sub_callback, event_callback=None,
                  persistence=False, persistence_file='mysensors.pickle',
@@ -32,6 +32,7 @@ class MQTTGateway(Gateway, threading.Thread):
         # prefix/node/child/type/ack/subtype : payload
         Gateway.__init__(self, event_callback, persistence,
                          persistence_file, protocol_version)
+        self._cancel_save = None
 
     def _handle_subscription(self, topics):
         """Handle subscription of topics."""
@@ -151,13 +152,14 @@ class MQTTGateway(Gateway, threading.Thread):
         """Stop the background thread."""
         _LOGGER.info('Stopping thread')
         self._stop_event.set()
-        if self.persistence.scheduled_save is not None:
-            self.persistence.scheduled_save.cancel()
+        if self._cancel_save is not None:
+            self._cancel_save()
+            self._cancel_save = None
 
     def run(self):
         """Background thread that sends messages to the gateway via MQTT."""
         self._init_topics()
-        self.persistence.schedule_save_sensors()
+        self._cancel_save = self.persistence.schedule_save_sensors()
         while not self._stop_event.is_set():
             response = self.handle_queue()
             if response is not None:

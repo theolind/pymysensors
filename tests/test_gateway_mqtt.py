@@ -107,11 +107,13 @@ class TestMQTTGateway(TestCase):
             'No topic specified, or incorrect topic type.')
 
     @mock.patch('mysensors.persistence.Persistence.save_sensors')
-    @mock.patch('mysensors.persistence.Persistence.schedule_save_sensors')
-    def test_start_stop_gateway(self, mock_schedule_save, mock_save):
+    def test_start_stop_gateway(self, mock_save):
         """Test start and stop of MQTT gateway."""
         self.gateway.persistence = Persistence(self.gateway.sensors)
-        self.gateway.persistence.scheduled_save = mock.MagicMock()
+        mock_cancel_save = mock.MagicMock()
+        mock_schedule_save = mock.MagicMock()
+        mock_schedule_save.return_value = mock_cancel_save
+        self.gateway.persistence.schedule_save_sensors = mock_schedule_save
         self.assertFalse(self.gateway.is_alive())
         sensor = self._add_sensor(1)
         sensor.children[1] = ChildSensor(
@@ -135,7 +137,7 @@ class TestMQTTGateway(TestCase):
         self.gateway.stop()
         self.gateway.join(timeout=0.5)
         self.assertFalse(self.gateway.is_alive())
-        assert self.gateway.persistence.scheduled_save.cancel.call_count == 1
+        assert mock_cancel_save.call_count == 1
         assert mock_save.call_count == 1
 
     def test_mqtt_load_persistence(self):

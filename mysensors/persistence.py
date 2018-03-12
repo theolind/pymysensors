@@ -10,14 +10,29 @@ from .sensor import ChildSensor, Sensor
 _LOGGER = logging.getLogger(__name__)
 
 
+def create_scheduler(save_sensors):
+    """Return function to schedule saving sensors."""
+    def schedule_save():
+        """Return a function to cancel the schedule."""
+        save_sensors()
+        scheduler = threading.Timer(10.0, schedule_save)
+        scheduler.start()
+        return scheduler.cancel
+    return schedule_save
+
+
 class Persistence(object):
     """Organize persistence file saving and loading."""
 
-    def __init__(self, sensors, persistence_file='mysensors.pickle'):
+    def __init__(
+            self, sensors, persistence_file='mysensors.pickle',
+            schedule_factory=None):
         """Set up Persistence instance."""
         self.persistence_file = persistence_file
         self.persistence_bak = '{}.bak'.format(self.persistence_file)
-        self.scheduled_save = None
+        if schedule_factory is None:
+            schedule_factory = create_scheduler
+        self.schedule_save_sensors = schedule_factory(self.save_sensors)
         self._sensors = sensors
 
     def _save_pickle(self, filename):
@@ -63,16 +78,6 @@ class Persistence(object):
         os.rename(tmp_fname, fname)
         if exists:
             os.remove(self.persistence_bak)
-
-    def schedule_save_sensors(self):
-        """Schedule a call to save sensors every 10 seconds.
-
-        Call this method once when the connection is established.
-        """
-        self.save_sensors()
-        self.scheduled_save = threading.Timer(
-            10.0, self.schedule_save_sensors)
-        self.scheduled_save.start()
 
     def _load_sensors(self, path=None):
         """Load sensors from file."""

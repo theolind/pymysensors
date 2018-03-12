@@ -13,7 +13,7 @@ _LOGGER = logging.getLogger(__name__)
 class SerialGateway(Gateway, threading.Thread):
     """Serial gateway for MySensors."""
 
-    # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-arguments, too-many-instance-attributes
 
     def __init__(self, port, event_callback=None,
                  persistence=False, persistence_file='mysensors.pickle',
@@ -30,6 +30,7 @@ class SerialGateway(Gateway, threading.Thread):
         self.timeout = timeout
         self.reconnect_timeout = reconnect_timeout
         self._stop_event = threading.Event()
+        self._cancel_save = None
 
     def connect(self):
         """Connect to the serial port."""
@@ -51,7 +52,7 @@ class SerialGateway(Gateway, threading.Thread):
         except serial.SerialException:
             _LOGGER.error('Unable to connect to %s', self.port)
             return False
-        self.persistence.schedule_save_sensors()
+        self._cancel_save = self.persistence.schedule_save_sensors()
         return True
 
     def disconnect(self):
@@ -67,8 +68,9 @@ class SerialGateway(Gateway, threading.Thread):
         """Stop the background thread."""
         _LOGGER.info('Stopping thread')
         self._stop_event.set()
-        if self.persistence.scheduled_save is not None:
-            self.persistence.scheduled_save.cancel()
+        if self._cancel_save is not None:
+            self._cancel_save()
+            self._cancel_save = None
 
     def run(self):
         """Background thread that reads messages from the gateway."""
