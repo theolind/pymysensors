@@ -119,8 +119,6 @@ class Sensor(object):
 class ChildSensor(object):
     """Represent a child sensor."""
 
-    # pylint: disable=too-few-public-methods
-
     def __init__(self, child_id, child_type, description=''):
         """Set up child sensor."""
         # pylint: disable=invalid-name
