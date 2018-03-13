@@ -1,34 +1,29 @@
 """Implement a serial gateway."""
 import logging
-import threading
 import time
 
 import serial
 
-from mysensors import Gateway
+from mysensors import ThreadingGateway
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class SerialGateway(Gateway, threading.Thread):
+class SerialGateway(ThreadingGateway):
     """Serial gateway for MySensors."""
 
     # pylint: disable=too-many-arguments
 
-    def __init__(self, port, event_callback=None,
-                 persistence=False, persistence_file='mysensors.pickle',
-                 protocol_version='1.4', baud=115200, timeout=1.0,
-                 reconnect_timeout=10.0):
+    def __init__(
+            self, port, baud=115200, timeout=1.0, reconnect_timeout=10.0,
+            **kwargs):
         """Set up serial gateway."""
-        threading.Thread.__init__(self)
-        Gateway.__init__(self, event_callback, persistence,
-                         persistence_file, protocol_version)
+        super().__init__(**kwargs)
         self.serial = None
         self.port = port
         self.baud = baud
         self.timeout = timeout
         self.reconnect_timeout = reconnect_timeout
-        self._stop_event = threading.Event()
 
     def connect(self):
         """Connect to the serial port."""
@@ -50,7 +45,6 @@ class SerialGateway(Gateway, threading.Thread):
         except serial.SerialException:
             _LOGGER.error('Unable to connect to %s', self.port)
             return False
-        self._schedule_save_sensors()
         return True
 
     def disconnect(self):
@@ -61,13 +55,6 @@ class SerialGateway(Gateway, threading.Thread):
             self.serial.close()
             self.serial = None
             _LOGGER.info('Disconnected from %s', name)
-
-    def stop(self):
-        """Stop the background thread."""
-        _LOGGER.info('Stopping thread')
-        self._stop_event.set()
-        if self.scheduled_save is not None:
-            self.scheduled_save.cancel()
 
     def run(self):
         """Background thread that reads messages from the gateway."""
@@ -102,11 +89,9 @@ class SerialGateway(Gateway, threading.Thread):
                 continue
             self.fill_queue(self.logic, (string,))
         self.disconnect()  # Disconnect after stop event is set
-        if self.persistence:
-            self._save_sensors()
 
     def send(self, message):
-        """Write a Message to the gateway."""
+        """Write a command string to the gateway."""
         if not message:
             return
         # Lock to make sure only one thread writes at a time to serial port.
