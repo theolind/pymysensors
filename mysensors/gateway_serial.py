@@ -91,7 +91,7 @@ class SerialGateway(ThreadingGateway):
         self.disconnect()  # Disconnect after stop event is set
 
     def send(self, message):
-        """Write a Message to the gateway."""
+        """Write a command string to the gateway."""
         if not message:
             return
         # Lock to make sure only one thread writes at a time to serial port.

@@ -190,10 +190,7 @@ class Gateway(object):
         return ret
 
     def alert(self, msg):
-        """Tell anyone who wants to know that a sensor was updated.
-
-        Also save sensors if persistence is enabled.
-        """
+        """Tell anyone who wants to know that a sensor was updated."""
         if self.event_callback is not None:
             try:
                 self.event_callback(msg)
@@ -310,6 +307,13 @@ class Gateway(object):
         """Update firwmare of all node_ids in nids."""
         self.ota.make_update(nids, fw_type, fw_ver, fw_path)
 
+    def start_persistence(self):
+        """Load persistence file and schedule saving of persistence file.
+
+        Implement this method in a child class.
+        """
+        raise NotImplementedError
+
 
 class ThreadingGateway(Gateway, threading.Thread):
     """Gateway that implements a new thread."""
@@ -323,7 +327,10 @@ class ThreadingGateway(Gateway, threading.Thread):
         self._cancel_save = None
 
     def send(self, message):
-        """Implement this method in a child class."""
+        """Send a command string to the gateway.
+
+        Implement this method in a child class.
+        """
         raise NotImplementedError
 
     def start_persistence(self):
