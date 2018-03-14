@@ -34,6 +34,7 @@ class Persistence(object):
             schedule_factory = create_scheduler
         self.schedule_save_sensors = schedule_factory(self.save_sensors)
         self._sensors = sensors
+        self.need_save = True
 
     def _save_pickle(self, filename):
         """Save sensors to pickle file."""
@@ -63,6 +64,8 @@ class Persistence(object):
 
     def save_sensors(self):
         """Save sensors to file."""
+        if not self.need_save:
+            return
         fname = os.path.realpath(self.persistence_file)
         exists = os.path.isfile(fname)
         dirname = os.path.dirname(fname)
@@ -78,6 +81,7 @@ class Persistence(object):
         os.rename(tmp_fname, fname)
         if exists:
             os.remove(self.persistence_bak)
+        self.need_save = False
 
     def _load_sensors(self, path=None):
         """Load sensors from file."""

@@ -197,6 +197,9 @@ class Gateway(object):
             except Exception as exception:  # pylint: disable=broad-except
                 _LOGGER.exception(exception)
 
+        if self.persistence:
+            self.persistence.need_save = True
+
     def _get_next_id(self):
         """Return the next available sensor id."""
         if self.sensors:
