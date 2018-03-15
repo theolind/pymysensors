@@ -1,9 +1,11 @@
 # pymysensors [![Build Status][build-badge]][build]
-Python API for talking to a MySensors gateway (http://www.mysensors.org/). Currently supports serial protocol v1.4, v1.5 and v2.0. Not all features of v2.0 are implemented yet.
+Python API for talking to a MySensors gateway (http://www.mysensors.org/). Currently supports serial protocol v1.4, v1.5, v2.0 - v2.2. Not all features of v2.x are implemented yet.
 
-- Supports smartsleep with serial API v2.0.
-- Supports the MQTT client gateway with serial API v2.0.
+- Supports smartsleep with serial API v2.x.
+- Supports the MQTT client gateway with serial API v2.x.
 - Supports OTA updates, for both [DualOptiboot](https://github.com/mysensors/DualOptiboot) and [MYSBootloader](https://github.com/mysensors/MySensorsBootloaderRF24) bootloaders.
+- All gateway instances, serial, tcp (ethernet) or mqtt will run in separate threads.
+- Experimental implementation of serial gateway using pyserial-asyncio, as an alternative to running the gateway in its own thread.
 
 # Usage
 Currently the API is best used by implementing a callback handler
@@ -127,6 +129,18 @@ send a firmware response message. The latter request-response conversation will
 continue until all blocks of firmware are sent. If the CRC of the transmitted
 firmware match the CRC of the firmware config response, the node will restart
 and load the new firmware.
+
+## Async gateway
+The serial gateway now also has a version that supports asyncio. Use the
+`AsyncSerialGateway` class to make a gateway that uses asyncio. The following
+public methods are coroutines in the async gateway:
+
+- start_persistence
+- start
+- stop
+- update_fw
+
+See [async_main.py](https://github.com/theolind/pymysensors/blob/master/async_main.py) for an example of how to use this gateway.
 
 [build-badge]: https://travis-ci.org/theolind/pymysensors.svg?branch=master
 [build]: https://travis-ci.org/theolind/pymysensors

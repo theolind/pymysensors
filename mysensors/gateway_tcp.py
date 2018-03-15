@@ -39,7 +39,7 @@ class TCPGateway(ThreadingGateway):
         msg = Message().copy(
             child_id=255, type=self.const.MessageType.internal,
             sub_type=self.const.Internal.I_VERSION)
-        self.fill_queue(msg.encode)
+        self.add_job(msg.encode)
         self.tcp_check_timer = time.time()
 
     def _handle_internal(self, msg):
@@ -167,10 +167,10 @@ class TCPGateway(ThreadingGateway):
                 self.disconnect()
                 continue
             if available_socks[1] and self.sock is not None:
-                response = self.handle_queue()
+                response = self.run_job()
                 if response is not None:
                     self.send(response)
-            if not self.queue.empty():
+            if self.queue:
                 continue
             time.sleep(0.02)  # short sleep to avoid burning 100% cpu
             if available_socks[0] and self.sock is not None:
@@ -179,6 +179,6 @@ class TCPGateway(ThreadingGateway):
                 # Throw away last empty line or uncompleted message.
                 del lines[-1]
                 for line in lines:
-                    self.fill_queue(self.logic, (line,))
+                    self.add_job(self.logic, line)
             self._check_connection()
         self.disconnect()

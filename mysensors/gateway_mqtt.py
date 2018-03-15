@@ -127,7 +127,7 @@ class MQTTGateway(ThreadingGateway):
         if data is None:
             return
         _LOGGER.debug('Receiving %s', data)
-        self.fill_queue(self.logic, (data,))
+        self.add_job(self.logic, data)
 
     def send(self, message):
         """Publish a command string to the gateway via MQTT."""
@@ -145,9 +145,9 @@ class MQTTGateway(ThreadingGateway):
         """Background thread that sends messages to the gateway via MQTT."""
         self._init_topics()
         while not self._stop_event.is_set():
-            response = self.handle_queue()
+            response = self.run_job()
             if response is not None:
                 self.send(response)
-            if not self.queue.empty():
+            if self.queue:
                 continue
             time.sleep(0.02)  # short sleep to avoid burning 100% cpu

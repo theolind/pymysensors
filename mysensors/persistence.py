@@ -75,6 +75,7 @@ class Persistence(object):
             return
         split_fname = os.path.splitext(fname)
         tmp_fname = '{}.tmp{}'.format(split_fname[0], split_fname[1])
+        _LOGGER.debug('Saving sensors to persistence file %s', fname)
         self._perform_file_action(tmp_fname, 'save')
         if exists:
             os.rename(fname, self.persistence_bak)
@@ -92,6 +93,7 @@ class Persistence(object):
             if path == self.persistence_bak:
                 os.rename(path, self.persistence_file)
                 path = self.persistence_file
+            _LOGGER.debug('Loading sensors from persistence file %s', path)
             self._perform_file_action(path, 'load')
             return True
         else:

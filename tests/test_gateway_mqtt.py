@@ -58,10 +58,10 @@ class TestMQTTGateway(TestCase):
             1, self.gateway.const.Presentation.S_HUM)
         sensor.children[1].values[self.gateway.const.SetReq.V_HUM] = '20'
         self.gateway.recv('/1/1/2/0/1', '', 0)
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         self.assertEqual(ret, '1;1;1;0;1;20\n')
         self.gateway.recv('/1/1/2/0/1', '', 1)
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         self.assertEqual(ret, '1;1;1;1;1;20\n')
 
     def test_recv_wrong_prefix(self):
@@ -71,7 +71,7 @@ class TestMQTTGateway(TestCase):
             1, self.gateway.const.Presentation.S_HUM)
         sensor.children[1].values[self.gateway.const.SetReq.V_HUM] = '20'
         self.gateway.recv('wrong/1/1/2/0/1', '', 0)
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         self.assertEqual(ret, None)
 
     def test_presentation(self):
@@ -204,10 +204,10 @@ class TestMQTTGatewayCustomPrefix(TestCase):
             1, self.gateway.const.Presentation.S_HUM)
         sensor.children[1].values[self.gateway.const.SetReq.V_HUM] = '20'
         self.gateway.recv('test/test-in/1/1/2/0/1', '', 0)
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         self.assertEqual(ret, '1;1;1;0;1;20\n')
         self.gateway.recv('test/test-in/1/1/2/0/1', '', 1)
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         self.assertEqual(ret, '1;1;1;1;1;20\n')
 
 

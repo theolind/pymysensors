@@ -4,8 +4,6 @@ reports=no
 # Reasons disabled:
 # locally-disabled - it spams too much
 # duplicate-code - unavoidable
-# E1129 - https://github.com/PyCQA/pylint/issues/782 (breaks linting for python 2.5)
 disable=
   locally-disabled,
   duplicate-code,
-  E1129,
