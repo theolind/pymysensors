@@ -4,7 +4,7 @@ from unittest import TestCase, main, mock
 
 import voluptuous as vol
 
-from mysensors import Gateway
+from mysensors import Gateway, ThreadingGateway
 from mysensors.message import Message
 from mysensors.sensor import ChildSensor, Sensor
 
@@ -654,6 +654,30 @@ def test_gateway_low_protocol():
     """Test initializing gateway with too low protocol_version."""
     gateway = Gateway(protocol_version='1.3')
     assert gateway.protocol_version == '1.4'
+
+
+def test_update_fw():
+    """Test calling fw_update with bad path."""
+    gateway = ThreadingGateway()
+    sensor_id = 1
+    mock_update = mock.MagicMock()
+    gateway.ota.make_update = mock_update
+    gateway.update_fw(sensor_id, 1, 1)
+    assert mock_update.call_count == 1
+
+
+def test_update_fw_bad_path(caplog):
+    """Test calling fw_update with bad path."""
+    gateway = ThreadingGateway()
+    sensor_id = 1
+    bad_path = '/bad/path'
+    gateway.sensors[sensor_id] = Sensor(sensor_id)
+    gateway.update_fw(sensor_id, 1, 1, bad_path)
+    ret = gateway.logic('1;255;4;0;0;01000200B00626E80300\n')
+    assert ret is None
+    log_msg = 'Firmware path {} does not exist or is not readable'.format(
+        bad_path)
+    assert log_msg in caplog.text
 
 
 if __name__ == '__main__':

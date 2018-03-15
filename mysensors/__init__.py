@@ -12,7 +12,7 @@ import voluptuous as vol
 
 from .const import get_const
 from .message import SYSTEM_CHILD_ID, Message
-from .ota import OTAFirmware
+from .ota import OTAFirmware, load_fw
 from .persistence import Persistence
 from .sensor import ChildSensor, Sensor
 from .validation import safe_is_version
@@ -307,8 +307,11 @@ class Gateway(object):
                             (child_id, value_type, value), kwargs)
 
     def update_fw(self, nids, fw_type, fw_ver, fw_path=None):
-        """Update firwmare of all node_ids in nids."""
-        self.ota.make_update(nids, fw_type, fw_ver, fw_path)
+        """Update firwmare of all node_ids in nids.
+
+        Implement this method in a child class.
+        """
+        raise NotImplementedError
 
     def start_persistence(self):
         """Load persistence file and schedule saving of persistence file.
@@ -353,3 +356,12 @@ class ThreadingGateway(Gateway, threading.Thread):
             self._cancel_save()
             self._cancel_save = None
         self.persistence.save_sensors()
+
+    def update_fw(self, nids, fw_type, fw_ver, fw_path=None):
+        """Update firwmare of all node_ids in nids."""
+        fw_bin = None
+        if fw_path:
+            fw_bin = load_fw(fw_path)
+            if not fw_bin:
+                return
+        self.ota.make_update(nids, fw_type, fw_ver, fw_bin)
