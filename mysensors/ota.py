@@ -36,21 +36,32 @@ def compute_crc(data):
     return int(crc16.hexdigest(), 16)
 
 
-def check_fw(path):
-    """Check that firmware is valid and return dict with binary data."""
+def load_fw(path):
+    """Open firmware file and return a binary string."""
+    fname = os.path.realpath(path)
+    exists = os.path.isfile(fname)
+    if not exists or not os.access(fname, os.R_OK):
+        _LOGGER.error(
+            'Firmware path %s does not exist or is not readable',
+            path)
+        return None
     try:
         intel_hex = IntelHex()
         with open(path, 'r') as file_handle:
             intel_hex.fromfile(file_handle, format='hex')
-        bin_string = intel_hex.tobinstr()
-    except (IntelHexError, TypeError, ValueError) as exception:
-        _LOGGER.error(exception)
+        return intel_hex.tobinstr()
+    except (IntelHexError, TypeError, ValueError) as exc:
+        _LOGGER.error(
+            'Firmware not valid, check the hex file at %s: %s', path, exc)
         return None
+
+
+def prepare_fw(bin_string):
+    """Check that firmware is valid and return dict with binary data."""
     pads = len(bin_string) % 128  # 128 bytes per page for atmega328
     for _ in range(128 - pads):  # pad up to even 128 bytes
         bin_string += b'\xff'
     fware = {
-        'path': path,
         'blocks': int(len(bin_string) / FIRMWARE_BLOCK_SIZE),
         'crc': compute_crc(bin_string),
         'data': bin_string,
@@ -145,7 +156,7 @@ class OTAFirmware(object):
             fw_type, fw_ver, fware['blocks'], fware['crc'])
         return msg
 
-    def make_update(self, nids, fw_type, fw_ver, fw_path=None):
+    def make_update(self, nids, fw_type, fw_ver, fw_bin=None):
         """Start firmware update process for one or more node_id."""
         try:
             fw_type, fw_ver = int(fw_type), int(fw_ver)
@@ -154,19 +165,8 @@ class OTAFirmware(object):
                 'Firmware type %s or version %s not valid, '
                 'please enter integers', fw_type, fw_ver)
             return
-        if fw_path is not None:
-            fname = os.path.realpath(fw_path)
-            exists = os.path.isfile(fname)
-            if not exists or not os.access(fname, os.R_OK):
-                _LOGGER.error(
-                    'Firmware path %s does not exist or is not readable',
-                    fw_path)
-                return
-            fware = check_fw(fw_path)
-            if fware is None:
-                _LOGGER.error(
-                    'Firmware not valid, check the hex file at %s', fw_path)
-                return
+        if fw_bin is not None:
+            fware = prepare_fw(fw_bin)
             self.firmware[fw_type, fw_ver] = fware
         if (fw_type, fw_ver) not in self.firmware:
             _LOGGER.error(
