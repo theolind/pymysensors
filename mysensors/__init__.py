@@ -8,7 +8,6 @@ from collections import deque
 # pylint: disable=no-name-in-module, import-error
 from distutils.version import LooseVersion as parse_ver
 from functools import partial
-
 from timeit import default_timer as timer
 
 import voluptuous as vol
