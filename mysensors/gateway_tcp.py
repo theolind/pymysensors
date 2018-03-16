@@ -2,6 +2,7 @@
 import logging
 import select
 import socket
+import threading
 import time
 
 from mysensors import ThreadingGateway, Message
@@ -9,7 +10,7 @@ from mysensors import ThreadingGateway, Message
 _LOGGER = logging.getLogger(__name__)
 
 
-class TCPGateway(ThreadingGateway):
+class TCPGateway(ThreadingGateway, threading.Thread):
     """MySensors TCP ethernet gateway."""
 
     # pylint: disable=too-many-arguments, too-many-instance-attributes

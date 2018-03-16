@@ -1,5 +1,6 @@
 """Implement an MQTT gateway."""
 import logging
+import threading
 import time
 
 from mysensors import ThreadingGateway, Message
@@ -7,7 +8,7 @@ from mysensors import ThreadingGateway, Message
 _LOGGER = logging.getLogger(__name__)
 
 
-class MQTTGateway(ThreadingGateway):
+class MQTTGateway(ThreadingGateway, threading.Thread):
     """MySensors MQTT client gateway."""
 
     # pylint: disable=too-many-arguments, too-many-instance-attributes
