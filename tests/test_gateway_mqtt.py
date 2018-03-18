@@ -20,8 +20,7 @@ class TestMQTTGateway(TestCase):
 
     def tearDown(self):
         """Stop MQTTGateway if alive."""
-        if self.gateway.is_alive():
-            self.gateway.stop()
+        self.gateway.stop()
 
     def _add_sensor(self, sensorid):
         """Add sensor node. Return sensor node instance."""
@@ -115,7 +114,6 @@ class TestMQTTGateway(TestCase):
         mock_schedule_save = mock.MagicMock()
         mock_schedule_save.return_value = mock_cancel_save
         self.gateway.persistence.schedule_save_sensors = mock_schedule_save
-        self.assertFalse(self.gateway.is_alive())
         sensor = self._add_sensor(1)
         sensor.children[1] = ChildSensor(
             1, self.gateway.const.Presentation.S_HUM)
@@ -128,7 +126,6 @@ class TestMQTTGateway(TestCase):
         assert mock_schedule_save.call_count == 1
         self.gateway.start()
         time.sleep(0.05)
-        self.assertTrue(self.gateway.is_alive())
         calls = [
             mock.call('/+/+/0/+/+', self.gateway.recv, 0),
             mock.call('/+/+/3/+/+', self.gateway.recv, 0)]
@@ -138,8 +135,6 @@ class TestMQTTGateway(TestCase):
             mock.call('/1/1/1/0/1', '30', 0, True)]
         self.mock_pub.assert_has_calls(calls)
         self.gateway.stop()
-        self.gateway.join(timeout=0.5)
-        self.assertFalse(self.gateway.is_alive())
         assert mock_cancel_save.call_count == 1
         assert mock_save.call_count == 1
 
