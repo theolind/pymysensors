@@ -3,29 +3,15 @@ import asyncio
 import logging
 import threading
 import time
-from functools import partial
 
 import serial
 import serial.threaded
 import serial_asyncio
 
-from mysensors import (
-    BaseMySensorsProtocol, BaseTransportGateway, ThreadingGateway)
-from .ota import load_fw
-
-try:
-    from asyncio import ensure_future  # pylint: disable=ungrouped-imports
-except ImportError:
-    # Python 3.4.3 and earlier has this as async
-    # pylint: disable=unused-import
-    from asyncio import async  # pylint: disable=ungrouped-imports
-    ensure_future = async
+from mysensors import (BaseAsyncGateway, BaseMySensorsProtocol,
+                       BaseTransportGateway, ThreadingGateway)
 
 _LOGGER = logging.getLogger(__name__)
-
-
-class AsyncSerialProtocol(BaseMySensorsProtocol, asyncio.Protocol):
-    """Async serial protocol class."""
 
 
 class BaseSerialGateway(BaseTransportGateway):
@@ -40,7 +26,7 @@ class BaseSerialGateway(BaseTransportGateway):
         self.baud = baud
 
 
-class SerialGateway(ThreadingGateway, BaseSerialGateway):
+class SerialGateway(BaseSerialGateway, ThreadingGateway):
     """MySensors serial gateway."""
 
     def __init__(self, *args, **kwargs):
@@ -79,22 +65,8 @@ class SerialGateway(ThreadingGateway, BaseSerialGateway):
         super().stop()
 
 
-class AsyncSerialGateway(BaseSerialGateway):
+class AsyncSerialGateway(BaseSerialGateway, BaseAsyncGateway):
     """MySensors async serial gateway."""
-
-    def __init__(self, *args, loop=None, **kwargs):
-        """Set up async serial gateway."""
-        super().__init__(
-            *args, persistence_scheduler=self._create_scheduler, **kwargs)
-        self.loop = loop or asyncio.get_event_loop()
-
-        def conn_lost():
-            """Handle connection_lost in protocol class."""
-            # pylint: disable=deprecated-method
-            ensure_future(self._connect(), loop=self.loop)
-
-        self.protocol = AsyncSerialProtocol(self, conn_lost)
-        self._cancel_save = None
 
     @asyncio.coroutine
     def _connect(self):
@@ -115,66 +87,3 @@ class AsyncSerialGateway(BaseSerialGateway):
                         self.reconnect_timeout, loop=self.loop)
         except asyncio.CancelledError:
             _LOGGER.debug('Connect attempt to %s cancelled', self.port)
-
-    @asyncio.coroutine
-    def start(self):
-        """Start the connection to a serial port."""
-        yield from self._connect()
-
-    @asyncio.coroutine
-    def stop(self):
-        """Stop the gateway."""
-        _LOGGER.info('Stopping gateway')
-        self._disconnect()
-        if not self.persistence:
-            return
-        if self._cancel_save is not None:
-            self._cancel_save()
-            self._cancel_save = None
-        yield from self.loop.run_in_executor(
-            None, self.persistence.save_sensors)
-
-    def add_job(self, func, *args):
-        """Add a job that should return a reply to be sent.
-
-        A job is a tuple of function and optional args. Keyword arguments
-        can be passed via use of functools.partial. The job should return a
-        string that should be sent by the gateway protocol.
-
-        The async version of this method will send the reply directly.
-        """
-        job = func, args
-        reply = self.run_job(job)
-        self.send(reply)
-
-    def _create_scheduler(self, save_sensors):
-        """Return function to schedule saving sensors."""
-        @asyncio.coroutine
-        def schedule_save():
-            """Return a function to cancel the schedule."""
-            yield from self.loop.run_in_executor(None, save_sensors)
-            callback = partial(
-                ensure_future, schedule_save(), loop=self.loop)
-            task = self.loop.call_later(10.0, callback)
-            self._cancel_save = task.cancel
-        return schedule_save
-
-    @asyncio.coroutine
-    def start_persistence(self):
-        """Load persistence file and schedule saving of persistence file."""
-        if not self.persistence:
-            return
-        yield from self.loop.run_in_executor(
-            None, self.persistence.safe_load_sensors)
-        yield from self.persistence.schedule_save_sensors()
-
-    @asyncio.coroutine
-    def update_fw(self, nids, fw_type, fw_ver, fw_path=None):
-        """Start update firwmare of all node_ids in nids in executor."""
-        fw_bin = None
-        if fw_path:
-            fw_bin = yield from self.loop.run_in_executor(
-                None, load_fw, fw_path)
-            if not fw_bin:
-                return
-        self.ota.make_update(nids, fw_type, fw_ver, fw_bin)

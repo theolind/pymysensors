@@ -1,4 +1,5 @@
 """Python implementation of MySensors API."""
+import asyncio
 import calendar
 import logging
 import threading
@@ -9,6 +10,14 @@ from collections import deque
 from distutils.version import LooseVersion as parse_ver
 from functools import partial
 from timeit import default_timer as timer
+
+try:
+    from asyncio import ensure_future  # pylint: disable=ungrouped-imports
+except ImportError:
+    # Python 3.4.3 and earlier has this as async
+    # pylint: disable=unused-import
+    from asyncio import async  # pylint: disable=ungrouped-imports
+    ensure_future = async
 
 import serial.threaded
 import voluptuous as vol
@@ -414,7 +423,7 @@ class BaseTransportGateway(Gateway):
         if not message or not self.protocol or not self.protocol.transport:
             return
         if not self.can_log:
-            _LOGGER.debug('Sending %s', message)
+            _LOGGER.debug('Sending %s', message.strip())
         try:
             self.protocol.transport.write(message.encode())
         except OSError as exc:
@@ -423,6 +432,92 @@ class BaseTransportGateway(Gateway):
                 self.protocol.transport, exc)
             self.protocol.transport.close()
             self.protocol.conn_lost_callback()
+
+
+class BaseAsyncGateway(BaseTransportGateway):
+    """MySensors base async gateway."""
+
+    def __init__(self, *args, loop=None, **kwargs):
+        """Set up async serial gateway."""
+        super().__init__(
+            *args, persistence_scheduler=self._create_scheduler, **kwargs)
+        self.loop = loop or asyncio.get_event_loop()
+
+        def conn_lost():
+            """Handle connection_lost in protocol class."""
+            # pylint: disable=deprecated-method
+            ensure_future(self._connect(), loop=self.loop)
+
+        self.protocol = AsyncMySensorsProtocol(self, conn_lost)
+        self._cancel_save = None
+
+    @asyncio.coroutine
+    def _connect(self):
+        """Connect to the transport."""
+        raise NotImplementedError
+
+    @asyncio.coroutine
+    def start(self):
+        """Start the connection to a transport."""
+        yield from self._connect()
+
+    @asyncio.coroutine
+    def stop(self):
+        """Stop the gateway."""
+        _LOGGER.info('Stopping gateway')
+        self._disconnect()
+        if not self.persistence:
+            return
+        if self._cancel_save is not None:
+            self._cancel_save()
+            self._cancel_save = None
+        yield from self.loop.run_in_executor(
+            None, self.persistence.save_sensors)
+
+    def add_job(self, func, *args):
+        """Add a job that should return a reply to be sent.
+
+        A job is a tuple of function and optional args. Keyword arguments
+        can be passed via use of functools.partial. The job should return a
+        string that should be sent by the gateway protocol.
+
+        The async version of this method will send the reply directly.
+        """
+        job = func, args
+        reply = self.run_job(job)
+        self.send(reply)
+
+    def _create_scheduler(self, save_sensors):
+        """Return function to schedule saving sensors."""
+        @asyncio.coroutine
+        def schedule_save():
+            """Return a function to cancel the schedule."""
+            yield from self.loop.run_in_executor(None, save_sensors)
+            callback = partial(
+                ensure_future, schedule_save(), loop=self.loop)
+            task = self.loop.call_later(10.0, callback)
+            self._cancel_save = task.cancel
+        return schedule_save
+
+    @asyncio.coroutine
+    def start_persistence(self):
+        """Load persistence file and schedule saving of persistence file."""
+        if not self.persistence:
+            return
+        yield from self.loop.run_in_executor(
+            None, self.persistence.safe_load_sensors)
+        yield from self.persistence.schedule_save_sensors()
+
+    @asyncio.coroutine
+    def update_fw(self, nids, fw_type, fw_ver, fw_path=None):
+        """Start update firwmare of all node_ids in nids in executor."""
+        fw_bin = None
+        if fw_path:
+            fw_bin = yield from self.loop.run_in_executor(
+                None, load_fw, fw_path)
+            if not fw_bin:
+                return
+        self.ota.make_update(nids, fw_type, fw_ver, fw_bin)
 
 
 class BaseMySensorsProtocol(serial.threaded.LineReader):
@@ -443,7 +538,10 @@ class BaseMySensorsProtocol(serial.threaded.LineReader):
     def connection_made(self, transport):
         """Handle created connection."""
         super().connection_made(transport)
-        _LOGGER.info('Connected to %s', self.transport.serial)
+        if hasattr(self.transport, 'serial'):
+            _LOGGER.info('Connected to %s', self.transport.serial)
+        else:
+            _LOGGER.info('Connected to %s', self.transport)
 
     def handle_line(self, line):
         """Handle incoming string data one line at a time."""
@@ -457,5 +555,17 @@ class BaseMySensorsProtocol(serial.threaded.LineReader):
         if exc:
             _LOGGER.error(exc)
             self.transport.serial.close()
+            self.conn_lost_callback()
+        self.transport = None
+
+
+class AsyncMySensorsProtocol(BaseMySensorsProtocol, asyncio.Protocol):
+    """Async serial protocol class."""
+
+    def connection_lost(self, exc):
+        """Handle lost connection."""
+        _LOGGER.debug('Connection lost with %s', self.transport)
+        if exc:
+            _LOGGER.error(exc)
             self.conn_lost_callback()
         self.transport = None

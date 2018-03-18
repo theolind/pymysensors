@@ -5,7 +5,7 @@ Python API for talking to a MySensors gateway (http://www.mysensors.org/). Curre
 - Supports the MQTT client gateway with serial API v2.x.
 - Supports OTA updates, for both [DualOptiboot](https://github.com/mysensors/DualOptiboot) and [MYSBootloader](https://github.com/mysensors/MySensorsBootloaderRF24) bootloaders.
 - All gateway instances, serial, tcp (ethernet) or mqtt will run in separate threads.
-- Experimental implementation of serial gateway using pyserial-asyncio, as an alternative to running the gateway in its own thread.
+- Experimental implementation of serial and TCP gateways using asyncio, as an alternative to running the gateway in its own thread.
 
 # Usage
 Currently the API is best used by implementing a callback handler
@@ -131,9 +131,9 @@ firmware match the CRC of the firmware config response, the node will restart
 and load the new firmware.
 
 ## Async gateway
-The serial gateway now also has a version that supports asyncio. Use the
-`AsyncSerialGateway` class to make a gateway that uses asyncio. The following
-public methods are coroutines in the async gateway:
+The serial and TCP gateways now also have versions that support asyncio. Use the
+`AsyncSerialGateway` class or `AsyncTCPGateway` class to make a gateway that
+uses asyncio. The following public methods are coroutines in the async gateway:
 
 - start_persistence
 - start

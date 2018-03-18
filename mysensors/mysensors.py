@@ -4,6 +4,6 @@
 from mysensors import Gateway
 from mysensors.gateway_mqtt import MQTTGateway
 from mysensors.gateway_serial import AsyncSerialGateway, SerialGateway
-from mysensors.gateway_tcp import TCPGateway
+from mysensors.gateway_tcp import AsyncTCPGateway, TCPGateway
 from mysensors.message import Message
 from mysensors.sensor import ChildSensor, Sensor

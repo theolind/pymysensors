@@ -1,4 +1,5 @@
 """Implement a TCP gateway."""
+import asyncio
 import logging
 import select
 import socket
@@ -7,22 +8,23 @@ import time
 
 import serial.threaded
 
-from mysensors import (
-    BaseMySensorsProtocol, BaseTransportGateway, ThreadingGateway, Message)
+from mysensors import (BaseAsyncGateway, BaseMySensorsProtocol,
+                       BaseTransportGateway, Message, ThreadingGateway)
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class TCPGateway(ThreadingGateway, BaseTransportGateway):
-    """MySensors TCP ethernet gateway."""
+class BaseTCPGateway(BaseTransportGateway):
+    """MySensors base TCP gateway."""
+
+    # pylint: disable=abstract-method
 
     def __init__(self, host, port=5003, **kwargs):
-        """Set up TCP gateway."""
+        """Set up base TCP gateway."""
         super().__init__(**kwargs)
         self.server_address = (host, port)
         self.tcp_check_timer = time.time()
         self.tcp_disconnect_timer = time.time()
-        self.protocol = BaseMySensorsProtocol(self, self.start)
 
     def _check_connection(self):
         """Check if connection is alive every reconnect_timeout seconds."""
@@ -46,6 +48,15 @@ class TCPGateway(ThreadingGateway, BaseTransportGateway):
             return None
         return super()._handle_internal(msg)
 
+
+class TCPGateway(BaseTCPGateway, ThreadingGateway):
+    """MySensors TCP gateway."""
+
+    def __init__(self, *args, **kwargs):
+        """Set up TCP gateway."""
+        super().__init__(*args, **kwargs)
+        self.protocol = BaseMySensorsProtocol(self, self.start)
+
     def _connect(self):
         """Connect to socket. This should be run in a new thread."""
         while self.protocol:
@@ -53,7 +64,7 @@ class TCPGateway(ThreadingGateway, BaseTransportGateway):
             try:
                 sock = socket.create_connection(
                     self.server_address, self.reconnect_timeout)
-            except TimeoutError:
+            except socket.timeout:
                 _LOGGER.error(
                     'Connecting to socket timed out for %s',
                     self.server_address)
@@ -85,6 +96,59 @@ class TCPGateway(ThreadingGateway, BaseTransportGateway):
         _LOGGER.info('Stopping gateway')
         self._disconnect()
         super().stop()
+
+
+class AsyncTCPGateway(BaseTCPGateway, BaseAsyncGateway):
+    """MySensors async TCP gateway."""
+
+    @asyncio.coroutine
+    def _connect(self):
+        """Connect to the socket."""
+        try:
+            while self.loop.is_running() and self.protocol:
+                _LOGGER.info('Trying to connect to %s', self.server_address)
+                try:
+                    yield from asyncio.wait_for(
+                        self.loop.create_connection(
+                            lambda: self.protocol, *self.server_address),
+                        self.reconnect_timeout, loop=self.loop)
+                    self.tcp_check_timer = time.time()
+                    self.tcp_disconnect_timer = time.time()
+                    self._check_connection()
+                    return
+                except asyncio.TimeoutError:
+                    _LOGGER.error(
+                        'Connecting to socket timed out for %s',
+                        self.server_address)
+                    _LOGGER.info(
+                        'Waiting %s secs before trying to connect again',
+                        self.reconnect_timeout)
+                    yield from asyncio.sleep(
+                        self.reconnect_timeout, loop=self.loop)
+                except OSError:
+                    _LOGGER.error(
+                        'Failed to connect to socket at %s',
+                        self.server_address)
+                    _LOGGER.info(
+                        'Waiting %s secs before trying to connect again',
+                        self.reconnect_timeout)
+                    yield from asyncio.sleep(
+                        self.reconnect_timeout, loop=self.loop)
+        except asyncio.CancelledError:
+            _LOGGER.debug(
+                'Connect attempt to %s cancelled', self.server_address)
+
+    def _check_connection(self):
+        """Check if connection is alive every reconnect_timeout seconds."""
+        try:
+            super()._check_connection()
+        except OSError as exc:
+            _LOGGER.error(exc)
+            self.protocol.transport.close()
+            self.protocol.conn_lost_callback()
+            return
+        self.loop.call_later(
+            self.reconnect_timeout + 0.1, self._check_connection)
 
 
 class TCPTransport(serial.threaded.ReaderThread):
