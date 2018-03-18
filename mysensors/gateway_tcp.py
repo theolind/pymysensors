@@ -55,20 +55,22 @@ class TCPGateway(ThreadingGateway, BaseTransportGateway):
                     self.server_address, self.reconnect_timeout)
             except TimeoutError:
                 _LOGGER.error(
-                    'Connecting to socket timed out for %s.',
+                    'Connecting to socket timed out for %s',
                     self.server_address)
                 _LOGGER.info(
-                    'Waiting %s secs before trying to connect again.',
+                    'Waiting %s secs before trying to connect again',
                     self.reconnect_timeout)
                 time.sleep(self.reconnect_timeout)
             except OSError:
                 _LOGGER.error(
-                    'Failed to connect to socket at %s.', self.server_address)
+                    'Failed to connect to socket at %s', self.server_address)
                 _LOGGER.info(
-                    'Waiting %s secs before trying to connect again.',
+                    'Waiting %s secs before trying to connect again',
                     self.reconnect_timeout)
                 time.sleep(self.reconnect_timeout)
             else:
+                self.tcp_check_timer = time.time()
+                self.tcp_disconnect_timer = time.time()
                 transport = TCPTransport(
                     sock, lambda: self.protocol, self._check_connection)
                 poll_thread = threading.Thread(target=self._poll_queue)

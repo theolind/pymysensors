@@ -58,7 +58,7 @@ class SerialGateway(ThreadingGateway, BaseSerialGateway):
             except serial.SerialException:
                 _LOGGER.error('Unable to connect to %s', self.port)
                 _LOGGER.info(
-                    'Waiting %s secs before trying to connect again.',
+                    'Waiting %s secs before trying to connect again',
                     self.reconnect_timeout)
                 time.sleep(self.reconnect_timeout)
             else:
@@ -109,7 +109,7 @@ class AsyncSerialGateway(BaseSerialGateway):
                 except serial.SerialException:
                     _LOGGER.error('Unable to connect to %s', self.port)
                     _LOGGER.info(
-                        'Waiting %s secs before trying to connect again.',
+                        'Waiting %s secs before trying to connect again',
                         self.reconnect_timeout)
                     yield from asyncio.sleep(
                         self.reconnect_timeout, loop=self.loop)
