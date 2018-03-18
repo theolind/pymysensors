@@ -29,7 +29,8 @@ class TCPGateway(ThreadingGateway, BaseTransportGateway):
         if ((self.tcp_disconnect_timer + 2 * self.reconnect_timeout) <
                 time.time()):
             self.tcp_disconnect_timer = time.time()
-            raise OSError('No response. Disconnected.')
+            raise OSError('No response from {}. Disconnecting'.format(
+                self.server_address))
         if (self.tcp_check_timer + self.reconnect_timeout) >= time.time():
             return
         msg = Message().copy(
