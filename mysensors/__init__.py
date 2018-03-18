@@ -567,5 +567,6 @@ class AsyncMySensorsProtocol(BaseMySensorsProtocol, asyncio.Protocol):
         _LOGGER.debug('Connection lost with %s', self.transport)
         if exc:
             _LOGGER.error(exc)
+            self.transport.close()
             self.conn_lost_callback()
         self.transport = None

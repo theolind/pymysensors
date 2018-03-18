@@ -64,7 +64,7 @@ class TCPGateway(BaseTCPGateway, ThreadingGateway):
             try:
                 sock = socket.create_connection(
                     self.server_address, self.reconnect_timeout)
-            except TimeoutError:
+            except socket.timeout:
                 _LOGGER.error(
                     'Connecting to socket timed out for %s',
                     self.server_address)
@@ -108,25 +108,29 @@ class AsyncTCPGateway(BaseTCPGateway, BaseAsyncGateway):
             while self.loop.is_running() and self.protocol:
                 _LOGGER.info('Trying to connect to %s', self.server_address)
                 try:
-                    yield from self.loop.create_connection(
-                        lambda: self.protocol, *self.server_address)
+                    yield from asyncio.wait_for(
+                        self.loop.create_connection(
+                            lambda: self.protocol, *self.server_address),
+                        self.reconnect_timeout, loop=self.loop)
+                    self.tcp_check_timer = time.time()
+                    self.tcp_disconnect_timer = time.time()
                     self._check_connection()
                     return
-                except TimeoutError:
+                except asyncio.TimeoutError:
                     _LOGGER.error(
-                        'Connecting to socket timed out for %s.',
+                        'Connecting to socket timed out for %s',
                         self.server_address)
                     _LOGGER.info(
-                        'Waiting %s secs before trying to connect again.',
+                        'Waiting %s secs before trying to connect again',
                         self.reconnect_timeout)
                     yield from asyncio.sleep(
                         self.reconnect_timeout, loop=self.loop)
                 except OSError:
                     _LOGGER.error(
-                        'Failed to connect to socket at %s.',
+                        'Failed to connect to socket at %s',
                         self.server_address)
                     _LOGGER.info(
-                        'Waiting %s secs before trying to connect again.',
+                        'Waiting %s secs before trying to connect again',
                         self.reconnect_timeout)
                     yield from asyncio.sleep(
                         self.reconnect_timeout, loop=self.loop)
@@ -136,7 +140,13 @@ class AsyncTCPGateway(BaseTCPGateway, BaseAsyncGateway):
 
     def _check_connection(self):
         """Check if connection is alive every reconnect_timeout seconds."""
-        super()._check_connection()
+        try:
+            super()._check_connection()
+        except OSError as exc:
+            _LOGGER.error(exc)
+            self.protocol.transport.close()
+            self.protocol.conn_lost_callback()
+            return
         self.loop.call_later(
             self.reconnect_timeout + 0.1, self._check_connection)
 
