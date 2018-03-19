@@ -354,7 +354,7 @@ class ThreadingGateway(Gateway):
         self._cancel_save = None
 
     def start(self):
-        """Connect to the transport."""
+        """Start the connection to a transport."""
         connect_thread = threading.Thread(target=self._connect)
         connect_thread.start()
 
