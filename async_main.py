@@ -10,7 +10,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 def event(message):
     """Handle mysensors updates."""
-    print("sensor_update " + str(message.node_id))
+    print('sensor_update ' + str(message.node_id))
 
 
 LOOP = asyncio.get_event_loop()
