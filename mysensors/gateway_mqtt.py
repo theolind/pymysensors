@@ -1,13 +1,14 @@
 """Implement an MQTT gateway."""
+import asyncio
 import logging
 import threading
 
-from mysensors import ThreadingGateway, Message
+from mysensors import BaseAsyncGateway, Gateway, Message, ThreadingGateway
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class MQTTGateway(ThreadingGateway):
+class BaseMQTTGateway(Gateway):
     """MySensors MQTT client gateway."""
 
     # pylint: disable=too-many-arguments, abstract-method
@@ -134,15 +135,39 @@ class MQTTGateway(ThreadingGateway):
         if not message:
             return
         topic, payload, qos = self._parse_message_to_mqtt(message)
+        try:
+            _LOGGER.debug('Publishing %s', message.strip())
+            self._pub_callback(topic, payload, qos, self._retain)
+        except Exception as exception:  # pylint: disable=broad-except
+            _LOGGER.exception('Publish to %s failed: %s', topic, exception)
+
+
+class MQTTGateway(BaseMQTTGateway, ThreadingGateway):
+    """MySensors MQTT client gateway."""
+
+    # pylint: disable=abstract-method
+
+    def send(self, message):
+        """Publish a command string to the gateway via MQTT."""
         with self.lock:
-            try:
-                _LOGGER.debug('Publishing %s', message)
-                self._pub_callback(topic, payload, qos, self._retain)
-            except Exception as exception:  # pylint: disable=broad-except
-                _LOGGER.exception('Publish to %s failed: %s', topic, exception)
+            super().send(message)
 
     def start(self):
-        """Connect to the transport."""
+        """Start the connection to a transport."""
         self._init_topics()
         poll_thread = threading.Thread(target=self._poll_queue)
         poll_thread.start()
+
+    def stop(self):
+        """Stop the gateway."""
+        _LOGGER.info('Stopping gateway')
+        super().stop()
+
+
+class AsyncMQTTGateway(BaseMQTTGateway, BaseAsyncGateway):
+    """MySensors async MQTT client gateway."""
+
+    @asyncio.coroutine
+    def _connect(self):
+        """Connect to the transport."""
+        self._init_topics()
