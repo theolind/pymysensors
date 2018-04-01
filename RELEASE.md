@@ -18,9 +18,9 @@
 	password = password
 	```
   There's a new API for PyPi, see this [page](https://packaging.python.org/guides/migrating-to-pypi-org/#uploading) for more info.
-- Install `twine` v1.8.0+.
+- Install the pypi requirements including `twine`.
   ```
-  pip3 install --upgrade twine
+  pip3 install -r requirements_pypi.txt
   ```
 - Create a release branch from dev.
 - Merge master into the release branch to make the PR mergeable.
@@ -31,15 +31,22 @@
 - Merge the pull request into master, do not squash.
 - Go to github releases and tag a new release on the master branch. Put the PR message as the description for the release.
 - Fetch and checkout the master branch.
-- Generate `README.rst` by running `scripts/gen_rst` (pandoc needed).
 - Build source and wheel distributions:
   ```
   rm -rf build
   rm -rf dist
   python3 setup.py sdist bdist_wheel
   ```
-- Stage release: `twine upload -r testpypi dist/*`
-- Release: `twine upload -r pypi dist/*`
+- Stage release (upload distributions one at a time to avoid bug, see this [blog](https://dustingram.com/articles/2018/03/16/markdown-descriptions-on-pypi)):
+  ```
+  twine upload -r testpypi dist/*.tar.gz
+  twine upload -r testpypi dist/*.whl
+  ```
+- Release:
+  ```
+  twine upload -r pypi dist/*.tar.gz
+  twine upload -r pypi dist/*.whl
+  ```
 - Fetch and checkout the develop branch.
 - Merge master into develop.
 - Update version in `mysensors/version.py` to the new develop version number, eg `'0.3.0.dev0'`
