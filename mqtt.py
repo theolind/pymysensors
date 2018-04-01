@@ -46,14 +46,15 @@ class MQTT(object):
 
 def event(message):
     """Callback for mysensors updates."""
-    print("sensor_update " + str(message.node_id))
+    print('sensor_update ' + str(message.node_id))
+
 
 MQTTC = MQTT('localhost', 1883, 60)
 MQTTC.start()
 
 GATEWAY = mysensors.MQTTGateway(
-    MQTTC.publish, MQTTC.subscribe, event_callback=event,
-    protocol_version="2.0", in_prefix='mygateway1-out',
-    out_prefix='mygateway1-in', retain=True)
+    MQTTC.publish, MQTTC.subscribe, in_prefix='mygateway1-out',
+    out_prefix='mygateway1-in', retain=True, event_callback=event,
+    protocol_version='2.0')
 
 GATEWAY.start()
