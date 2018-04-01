@@ -6,8 +6,8 @@ exec(open('mysensors/version.py').read())
 README = open('README.md').read()
 
 REQUIRES = [
-    'pyserial>=3.2.1', 'pyserial-asyncio>=0.4', 'crcmod>=1.7', 'IntelHex>=2.1',
-    'voluptuous>=0.10.5',
+    'pyserial>=3.4', 'pyserial-asyncio>=0.4', 'crcmod>=1.7',
+    'IntelHex>=2.2.1', 'voluptuous==0.11.1',
 ]
 
 setup(
