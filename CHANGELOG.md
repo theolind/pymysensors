@@ -255,4 +255,3 @@
 - Add setup.py [\#4](https://github.com/theolind/pymysensors/pull/4) ([balloob](https://github.com/balloob))
 - Fix ValueError issue when decoding a message. [\#2](https://github.com/theolind/pymysensors/pull/2) ([andythigpen](https://github.com/andythigpen))
 - Improvements [\#1](https://github.com/theolind/pymysensors/pull/1) ([andythigpen](https://github.com/andythigpen))
-
