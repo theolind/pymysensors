@@ -14,6 +14,8 @@
 
 **Merged pull requests:**
 
+- Add pyup config file [\#137](https://github.com/theolind/pymysensors/pull/137) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Update changelog generator to use python package [\#136](https://github.com/theolind/pymysensors/pull/136) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Upgrade requirements packages [\#134](https://github.com/theolind/pymysensors/pull/134) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Update release instructions to use markdown readme [\#133](https://github.com/theolind/pymysensors/pull/133) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Update readme and examples [\#132](https://github.com/theolind/pymysensors/pull/132) ([MartinHjelmare](https://github.com/MartinHjelmare))
