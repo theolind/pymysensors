@@ -1,5 +1,33 @@
 # Change Log
 
+# [0.13.0](https://github.com/theolind/pymysensors/tree/0.13.0) (2018-04-02)
+[Full Changelog](https://github.com/theolind/pymysensors/compare/0.12.1...0.13.0)
+
+**Breaking Changes:**
+
+- Refactor persistence [\#124](https://github.com/theolind/pymysensors/pull/124) ([MartinHjelmare](https://github.com/MartinHjelmare))
+
+**Closed issues:**
+
+- Add support for I\_PRE\_SLEEP\_NOTIFICATION in 2.2.0 [\#121](https://github.com/theolind/pymysensors/issues/121)
+- OTA not kicking off? [\#118](https://github.com/theolind/pymysensors/issues/118)
+
+**Merged pull requests:**
+
+- Upgrade requirements packages [\#134](https://github.com/theolind/pymysensors/pull/134) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Update release instructions to use markdown readme [\#133](https://github.com/theolind/pymysensors/pull/133) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Update readme and examples [\#132](https://github.com/theolind/pymysensors/pull/132) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Add async MQTT gateway [\#131](https://github.com/theolind/pymysensors/pull/131) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Add async tcp gateway [\#130](https://github.com/theolind/pymysensors/pull/130) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Refactor tcp and serial gateways [\#129](https://github.com/theolind/pymysensors/pull/129) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Add serial base protocol [\#128](https://github.com/theolind/pymysensors/pull/128) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Add async serial gateway [\#127](https://github.com/theolind/pymysensors/pull/127) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Break out firmware file loading [\#126](https://github.com/theolind/pymysensors/pull/126) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Only save persistence if sensors have changed [\#125](https://github.com/theolind/pymysensors/pull/125) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Save sensors on a schedule [\#123](https://github.com/theolind/pymysensors/pull/123) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Add pre sleep smartsleep [\#122](https://github.com/theolind/pymysensors/pull/122) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Add new internal sub-types [\#120](https://github.com/theolind/pymysensors/pull/120) ([jslove](https://github.com/jslove))
+
 # [0.12.1](https://github.com/theolind/pymysensors/tree/0.12.1) (2018-01-14)
 [Full Changelog](https://github.com/theolind/pymysensors/compare/0.12...0.12.1)
 
@@ -21,6 +49,7 @@
 
 **Merged pull requests:**
 
+- 0.12 [\#115](https://github.com/theolind/pymysensors/pull/115) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Upgrade lint and test requirements [\#114](https://github.com/theolind/pymysensors/pull/114) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Dump JSON file with indentation [\#113](https://github.com/theolind/pymysensors/pull/113) ([Mirodin](https://github.com/Mirodin))
 - Fix reboot not returning to False [\#111](https://github.com/theolind/pymysensors/pull/111) ([MartinHjelmare](https://github.com/MartinHjelmare))
@@ -193,9 +222,11 @@
 - Fix add\_child\_sensor [\#26](https://github.com/theolind/pymysensors/pull/26) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Fix some PEP issues. [\#25](https://github.com/theolind/pymysensors/pull/25) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Handling message-type req [\#24](https://github.com/theolind/pymysensors/pull/24) ([forsberg](https://github.com/forsberg))
-- Basic handling of message-type req [\#22](https://github.com/theolind/pymysensors/pull/22) ([forsberg](https://github.com/forsberg))
+- Add kwargs to set\_child\_value functions [\#23](https://github.com/theolind/pymysensors/pull/23) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Fix PEP issues [\#20](https://github.com/theolind/pymysensors/pull/20) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Remove sleep in connect function [\#19](https://github.com/theolind/pymysensors/pull/19) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Add threading.lock for send function [\#16](https://github.com/theolind/pymysensors/pull/16) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Fix decode partial data [\#15](https://github.com/theolind/pymysensors/pull/15) ([MartinHjelmare](https://github.com/MartinHjelmare))
 
 # [0.4](https://github.com/theolind/pymysensors/tree/0.4) (2016-01-07)
 [Full Changelog](https://github.com/theolind/pymysensors/compare/0.3...0.4)
@@ -203,6 +234,7 @@
 **Merged pull requests:**
 
 - Version 0.4 [\#14](https://github.com/theolind/pymysensors/pull/14) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Fifo queue, implementing switches [\#13](https://github.com/theolind/pymysensors/pull/13) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Fix attributes [\#11](https://github.com/theolind/pymysensors/pull/11) ([MartinHjelmare](https://github.com/MartinHjelmare))
 
 # [0.3](https://github.com/theolind/pymysensors/tree/0.3) (2015-10-09)
@@ -214,4 +246,13 @@
 
 **Merged pull requests:**
 
+- Bump the version number to 0.3. [\#9](https://github.com/theolind/pymysensors/pull/9) ([andythigpen](https://github.com/andythigpen))
 - Pass protocol version through from SerialGateway to Gateway. [\#8](https://github.com/theolind/pymysensors/pull/8) ([andythigpen](https://github.com/andythigpen))
+
+# [0.2](https://github.com/theolind/pymysensors/tree/0.2) (2015-08-15)
+**Merged pull requests:**
+
+- Add setup.py [\#4](https://github.com/theolind/pymysensors/pull/4) ([balloob](https://github.com/balloob))
+- Fix ValueError issue when decoding a message. [\#2](https://github.com/theolind/pymysensors/pull/2) ([andythigpen](https://github.com/andythigpen))
+- Improvements [\#1](https://github.com/theolind/pymysensors/pull/1) ([andythigpen](https://github.com/andythigpen))
+

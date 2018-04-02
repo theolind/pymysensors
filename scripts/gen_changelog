@@ -45,5 +45,6 @@ MAJOR_VERSION=$(head -n 2 mysensors/version.py | tail -n 1 \
 
 VERSION="$MAJOR_VERSION.$MINOR_VERSION.$PATCH_VERSION"
 
-pygcgen -u theolind -p pymysensors \
-  --section "**Breaking Changes:**" "breaking change" --future-release $VERSION
+pygcgen -u theolind -p pymysensors -v \
+ --section "**Breaking Changes:**" "breaking change" --with-unreleased \
+ --future-release $VERSION
