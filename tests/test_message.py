@@ -165,6 +165,24 @@ INTERNAL_FIXTURES_20.update({
 })
 
 
+INTERNAL_FIXTURES_21 = dict(INTERNAL_FIXTURES_20)
+INTERNAL_FIXTURES_21.update({
+    'I_FIND_PARENT_REQUEST': '',
+    'I_HEARTBEAT_REQUEST': '',
+    'I_DISCOVER_REQUEST': '',
+})
+
+
+INTERNAL_FIXTURES_22 = dict(INTERNAL_FIXTURES_21)
+INTERNAL_FIXTURES_22.update({
+    'I_SIGNAL_REPORT_REQUEST': 'test',
+    'I_SIGNAL_REPORT_REVERSE': '123',
+    'I_SIGNAL_REPORT_RESPONSE': '123',
+    'I_PRE_SLEEP_NOTIFICATION': '123',
+    'I_POST_SLEEP_NOTIFICATION': '123',
+})
+
+
 def get_gateway(protocol_version):
     """Return a gateway."""
     gateway = Gateway(protocol_version=protocol_version)
@@ -269,7 +287,8 @@ def test_validate_internal():
     """Test Internal messages."""
     versions = [
         ('1.4', INTERNAL_FIXTURES_14), ('1.5', INTERNAL_FIXTURES_15),
-        ('2.0', INTERNAL_FIXTURES_20)]
+        ('2.0', INTERNAL_FIXTURES_20), ('2.1', INTERNAL_FIXTURES_21),
+        ('2.2', INTERNAL_FIXTURES_22)]
     for protocol_version, fixture in versions:
         gateway = get_gateway(protocol_version)
         const = get_const(protocol_version)
@@ -282,7 +301,15 @@ def test_validate_internal():
                 return_value = None
             sub_type = const.Internal[name]
             msg = Message('1;255;3;0;{};{}\n'.format(sub_type, _payload))
-            valid = msg.validate(protocol_version)
+            try:
+                valid = msg.validate(protocol_version)
+            except vol.MultipleInvalid:
+                print('fixture version: ', protocol_version)
+                print('gateway version: ', gateway.protocol_version)
+                print('name: ', name)
+                print('subtype: ', sub_type)
+                print('payload: ', _payload)
+                raise
             assert valid == {
                 'node_id': 1, 'child_id': 255, 'type': 3, 'ack': 0,
                 'sub_type': sub_type, 'payload': _payload}

@@ -1,4 +1,4 @@
-"""MySensors constants for version 1.5 of MySensors."""
+"""MySensors constants for version 2.0 of MySensors."""
 from enum import IntEnum
 
 import voluptuous as vol
@@ -356,7 +356,7 @@ HANDLE_INTERNAL.update({
             'node_id': 255, 'ack': 0, 'sub_type': Internal.I_DISCOVER,
             'payload': ''}},
     Internal.I_HEARTBEAT_RESPONSE: {
-        'fun': '_handle_heartbeat'},
+        'fun': '_handle_smartsleep'},
     Internal.I_DISCOVER_RESPONSE: {
         'is_sensor': True},
 })

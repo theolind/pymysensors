@@ -1,0 +1,13 @@
+# configure updates globally
+# default: all
+# allowed: all, insecure, False
+update: all
+
+# set the default branch
+# default: empty, the default branch on GitHub
+branch: dev
+
+# update schedule
+# default: empty
+# allowed: "every day", "every week", ..
+schedule: "every month"

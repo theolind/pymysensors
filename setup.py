@@ -1,16 +1,13 @@
 """Setup file for mysensors package."""
-import os
 from setuptools import setup, find_packages
 
 exec(open('mysensors/version.py').read())
 
-if os.path.exists('README.rst'):
-    README = open('README.rst').read()
-else:
-    README = ''
+README = open('README.md').read()
 
 REQUIRES = [
-    'pyserial>=3.1.1', 'crcmod>=1.7', 'IntelHex>=2.1', 'voluptuous>=0.10.5',
+    'pyserial>=3.4', 'pyserial-asyncio>=0.4', 'crcmod>=1.7',
+    'IntelHex>=2.2.1', 'voluptuous==0.11.1',
 ]
 
 setup(
@@ -18,6 +15,7 @@ setup(
     version=__version__,
     description='Python API for talking to a MySensors gateway',
     long_description=README,
+    long_description_content_type='text/markdown',
     url='https://github.com/theolind/pymysensors',
     author='Theodor Lindquist',
     author_email='theodor.lindquist@gmail.com',

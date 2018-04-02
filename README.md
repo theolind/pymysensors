@@ -1,9 +1,11 @@
 # pymysensors [![Build Status][build-badge]][build]
-Python API for talking to a MySensors gateway (http://www.mysensors.org/). Currently supports serial protocol v1.4, v1.5 and v2.0. Not all features of v2.0 are implemented yet.
+Python API for talking to a MySensors gateway (http://www.mysensors.org/). Currently supports serial protocol v1.4, v1.5, v2.0 - v2.2. Not all features of v2.x are implemented yet.
 
-- Supports smartsleep with serial API v2.0.
-- Supports the MQTT client gateway with serial API v2.0.
+- Supports smartsleep with serial API v2.x.
+- Supports the MQTT client gateway with serial API v2.x.
 - Supports OTA updates, for both [DualOptiboot](https://github.com/mysensors/DualOptiboot) and [MYSBootloader](https://github.com/mysensors/MySensorsBootloaderRF24) bootloaders.
+- All gateway instances, serial, tcp (ethernet) or mqtt will run in separate threads.
+- As an alternative to running the gateway in its own thread, there are experimental implementations of all gateways using asyncio.
 
 # Usage
 Currently the API is best used by implementing a callback handler
@@ -13,7 +15,7 @@ import mysensors.mysensors as mysensors
 
 def event(message):
     """Callback for mysensors updates."""
-    print("sensor_update " + str(message.node_id))
+    print('sensor_update ' + str(message.node_id))
 
 GATEWAY = mysensors.SerialGateway('/dev/ttyACM0', event)
 GATEWAY.start()
@@ -50,8 +52,9 @@ Sensor - a sensor node
     protocol_version - the mysensors protocol version used by the node
 
 ChildSensor - a child sensor
-    id - Child id on the parent node
-    type - Data type, S_HUM, S_TEMP etc.
+    id - child id on the parent node
+    type - data type, S_HUM, S_TEMP etc.
+    description - the child description sent when presenting the child
     values - a dictionary of values (V_HUM, V_TEMP, etc.)
 ```
 
@@ -68,14 +71,20 @@ To update a node child sensor value and send it to the node, use the set_child_v
 GATEWAY.set_child_value(1, 1, 2, 1)
 ```
 
-PyMysensors also supports three other settings. Persistence mode,
-which saves the sensor network between runs, persistence file path, which sets the type and path of the persistence file and protocol version which sets the MySensors serial API version.
-
+## Persistence
 With persistence mode on, you can restart the gateway without
-having to restart each individual node in your sensor network. To enable persistance mode, the third argument
+having to restart each individual node in your sensor network. To enable persistence mode, the keyword argument `persistence`
 in the constructor should be True. A path to the config file
-can be specified as a fourth argument. The file type (.pickle or .json) will set which persistence protocol to use, pickle or json. JSON files can be read using a normal text editor.
+can be specified as the keyword argument `persistence_file`. The file type (.pickle or .json) will set which persistence protocol to use, pickle or json. JSON files can be read using a normal text editor. Saving to the persistence file will be done on a schedule every 10 seconds if an update has been done since the last save. Make sure you start the persistence saving before starting the gateway.
 
+```py
+GATEWAY.start_persistence()
+```
+
+## Protocol version
+Set the keyword argument `protocol_version` to set which version of the MySensors serial API to use. The default value is `'1.4'`.
+
+## Serial gateway
 The serial gateway also supports setting the baudrate, read timeout and reconnect timeout.
 
 ```python
@@ -86,24 +95,26 @@ def event(message):
     print("sensor_update " + str(message.node_id))
 
 GATEWAY = mysensors.SerialGateway(
-  '/dev/ttyACM0', event_callback=event, persistence=True,
-  persistence_file='somefolder/mysensors.pickle', protocol_version='1.4', baud=115200,
-  timeout=1.0, reconnect_timeout=10.0)
+  '/dev/ttyACM0', baud=115200, timeout=1.0, reconnect_timeout=10.0,
+  event_callback=event, persistence=True,
+  persistence_file='somefolder/mysensors.pickle', protocol_version='1.4')
 GATEWAY.start()
 ```
 
 There are two other gateway types supported besides the serial gateway: the tcp-ethernet gateway and the MQTT gateway.
 
+## TCP ethernet gateway
 The ethernet gateway is initialized similar to the serial gateway. The ethernet gateway supports setting the tcp host port, receive timeout and reconnect timeout, besides the common settings and the host ip address.
 
 ```python
 GATEWAY = mysensors.TCPGateway(
-  '127.0.0.1', event_callback=event, persistence=True,
-  persistence_file='somefolder/mysensors.pickle', protocol_version='1.4',
-  port=5003, timeout=1.0, reconnect_timeout=10.0)
+  '127.0.0.1', port=5003, timeout=1.0, reconnect_timeout=10.0,
+  event_callback=event, persistence=True,
+  persistence_file='somefolder/mysensors.pickle', protocol_version='1.4')
 ```
 
-The MQTT gateway requires MySensors serial API v2.0 and the MQTT client gateway example sketch loaded in the gateway Arduino. The gateway also requires an MQTT broker and a python MQTT client interface to the broker. See [mqtt.py](https://github.com/theolind/pymysensors/blob/master/mqtt.py) for an example of how to implement this and initialize the MQTT gateway.
+## MQTT gateway
+The MQTT gateway requires MySensors serial API v2.0 or greater and the MQTT client gateway example sketch loaded in the gateway device. The gateway also requires an MQTT broker and a python MQTT client interface to the broker. See [mqtt.py](https://github.com/theolind/pymysensors/blob/master/mqtt.py) for an example of how to implement this and initialize the MQTT gateway.
 
 ## Over the air (OTA) firmware updates
 Call `Gateway` method `update_fw` to set one or more nodes for OTA
@@ -127,6 +138,18 @@ send a firmware response message. The latter request-response conversation will
 continue until all blocks of firmware are sent. If the CRC of the transmitted
 firmware match the CRC of the firmware config response, the node will restart
 and load the new firmware.
+
+## Async gateway
+The serial, TCP and MQTT gateways now also have versions that support asyncio. Use the
+`AsyncSerialGateway` class, `AsyncTCPGateway` class or `AsyncMQTTGateway` class to make a gateway that
+uses asyncio. The following public methods are coroutines in the async gateway:
+
+- start_persistence
+- start
+- stop
+- update_fw
+
+See [async_main.py](https://github.com/theolind/pymysensors/blob/master/async_main.py) for an example of how to use this gateway.
 
 [build-badge]: https://travis-ci.org/theolind/pymysensors.svg?branch=master
 [build]: https://travis-ci.org/theolind/pymysensors

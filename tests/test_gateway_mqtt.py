@@ -4,8 +4,9 @@ import tempfile
 import time
 from unittest import TestCase, main, mock
 
-from mysensors import ChildSensor, Sensor
 from mysensors.gateway_mqtt import MQTTGateway
+from mysensors.persistence import Persistence
+from mysensors.sensor import ChildSensor, Sensor
 
 
 class TestMQTTGateway(TestCase):
@@ -19,8 +20,7 @@ class TestMQTTGateway(TestCase):
 
     def tearDown(self):
         """Stop MQTTGateway if alive."""
-        if self.gateway.is_alive():
-            self.gateway.stop()
+        self.gateway.stop()
 
     def _add_sensor(self, sensorid):
         """Add sensor node. Return sensor node instance."""
@@ -57,10 +57,10 @@ class TestMQTTGateway(TestCase):
             1, self.gateway.const.Presentation.S_HUM)
         sensor.children[1].values[self.gateway.const.SetReq.V_HUM] = '20'
         self.gateway.recv('/1/1/2/0/1', '', 0)
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         self.assertEqual(ret, '1;1;1;0;1;20\n')
         self.gateway.recv('/1/1/2/0/1', '', 1)
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         self.assertEqual(ret, '1;1;1;1;1;20\n')
 
     def test_recv_wrong_prefix(self):
@@ -70,7 +70,7 @@ class TestMQTTGateway(TestCase):
             1, self.gateway.const.Presentation.S_HUM)
         sensor.children[1].values[self.gateway.const.SetReq.V_HUM] = '20'
         self.gateway.recv('wrong/1/1/2/0/1', '', 0)
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         self.assertEqual(ret, None)
 
     def test_presentation(self):
@@ -105,9 +105,15 @@ class TestMQTTGateway(TestCase):
             'ERROR:mysensors.gateway_mqtt:Subscribe to /1/1/1/+/+ failed: '
             'No topic specified, or incorrect topic type.')
 
-    def test_start_stop_gateway(self):
+    @mock.patch('mysensors.persistence.Persistence.safe_load_sensors')
+    @mock.patch('mysensors.persistence.Persistence.save_sensors')
+    def test_start_stop_gateway(self, mock_save, mock_load):
         """Test start and stop of MQTT gateway."""
-        self.assertFalse(self.gateway.is_alive())
+        self.gateway.persistence = Persistence(self.gateway.sensors)
+        mock_cancel_save = mock.MagicMock()
+        mock_schedule_save = mock.MagicMock()
+        mock_schedule_save.return_value = mock_cancel_save
+        self.gateway.persistence.schedule_save_sensors = mock_schedule_save
         sensor = self._add_sensor(1)
         sensor.children[1] = ChildSensor(
             1, self.gateway.const.Presentation.S_HUM)
@@ -115,20 +121,22 @@ class TestMQTTGateway(TestCase):
         self.gateway.recv('/1/1/2/0/1', '', 0)
         self.gateway.recv('/1/1/1/0/1', '30', 0)
         self.gateway.recv('/1/1/2/0/1', '', 0)
+        self.gateway.start_persistence()
+        assert mock_load.call_count == 1
+        assert mock_schedule_save.call_count == 1
         self.gateway.start()
-        self.assertTrue(self.gateway.is_alive())
+        time.sleep(0.05)
         calls = [
             mock.call('/+/+/0/+/+', self.gateway.recv, 0),
             mock.call('/+/+/3/+/+', self.gateway.recv, 0)]
         self.mock_sub.assert_has_calls(calls)
-        time.sleep(0.05)
         calls = [
             mock.call('/1/1/1/0/1', '20', 0, True),
             mock.call('/1/1/1/0/1', '30', 0, True)]
         self.mock_pub.assert_has_calls(calls)
         self.gateway.stop()
-        self.gateway.join(timeout=0.5)
-        self.assertFalse(self.gateway.is_alive())
+        assert mock_cancel_save.call_count == 1
+        assert mock_save.call_count == 1
 
     def test_mqtt_load_persistence(self):
         """Test load persistence file for MQTTGateway."""
@@ -138,12 +146,15 @@ class TestMQTTGateway(TestCase):
         sensor.children[1].values[self.gateway.const.SetReq.V_HUM] = '20'
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            self.gateway.persistence_file = os.path.join(temp_dir, 'file.json')
-            # pylint: disable=protected-access
-            self.gateway._save_sensors()
+            persistence_file = os.path.join(temp_dir, 'file.json')
+            self.gateway.persistence = Persistence(
+                self.gateway.sensors, persistence_file)
+            self.gateway.persistence.save_sensors()
             del self.gateway.sensors[1]
             self.assertNotIn(1, self.gateway.sensors)
-            self.gateway._safe_load_sensors()
+            self.gateway.persistence.safe_load_sensors()
+            # pylint: disable=protected-access
+            self.gateway._init_topics()
         self.assertEqual(
             self.gateway.sensors[1].children[1].id,
             sensor.children[1].id)
@@ -188,10 +199,10 @@ class TestMQTTGatewayCustomPrefix(TestCase):
             1, self.gateway.const.Presentation.S_HUM)
         sensor.children[1].values[self.gateway.const.SetReq.V_HUM] = '20'
         self.gateway.recv('test/test-in/1/1/2/0/1', '', 0)
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         self.assertEqual(ret, '1;1;1;0;1;20\n')
         self.gateway.recv('test/test-in/1/1/2/0/1', '', 1)
-        ret = self.gateway.handle_queue()
+        ret = self.gateway.run_job()
         self.assertEqual(ret, '1;1;1;1;1;20\n')
 
 

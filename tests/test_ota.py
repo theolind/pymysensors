@@ -5,7 +5,7 @@ import tempfile
 from unittest import TestCase, main
 
 from mysensors import Gateway, Sensor
-from mysensors.ota import FIRMWARE_BLOCK_SIZE
+from mysensors.ota import FIRMWARE_BLOCK_SIZE, load_fw
 
 FW_TYPE = 1
 FW_VER = 1
@@ -24,7 +24,7 @@ class TestOTA(TestCase):
     """Test the OTA FW logic."""
 
     def setUp(self):
-        """Setup gateway."""
+        """Set up gateway."""
         self.gateway = Gateway()
 
     def _add_sensor(self, sensorid):
@@ -41,17 +41,10 @@ class TestOTA(TestCase):
             file_handle.write(
                 hex_file_str.encode('utf-8'))
             file_handle.flush()
-            self.gateway.update_fw(
+            fw_bin = load_fw(file_handle.name)
+            self.gateway.ota.make_update(
                 [sensor.sensor_id for sensor in sensors], FW_TYPE, FW_VER,
-                file_handle.name)
-
-    def test_bad_fw_path(self):
-        """Test firmware update with bad path to firmware."""
-        sensor = self._add_sensor(1)
-        self.gateway.update_fw(
-            sensor.sensor_id, FW_TYPE, FW_VER, '/bad/path')
-        ret = self.gateway.logic('1;255;4;0;0;01000200B00626E80300\n')
-        self.assertEqual(ret, None)
+                fw_bin)
 
     def test_bad_fw(self):
         """Test firmware update with bad firmware."""
@@ -62,7 +55,7 @@ class TestOTA(TestCase):
     def test_no_fw(self):
         """Test firmware update with no firmware loaded."""
         sensor = self._add_sensor(1)
-        self.gateway.update_fw(
+        self.gateway.ota.make_update(
             sensor.sensor_id, FW_TYPE, FW_VER)
         ret = self.gateway.logic('1;255;4;0;0;01000200B00626E80300\n')
         self.assertEqual(ret, None)
@@ -70,7 +63,7 @@ class TestOTA(TestCase):
     def test_bad_fw_type_or_version(self):
         """Test firmware update with bad firmware type or version."""
         sensor = self._add_sensor(1)
-        self.gateway.update_fw(
+        self.gateway.ota.make_update(
             sensor.sensor_id, 'a', 'b')
         ret = self.gateway.logic('1;255;4;0;0;01000200B00626E80300\n')
         self.assertEqual(ret, None)
@@ -81,8 +74,8 @@ class TestOTA(TestCase):
             file_handle.write(
                 HEX_FILE_STR.encode('utf-8'))
             file_handle.flush()
-            self.gateway.update_fw(
-                1, FW_TYPE, FW_VER, file_handle.name)
+            fw_bin = load_fw(file_handle.name)
+            self.gateway.ota.make_update(1, FW_TYPE, FW_VER, fw_bin)
         ret = self.gateway.logic('1;255;4;0;0;01000200B00626E80300\n')
         self.assertEqual(ret, None)
 
@@ -138,8 +131,8 @@ class TestOTA(TestCase):
             file_handle.write(
                 HEX_FILE_STR.encode('utf-8'))
             file_handle.flush()
-            self.gateway.update_fw(
-                1, FW_TYPE, FW_VER, file_handle.name)
+            fw_bin = load_fw(file_handle.name)
+            self.gateway.ota.make_update(1, FW_TYPE, FW_VER, fw_bin)
         payload = binascii.hexlify(
             struct.pack('<3H', FW_TYPE, FW_VER, block - 1)).decode('utf-8')
         ret = self.gateway.logic('1;255;4;0;2;{}\n'.format(payload))
