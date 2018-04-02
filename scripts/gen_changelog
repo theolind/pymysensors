@@ -1,9 +1,8 @@
 #!/bin/sh
-if ! gem list github_changelog_generator -i > /dev/null; then
-  echo "github_changelog_generator must be installed before running this \
-script.\nInstall with (requires Ruby):\ngem install \
-github_changelog_generator\n\nMake sure you set a github access token \
-to avoid the GitHub API rate limit.";
+if ! pygcgen --version > /dev/null; then
+  echo "pygcgen must be installed before running this script.\n\
+Install with:\npip3 install pygcgen\n\nMake sure you set a \
+github access token to avoid the GitHub API rate limit.";
   exit 1
 fi
 
@@ -46,5 +45,6 @@ MAJOR_VERSION=$(head -n 2 mysensors/version.py | tail -n 1 \
 
 VERSION="$MAJOR_VERSION.$MINOR_VERSION.$PATCH_VERSION"
 
-github_changelog_generator -u theolind -p pymysensors \
-  --issue-line-labels "breaking change" --future-release $VERSION
+pygcgen -u theolind -p pymysensors -v \
+ --section "**Breaking Changes:**" "breaking change" --with-unreleased \
+ --future-release $VERSION
