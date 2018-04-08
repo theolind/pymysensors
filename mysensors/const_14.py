@@ -338,5 +338,5 @@ HANDLE_INTERNAL = {
     Internal.I_LOG_MESSAGE: {
         'log': 'debug'},
     Internal.I_GATEWAY_READY: {
-        'log': 'info'},
+        'log': 'info', 'fun': 'alert'},
 }
