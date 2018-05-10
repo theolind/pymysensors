@@ -1,669 +1,615 @@
 """Test mysensors with unittest."""
+import logging
 import time
-from unittest import TestCase, main, mock
+from unittest import mock
 
+import pytest
 import voluptuous as vol
 
 from mysensors import Gateway, ThreadingGateway
-from mysensors.message import Message
-from mysensors.sensor import ChildSensor, Sensor
+from mysensors.sensor import Sensor
+
+# pylint: disable=redefined-outer-name
 
 
-class TestGateway(TestCase):
-    """Test the Gateway logic function."""
+@pytest.fixture(params=['1.4', '1.5', '2.0', '2.1', '2.2'])
+def gateway(request):
+    """Return gateway instance."""
+    return Gateway(protocol_version=request.param)
 
-    # pylint: disable=too-many-public-methods
 
-    def setUp(self):
-        """Set up gateway."""
-        self.gateway = Gateway()
+def get_gateway(**kwargs):
+    """Return a gateway instance."""
+    return Gateway(**kwargs)
 
-    def _add_sensor(self, sensorid):
+
+@pytest.fixture
+def add_sensor(gateway):
+    """Return function for adding node."""
+    def _add_sensor(sensor_id):
         """Add sensor node. Return sensor node instance."""
-        self.gateway.sensors[sensorid] = Sensor(sensorid)
-        return self.gateway.sensors[sensorid]
-
-    def test_logic_bad_message(self):
-        """Test decode of bad message in logic method."""
-        self.assertEqual(self.gateway.logic('bad;bad;bad;bad;bad;bad\n'), None)
-
-    def test_non_presented_sensor(self):
-        """Test non presented sensor node."""
-        self.gateway.logic('1;0;1;0;23;43\n')
-        self.assertNotIn(1, self.gateway.sensors)
-
-        self.gateway.logic('1;1;1;0;1;75\n')
-        self.assertNotIn(1, self.gateway.sensors)
-
-        self.gateway.logic('1;255;3;0;0;79\n')
-        self.assertNotIn(1, self.gateway.sensors)
-
-    def test_present_to_non_sensor(self):
-        """Test presenting a child to a non presented sensor node."""
-        ret = self.gateway.logic('1;1;0;0;0;\n')
-        self.assertNotIn(1, self.gateway.sensors)
-        self.assertEqual(ret, None)
-
-    def test_internal_id_request(self):
-        """Test internal node id request."""
-        ret = self.gateway.logic('255;255;3;0;3;\n')
-        self.assertEqual(ret, '255;255;3;0;4;1\n')
-        self.assertIn(1, self.gateway.sensors)
-        ret = self.gateway.logic('255;255;3;0;3;\n')
-        self.assertEqual(ret, '255;255;3;0;4;2\n')
-        self.assertIn(2, self.gateway.sensors)
-        self._add_sensor(254)
-        self.assertIn(254, self.gateway.sensors)
-        ret = self.gateway.logic('255;255;3;0;3;\n')
-        self.assertEqual(ret, None)
-        self.assertNotIn(255, self.gateway.sensors)
-
-    def test_id_request_with_node_zero(self):
-        """Test internal node id request with node 0 already assigned."""
-        self._add_sensor(0)
-        ret = self.gateway.logic('255;255;3;0;3;\n')
-        self.assertEqual(ret, '255;255;3;0;4;1\n')
-        self.assertIn(1, self.gateway.sensors)
-
-    def test_presentation_arduino_node(self):
-        """Test presentation of sensor node."""
-        self.gateway.logic('1;255;0;0;17;1.4.1\n')
-        self.assertEqual(
-            self.gateway.sensors[1].type,
-            self.gateway.const.Presentation.S_ARDUINO_NODE)
-        self.assertEqual(self.gateway.sensors[1].protocol_version, '1.4.1')
-
-    def test_internal_config(self):
-        """Test internal config request, metric or imperial."""
-        # metric
-        ret = self.gateway.logic('1;255;3;0;6;0\n')
-        self.assertEqual(ret, '1;255;3;0;6;M\n')
-        # imperial
-        self.gateway.metric = False
-        ret = self.gateway.logic('1;255;3;0;6;0\n')
-        self.assertEqual(ret, '1;255;3;0;6;I\n')
-
-    def test_internal_time(self):
-        """Test internal time request."""
-        self._add_sensor(1)
-        with mock.patch('mysensors.time') as mock_time:
-            mock_time.localtime.return_value = time.gmtime(123456789)
-            ret = self.gateway.logic('1;255;3;0;1;\n')
-            self.assertEqual(ret, '1;255;3;0;1;123456789\n')
-
-    def test_internal_sketch_name(self):
-        """Test internal receive of sketch name."""
-        sensor = self._add_sensor(1)
-        self.gateway.logic('1;255;3;0;11;lighthum demo sens\n')
-        self.assertEqual(sensor.sketch_name, 'lighthum demo sens')
-
-    def test_internal_sketch_version(self):
-        """Test internal receive of sketch version."""
-        sensor = self._add_sensor(1)
-        self.gateway.logic('1;255;3;0;12;1.0\n')
-        self.assertEqual(sensor.sketch_version, '1.0')
-
-    def test_internal_log_message(self):
-        """Test internal receive of log message."""
-        payload = 'read: 1-1-0 s=0,c=1,t=1,pt=7,l=5,sg=0:22.0\n'
-        data = '0;255;3;0;9;{}'.format(payload)
-        with self.assertLogs(level='DEBUG') as test_handle:
-            self.gateway.logic(data)
-        self.assertEqual(
-            test_handle.output,
-            ['DEBUG:mysensors:n:0 c:255 t:3 s:9 p:{}'.format(
-                payload[:-1])])
-
-    def test_internal_gateway_ready(self):
-        """Test internal receive gateway ready and send discover request."""
-        payload = 'Gateway startup complete.\n'
-        data = '0;255;3;0;14;{}'.format(payload)
-        with self.assertLogs(level='INFO') as test_handle:
-            ret = self.gateway.logic(data)
-        self.assertEqual(
-            test_handle.output,
-            ['INFO:mysensors:n:0 c:255 t:3 s:14 p:{}'.format(
-                payload[:-1])])
-        self.assertEqual(ret, None)
-
-    def test_present_light_level_sensor(self):
-        """Test presentation of a light level sensor."""
-        sensor = self._add_sensor(1)
-        self.gateway.logic('1;0;0;0;16;\n')
-        self.assertIn(0, sensor.children)
-        self.assertEqual(sensor.children[0].type,
-                         self.gateway.const.Presentation.S_LIGHT_LEVEL)
-
-    def test_present_humidity_sensor(self):
-        """Test presentation of a humidity sensor."""
-        sensor = self._add_sensor(1)
-        self.gateway.logic('1;0;0;0;7;\n')
-        self.assertEqual(0 in sensor.children, True)
-        self.assertEqual(sensor.children[0].type,
-                         self.gateway.const.Presentation.S_HUM)
-
-    def test_present_same_child(self):
-        """Test presentation of the same child id again."""
-        sensor = self._add_sensor(1)
-        self.gateway.logic('1;0;0;0;16;\n')
-        self.assertIn(0, sensor.children)
-        self.assertEqual(sensor.children[0].type,
-                         self.gateway.const.Presentation.S_LIGHT_LEVEL)
-        self.gateway.logic('1;0;0;0;7;\n')
-        self.assertIn(0, sensor.children)
-        self.assertEqual(sensor.children[0].type,
-                         self.gateway.const.Presentation.S_LIGHT_LEVEL)
-
-    def test_set_light_level(self):
-        """Test set of light level."""
-        sensor = self._add_sensor(1)
-        sensor.children[0] = ChildSensor(
-            0, self.gateway.const.Presentation.S_LIGHT_LEVEL)
-        self.gateway.logic('1;0;1;0;23;43\n')
-        self.assertEqual(
-            sensor.children[0].values[self.gateway.const.SetReq.V_LIGHT_LEVEL],
-            '43')
-
-    def test_set_humidity_level(self):
-        """Test set humidity level."""
-        sensor = self._add_sensor(1)
-        sensor.children[1] = ChildSensor(
-            1, self.gateway.const.Presentation.S_HUM)
-        self.gateway.logic('1;1;1;0;1;75\n')
-        self.assertEqual(
-            sensor.children[1].values[self.gateway.const.SetReq.V_HUM], '75')
-
-    def test_battery_level(self):
-        """Test internal receive of battery level."""
-        sensor = self._add_sensor(1)
-        self.gateway.logic('1;255;3;0;0;79\n')
-        self.assertEqual(sensor.battery_level, 79)
-
-    def test_bad_battery_level(self):
-        """Test internal receive of bad battery level."""
-        sensor = self._add_sensor(1)
-        self.gateway.logic('1;255;3;0;0;-1\n')
-        self.assertEqual(sensor.battery_level, 0)
-
-    def test_req(self):
-        """Test req message in case where value exists."""
-        sensor = self._add_sensor(1)
-        sensor.children[1] = ChildSensor(
-            1, self.gateway.const.Presentation.S_POWER)
-        sensor.set_child_value(1, self.gateway.const.SetReq.V_VAR1, 42)
-        ret = self.gateway.logic('1;1;2;0;24;\n')
-        self.assertEqual(ret, '1;1;1;0;24;42\n')
-
-    def test_req_zerovalue(self):
-        """Test req message in case where value exists but is zero."""
-        sensor = self._add_sensor(1)
-        sensor.children[1] = ChildSensor(
-            1, self.gateway.const.Presentation.S_POWER)
-        sensor.set_child_value(1, self.gateway.const.SetReq.V_VAR1, 0)
-        ret = self.gateway.logic('1;1;2;0;24;\n')
-        self.assertEqual(ret, '1;1;1;0;24;0\n')
-
-    def test_req_novalue(self):
-        """Test req message for sensor with no value."""
-        sensor = self._add_sensor(1)
-        sensor.children[1] = ChildSensor(
-            1, self.gateway.const.Presentation.S_POWER)
-        ret = self.gateway.logic('1;1;2;0;24;\n')
-        self.assertEqual(ret, None)
-
-    def test_req_notasensor(self):
-        """Test req message for non-existent sensor."""
-        ret = self.gateway.logic('1;1;2;0;24;\n')
-        self.assertEqual(ret, None)
-
-    def _callback(self, message):
-        self.gateway.test_callback_message = message
-
-    def test_callback(self):
-        """Test gateway callback function."""
-        self.gateway.event_callback = self._callback
-        self.gateway.test_callback_message = None
-        sensor = self._add_sensor(1)
-        sensor.children[0] = ChildSensor(
-            0, self.gateway.const.Presentation.S_LIGHT_LEVEL)
-        self.gateway.logic('1;0;1;0;23;43\n')
-        self.assertIsNotNone(self.gateway.test_callback_message)
-        self.assertEqual(self.gateway,
-                         self.gateway.test_callback_message.gateway)
-        self.assertEqual(1, self.gateway.test_callback_message.node_id)
-        self.assertEqual(0, self.gateway.test_callback_message.child_id)
-        self.assertEqual(1, self.gateway.test_callback_message.type)
-        self.assertEqual(0, self.gateway.test_callback_message.ack)
-        self.assertEqual(23, self.gateway.test_callback_message.sub_type)
-        self.assertEqual('43', self.gateway.test_callback_message.payload)
-
-    def test_callback_exception(self):
-        """Test gateway callback with exception."""
-        side_effect = ValueError('test')
-        self.gateway = Gateway(event_callback=self._callback)
-        with mock.patch.object(self.gateway, 'event_callback',
-                               side_effect=side_effect) as mock_callback:
-            with self.assertLogs(level='ERROR') as test_handle:
-                msg = Message()
-                msg.node_id = 1
-                self.gateway.alert(msg)
-            assert mock_callback.call_count == 1
-            self.assertEqual(
-                # only check first line of error log
-                test_handle.output[0].split('\n', 1)[0],
-                'ERROR:mysensors:test')
-
-    def test_set_and_reboot(self):
-        """Test set message with reboot attribute true."""
-        sensor = self._add_sensor(1)
-        sensor.children[0] = ChildSensor(
-            0, self.gateway.const.Presentation.S_LIGHT_LEVEL)
-        sensor.reboot = True
-        ret = self.gateway.logic('1;0;1;0;23;43\n')
-        self.assertEqual(ret, '1;255;3;0;13;\n')
-        self.gateway.logic('1;255;0;0;17;1.4.1\n')
-        self.assertEqual(sensor.reboot, False)
-
-    def test_set_child_value(self):
-        """Test Gateway method set_child_value."""
-        sensor = self._add_sensor(1)
-        sensor.children[0] = ChildSensor(
-            0, self.gateway.const.Presentation.S_LIGHT)
-        self.gateway.set_child_value(
-            1, 0, self.gateway.const.SetReq.V_LIGHT, '1')
-        ret = self.gateway.run_job()
-        self.assertEqual(ret, '1;0;1;0;2;1\n')
-        # test integer value
-        self.gateway.set_child_value(
-            1, 0, self.gateway.const.SetReq.V_LIGHT, 0)
-        ret = self.gateway.run_job()
-        self.assertEqual(ret, '1;0;1;0;2;0\n')
-
-    def test_set_child_value_no_sensor(self):
-        """Test Gateway method set_child_value with no sensor."""
-        self.gateway.set_child_value(
-            1, 0, self.gateway.const.SetReq.V_LIGHT, '1')
-        ret = self.gateway.run_job()
-        self.assertEqual(ret, None)
-
-    def test_set_child_no_children(self):
-        """Test Gateway method set_child_value without child in children."""
-        sensor = self._add_sensor(1)
-        sensor.children[0] = ChildSensor(
-            0, self.gateway.const.Presentation.S_LIGHT)
-        self.gateway.set_child_value(
-            1, 0, self.gateway.const.SetReq.V_LIGHT, 1, children={})
-        ret = self.gateway.run_job()
-        self.assertEqual(ret, None)
-
-    def test_set_child_value_bad_type(self):
-        """Test Gateway method set_child_value with bad type."""
-        sensor = self._add_sensor(1)
-        sensor.children[0] = ChildSensor(
-            0, self.gateway.const.Presentation.S_LIGHT)
-        self.gateway.set_child_value(
-            1, 0, self.gateway.const.SetReq.V_LIGHT, 1, msg_type='one')
-        ret = self.gateway.run_job()
-        self.assertEqual(ret, None)
-
-    def test_set_child_value_bad_ack(self):
-        """Test Gateway method set_child_value with bad ack."""
-        sensor = self._add_sensor(1)
-        sensor.children[0] = ChildSensor(
-            0, self.gateway.const.Presentation.S_LIGHT)
-        self.gateway.set_child_value(
-            1, 0, self.gateway.const.SetReq.V_LIGHT, 1, ack='one')
-        ret = self.gateway.run_job()
-        self.assertEqual(ret, None)
-
-    def test_set_child_value_value_type(self):
-        """Test Gateway method set_child_value with string value type."""
-        sensor = self._add_sensor(1)
-        sensor.children[0] = ChildSensor(
-            0, self.gateway.const.Presentation.S_LIGHT)
-        self.gateway.set_child_value(1, 0, 2, 1)
-        ret = self.gateway.run_job()
-        self.assertEqual(ret, '1;0;1;0;2;1\n')
-        child_values = dict(sensor.children[0].values)
-        self.gateway.set_child_value(1, 0, '2', 1)
-        ret = self.gateway.run_job()
-        self.assertEqual(child_values, sensor.children[0].values)
-        self.assertEqual(ret, '1;0;1;0;2;1\n')
-
-    def test_child_validate(self):
-        """Test child validate method."""
-        sensor = self._add_sensor(1)
-        sensor.children[0] = ChildSensor(
-            0, self.gateway.const.Presentation.S_LIGHT_LEVEL)
-        sensor.children[0].values[
-            self.gateway.const.SetReq.V_LIGHT_LEVEL] = '43'
-        sensor.children[0].validate(self.gateway.protocol_version)
-        self.assertEqual(
-            sensor.children[0].values[self.gateway.const.SetReq.V_LIGHT_LEVEL],
-            '43')
-        sensor.children[0].values[self.gateway.const.SetReq.V_TRIPPED] = '1'
-        with self.assertRaises(vol.Invalid):
-            sensor.children[0].validate(self.gateway.protocol_version)
-
-    def test_set_forecast(self):
-        """Test set of V_FORECAST."""
-        sensor = self._add_sensor(1)
-        sensor.children[0] = ChildSensor(
-            0, self.gateway.const.Presentation.S_BARO)
-        self.gateway.logic('1;0;1;0;5;sunny\n')
-        self.assertEqual(
-            sensor.children[0].values[self.gateway.const.SetReq.V_FORECAST],
-            'sunny')
-        self.gateway.logic('1;0;1;0;5;rainy\n')
-        self.assertEqual(
-            sensor.children[0].values[self.gateway.const.SetReq.V_FORECAST],
-            'rainy')
-
-    def test_set_bad_battery_attribute(self):
-        """Test set a bad battery_level attribute on a node."""
-        sensor = self._add_sensor(1)
-        sensor.battery_level = None
-        self.assertEqual(sensor.battery_level, 0)
-
-
-class TestGateway15(TestGateway):
-    """Use protocol_version 1.5."""
-
-    def setUp(self):
-        """Set up gateway."""
-        self.gateway = Gateway(protocol_version='1.5')
-
-    def test_set_rgb(self):
-        """Test set of V_RGB."""
-        sensor = self._add_sensor(1)
-        sensor.protocol_version = '1.5'
-        sensor.children[0] = ChildSensor(
-            0, self.gateway.const.Presentation.S_RGB_LIGHT)
-        self.gateway.logic('1;0;1;0;40;ffffff\n')
-        self.assertEqual(
-            sensor.children[0].values[self.gateway.const.SetReq.V_RGB],
-            'ffffff')
-        self.gateway.logic('1;0;1;0;40;ffffff00\n')
-        self.assertEqual(
-            sensor.children[0].values[self.gateway.const.SetReq.V_RGB],
-            'ffffff')
-        self.gateway.logic('1;0;1;0;40;nothex\n')
-        self.assertEqual(
-            sensor.children[0].values[self.gateway.const.SetReq.V_RGB],
-            'ffffff')
-
-    def test_set_rgbw(self):
-        """Test set of V_RGBW."""
-        sensor = self._add_sensor(1)
-        sensor.protocol_version = '1.5'
-        sensor.children[0] = ChildSensor(
-            0, self.gateway.const.Presentation.S_RGBW_LIGHT)
-        self.gateway.logic('1;0;1;0;41;ffffffff\n')
-        self.assertEqual(
-            sensor.children[0].values[self.gateway.const.SetReq.V_RGBW],
-            'ffffffff')
-        self.gateway.logic('1;0;1;0;41;ffffffff00\n')
-        self.assertEqual(
-            sensor.children[0].values[self.gateway.const.SetReq.V_RGBW],
-            'ffffffff')
-        self.gateway.logic('1;0;1;0;41;nothexxx\n')
-        self.assertEqual(
-            sensor.children[0].values[self.gateway.const.SetReq.V_RGBW],
-            'ffffffff')
-
-    def test_id_request_presentation(self):
-        """Test id request with subsequent presentation."""
-        ret = self.gateway.logic('255;255;3;0;3;\n')
-        self.assertEqual(ret, '255;255;3;0;4;1\n')
-        self.assertIn(1, self.gateway.sensors)
-        self.gateway.logic('1;255;0;0;17;1.5.0\n')
-        self.assertEqual(
-            self.gateway.sensors[1].type,
-            self.gateway.const.Presentation.S_ARDUINO_NODE)
-        self.assertEqual(self.gateway.sensors[1].protocol_version, '1.5.0')
-
-
-class TestGateway20(TestGateway):
-    """Use protocol_version 2.0."""
-
-    def setUp(self):
-        """Set up gateway."""
-        self.gateway = Gateway(protocol_version='2.0')
-
-    def test_non_presented_sensor(self):
-        """Test non presented sensor node."""
-        self.gateway.logic('1;0;1;0;23;43\n')
-        self.assertNotIn(1, self.gateway.sensors)
-        ret = self.gateway.run_job()
-        self.assertEqual(ret, '1;255;3;0;19;\n')
-
-        self.gateway.logic('1;1;1;0;1;75\n')
-        self.assertNotIn(1, self.gateway.sensors)
-        ret = self.gateway.run_job()
-        self.assertEqual(ret, '1;255;3;0;19;\n')
-
-        self.gateway.logic('1;255;3;0;0;79\n')
-        self.assertNotIn(1, self.gateway.sensors)
-        ret = self.gateway.run_job()
-        self.assertEqual(ret, '1;255;3;0;19;\n')
-
-    def test_present_to_non_sensor(self):
-        """Test presenting a child to a non presented sensor node."""
-        ret = self.gateway.logic('1;1;0;0;0;\n')
-        self.assertNotIn(1, self.gateway.sensors)
-        ret = self.gateway.run_job()
-        self.assertEqual(ret, '1;255;3;0;19;\n')
-
-    def test_non_presented_child(self):
-        """Test non presented sensor child."""
-        self._add_sensor(1)
-        self.gateway.logic('1;0;1;0;23;43\n')
-        self.assertNotIn(0, self.gateway.sensors[1].children)
-        ret = self.gateway.run_job()
-        self.assertEqual(ret, '1;255;3;0;19;\n')
-
-        self.gateway.logic('1;1;2;0;1;\n')
-        self.assertNotIn(1, self.gateway.sensors[1].children)
-        ret = self.gateway.run_job()
-        self.assertEqual(ret, '1;255;3;0;19;\n')
-
-    def test_set_child_value_no_sensor(self):
-        """Test Gateway method set_child_value with no sensor."""
-        self.gateway.set_child_value(
-            1, 0, self.gateway.const.SetReq.V_LIGHT, '1')
-        ret = self.gateway.run_job()
-        self.assertEqual(ret, '1;255;3;0;19;\n')
-
-    def test_smartsleep(self):
-        """Test smartsleep feature."""
-        sensor = self._add_sensor(1)
-        sensor.children[0] = ChildSensor(
-            0, self.gateway.const.Presentation.S_LIGHT_LEVEL)
-        self.gateway.logic('1;0;1;0;23;43\n')
-        ret = self.gateway.run_job()
-        self.assertEqual(ret, None)
-        # heartbeat
-        self.gateway.logic('1;255;3;0;22;\n')
-        ret = self.gateway.run_job()
-        # nothing has changed
-        self.assertEqual(ret, None)
-        # change from controller side
-        self.gateway.set_child_value(
-            1, 0, self.gateway.const.SetReq.V_LIGHT_LEVEL, '57')
-        ret = self.gateway.run_job()
-        # no heartbeat
-        self.assertEqual(ret, None)
-        # heartbeat comes in
-        self.gateway.logic('1;255;3;0;22;\n')
-        ret = self.gateway.run_job()
-        # instance responds with new values
-        self.assertEqual(ret, '1;0;1;0;23;57\n')
-        # request from node
-        self.gateway.logic('1;0;2;0;23;\n')
-        ret = self.gateway.run_job()
-        # no heartbeat
-        self.assertEqual(ret, None)
-        # heartbeat
-        self.gateway.logic('1;255;3;0;22;\n')
-        ret = self.gateway.run_job()
-        # instance responds to request with current value
-        self.assertEqual(ret, '1;0;1;0;23;57\n')
-        # heartbeat
-        self.gateway.logic('1;255;3;0;22;\n')
-        ret = self.gateway.run_job()
-        # nothing has changed
-        self.assertEqual(ret, None)
-
-    def test_smartsleep_from_unknown(self):
-        """Test smartsleep message from unknown node."""
-        self.gateway.logic('1;255;3;0;22;\n')
-        ret = self.gateway.run_job()
-        self.assertEqual(ret, '1;255;3;0;19;\n')
-
-    def test_set_with_new_state(self):
-        """Test set message with populated new_state."""
-        sensor = self._add_sensor(1)
-        sensor.children[0] = ChildSensor(
-            0, self.gateway.const.Presentation.S_LIGHT_LEVEL)
-        self.gateway.logic('1;0;1;0;23;43\n')
-        self.gateway.logic('1;255;3;0;22;\n')
-        self.gateway.logic('1;0;1;0;23;57\n')
-        self.assertEqual(
-            sensor.children[0].values[self.gateway.const.SetReq.V_LIGHT_LEVEL],
-            sensor.new_state[0].values[
-                self.gateway.const.SetReq.V_LIGHT_LEVEL])
-
-    def test_internal_gateway_ready(self):
-        """Test internal receive gateway ready and send discover request."""
-        payload = 'Gateway startup complete.\n'
-        data = '0;255;3;0;14;{}'.format(payload)
-        with self.assertLogs(level='INFO') as test_handle:
-            ret = self.gateway.logic(data)
-        self.assertEqual(
-            test_handle.output,
-            ['INFO:mysensors:n:0 c:255 t:3 s:14 p:{}'.format(
-                payload[:-1])])
-        self.assertEqual(ret, '255;255;3;0;20;\n')
-
-    def test_discover_response_unknown(self):
-        """Test internal receive discover response."""
-        # Test sensor 1 unknown.
-        self.gateway.logic('1;255;3;0;21;0')
-        ret = self.gateway.run_job()
-        self.assertEqual(ret, '1;255;3;0;19;\n')
-
-    @mock.patch('mysensors.Gateway.is_sensor')
-    def test_discover_response_known(self, mock_is_sensor):
-        """Test internal receive discover response."""
-        # Test sensor 1 known.
-        self._add_sensor(1)
-        self.gateway.logic('1;255;3;0;21;0')
-        assert mock_is_sensor.call_count == 1
-
-    def test_set_position(self):
-        """Test set of V_POSITION."""
-        sensor = self._add_sensor(1)
-        sensor.protocol_version = '2.0'
-        sensor.children[0] = ChildSensor(
-            0, self.gateway.const.Presentation.S_GPS)
-        self.gateway.logic('1;0;1;0;49;10.0,10.0,10.0\n')
-        self.assertEqual(
-            sensor.children[0].values[self.gateway.const.SetReq.V_POSITION],
-            '10.0,10.0,10.0')
-        self.gateway.logic('1;0;1;0;49;bad,format\n')
-        self.assertEqual(
-            sensor.children[0].values[self.gateway.const.SetReq.V_POSITION],
-            '10.0,10.0,10.0')
-        self.gateway.logic('1;0;1;0;41;bad,bad,bad\n')
-        self.assertEqual(
-            sensor.children[0].values[self.gateway.const.SetReq.V_POSITION],
-            '10.0,10.0,10.0')
-
-
-class TestGateway21(TestGateway20):
-    """Use protocol_version 2.1."""
-
-    def setUp(self):
-        """Set up gateway."""
-        self.gateway = Gateway(protocol_version='2.1')
-
-
-class TestGateway22(TestGateway21):
-    """Use protocol_version 2.2."""
-
-    def setUp(self):
-        """Set up gateway."""
-        self.gateway = Gateway(protocol_version='2.2')
-
-    def test_smartsleep(self):
-        """Test smartsleep feature."""
-        sensor = self._add_sensor(1)
-        sensor.children[0] = ChildSensor(
-            0, self.gateway.const.Presentation.S_LIGHT_LEVEL)
-        self.gateway.logic('1;0;1;0;23;43\n')
-        ret = self.gateway.run_job()
-        self.assertEqual(ret, None)
-        # pre sleep message
-        self.gateway.logic('1;255;3;0;32;500\n')
-        ret = self.gateway.run_job()
-        # nothing has changed
-        self.assertEqual(ret, None)
-        # change from controller side
-        self.gateway.set_child_value(
-            1, 0, self.gateway.const.SetReq.V_LIGHT_LEVEL, '57')
-        ret = self.gateway.run_job()
-        # no pre sleep message
-        self.assertEqual(ret, None)
-        # pre sleep message comes in
-        self.gateway.logic('1;255;3;0;32;500\n')
-        ret = self.gateway.run_job()
-        # instance responds with new values
-        self.assertEqual(ret, '1;0;1;0;23;57\n')
-        # request from node
-        self.gateway.logic('1;0;2;0;23;\n')
-        ret = self.gateway.run_job()
-        # no pre sleep message
-        self.assertEqual(ret, None)
-        # pre sleep message
-        self.gateway.logic('1;255;3;0;32;500\n')
-        ret = self.gateway.run_job()
-        # instance responds to request with current value
-        self.assertEqual(ret, '1;0;1;0;23;57\n')
-        # pre sleep message
-        self.gateway.logic('1;255;3;0;32;500\n')
-        ret = self.gateway.run_job()
-        # nothing has changed
-        self.assertEqual(ret, None)
-
-    def test_smartsleep_from_unknown(self):
-        """Test smartsleep message from unknown node."""
-        self.gateway.logic('1;255;3;0;32;500\n')
-        ret = self.gateway.run_job()
-        self.assertEqual(ret, '1;255;3;0;19;\n')
-
-    def test_set_with_new_state(self):
-        """Test set message with populated new_state."""
-        sensor = self._add_sensor(1)
-        sensor.children[0] = ChildSensor(
-            0, self.gateway.const.Presentation.S_LIGHT_LEVEL)
-        self.gateway.logic('1;0;1;0;23;43\n')
-        self.gateway.logic('1;255;3;0;32;500\n')
-        self.gateway.logic('1;0;1;0;23;57\n')
-        self.assertEqual(
-            sensor.children[0].values[self.gateway.const.SetReq.V_LIGHT_LEVEL],
-            sensor.new_state[0].values[
-                self.gateway.const.SetReq.V_LIGHT_LEVEL])
+        gateway.sensors[sensor_id] = Sensor(sensor_id)
+        return gateway.sensors[sensor_id]
+    return _add_sensor
+
+
+def get_sensor(sensor_id, gateway):
+    """Add sensor on gateway and return sensor instance."""
+    gateway.sensors[sensor_id] = Sensor(sensor_id)
+    return gateway.sensors[sensor_id]
+
+
+def test_logic_bad_message(gateway):
+    """Test decode of bad message in logic method."""
+    assert gateway.logic('bad;bad;bad;bad;bad;bad\n') is None
+
+
+@pytest.mark.parametrize('protocol_version, return_value', [
+    ('1.4', None),
+    ('1.5', None),
+    ('2.0', '1;255;3;0;19;\n'),
+    ('2.1', '1;255;3;0;19;\n'),
+    ('2.2', '1;255;3;0;19;\n'),
+])
+def test_non_presented_sensor(protocol_version, return_value):
+    """Test non presented sensor node."""
+    gateway = get_gateway(protocol_version=protocol_version)
+
+    gateway.logic('1;0;1;0;23;43\n')
+    ret = gateway.run_job()
+    assert 1 not in gateway.sensors
+    assert ret == return_value
+
+    gateway.logic('1;1;1;0;1;75\n')
+    ret = gateway.run_job()
+    assert 1 not in gateway.sensors
+    assert ret == return_value
+
+    gateway.logic('1;255;3;0;0;79\n')
+    ret = gateway.run_job()
+    assert 1 not in gateway.sensors
+    assert ret == return_value
+
+
+@pytest.mark.parametrize('protocol_version, return_value', [
+    ('1.4', None),
+    ('1.5', None),
+    ('2.0', '1;255;3;0;19;\n'),
+    ('2.1', '1;255;3;0;19;\n'),
+    ('2.2', '1;255;3;0;19;\n'),
+])
+def test_present_to_non_sensor(protocol_version, return_value):
+    """Test presenting a child to a non presented sensor node."""
+    gateway = get_gateway(protocol_version=protocol_version)
+    ret = gateway.logic('1;1;0;0;0;\n')
+    assert 1 not in gateway.sensors
+    ret = gateway.run_job()
+    assert ret == return_value
+
+
+def test_internal_id_request(gateway, add_sensor):
+    """Test internal node id request."""
+    ret = gateway.logic('255;255;3;0;3;\n')
+    assert ret == '255;255;3;0;4;1\n'
+    assert 1 in gateway.sensors
+    ret = gateway.logic('255;255;3;0;3;\n')
+    assert ret == '255;255;3;0;4;2\n'
+    assert 2 in gateway.sensors
+    add_sensor(254)
+    assert 254 in gateway.sensors
+    ret = gateway.logic('255;255;3;0;3;\n')
+    assert ret is None
+    assert 255 not in gateway.sensors
+
+
+def test_id_request_with_node_zero(gateway, add_sensor):
+    """Test internal node id request with node 0 already assigned."""
+    add_sensor(0)
+    ret = gateway.logic('255;255;3;0;3;\n')
+    assert ret == '255;255;3;0;4;1\n'
+    assert 1 in gateway.sensors
+
+
+def test_presentation_arduino_node(gateway):
+    """Test presentation of sensor node."""
+    gateway.logic('1;255;0;0;17;1.4.1\n')
+    assert (
+        gateway.sensors[1].type ==
+        gateway.const.Presentation.S_ARDUINO_NODE)
+    assert gateway.sensors[1].protocol_version == '1.4.1'
+
+
+def test_id_request_presentation(gateway):
+    """Test id request with subsequent presentation."""
+    ret = gateway.logic('255;255;3;0;3;\n')
+    assert ret == '255;255;3;0;4;1\n'
+    assert 1 in gateway.sensors
+    gateway.logic('1;255;0;0;17;1.5.0\n')
+    assert gateway.sensors[1].type == gateway.const.Presentation.S_ARDUINO_NODE
+    assert gateway.sensors[1].protocol_version == '1.5.0'
+
+
+def test_internal_config(gateway):
+    """Test internal config request, metric or imperial."""
+    # metric
+    ret = gateway.logic('1;255;3;0;6;0\n')
+    assert ret == '1;255;3;0;6;M\n'
+    # imperial
+    gateway.metric = False
+    ret = gateway.logic('1;255;3;0;6;0\n')
+    assert ret == '1;255;3;0;6;I\n'
+
+
+def test_internal_time(gateway, add_sensor):
+    """Test internal time request."""
+    add_sensor(1)
+    with mock.patch('mysensors.time') as mock_time:
+        mock_time.localtime.return_value = time.gmtime(123456789)
+        ret = gateway.logic('1;255;3;0;1;\n')
+        assert ret == '1;255;3;0;1;123456789\n'
+
+
+def test_internal_sketch_name(gateway, add_sensor):
+    """Test internal receive of sketch name."""
+    sensor = add_sensor(1)
+    gateway.logic('1;255;3;0;11;lighthum demo sens\n')
+    assert sensor.sketch_name, 'lighthum demo sens'
+
+
+def test_internal_sketch_version(gateway, add_sensor):
+    """Test internal receive of sketch version."""
+    sensor = add_sensor(1)
+    gateway.logic('1;255;3;0;12;1.0\n')
+    assert sensor.sketch_version == '1.0'
+
+
+def test_internal_log_message(gateway, caplog):
+    """Test internal receive of log message."""
+    payload = 'read: 1-1-0 s=0,c=1,t=1,pt=7,l=5,sg=0:22.0\n'
+    data = '0;255;3;0;9;{}'.format(payload)
+    caplog.set_level(logging.DEBUG)
+    gateway.logic(data)
+    assert 'n:0 c:255 t:3 s:9 p:{}'.format(payload[:-1]) in caplog.text
+
+
+@pytest.mark.parametrize('protocol_version, return_value', [
+    ('1.4', None),
+    ('1.5', None),
+    ('2.0', '255;255;3;0;20;\n'),
+    ('2.1', '255;255;3;0;20;\n'),
+    ('2.2', '255;255;3;0;20;\n'),
+])
+def test_internal_gateway_ready(protocol_version, return_value, caplog):
+    """Test internal receive gateway ready and send discover request."""
+    payload = 'Gateway startup complete.\n'
+    data = '0;255;3;0;14;{}'.format(payload)
+    caplog.set_level(logging.INFO)
+    gateway = get_gateway(protocol_version=protocol_version)
+    ret = gateway.logic(data)
+    assert ret == return_value
+    assert 'n:0 c:255 t:3 s:14 p:{}'.format(payload[:-1]) in caplog.text
+
+
+def test_present_light_level_sensor(gateway, add_sensor):
+    """Test presentation of a light level sensor."""
+    sensor = add_sensor(1)
+    gateway.logic('1;0;0;0;16;\n')
+    assert 0 in sensor.children
+    assert sensor.children[0].type == gateway.const.Presentation.S_LIGHT_LEVEL
+
+
+def test_present_humidity_sensor(gateway, add_sensor):
+    """Test presentation of a humidity sensor."""
+    sensor = add_sensor(1)
+    gateway.logic('1;0;0;0;7;\n')
+    assert 0 in sensor.children
+    assert sensor.children[0].type == gateway.const.Presentation.S_HUM
+
+
+def test_present_same_child(gateway, add_sensor):
+    """Test presentation of the same child id again."""
+    sensor = add_sensor(1)
+    gateway.logic('1;0;0;0;16;\n')
+    assert 0 in sensor.children
+    assert sensor.children[0].type == gateway.const.Presentation.S_LIGHT_LEVEL
+    gateway.logic('1;0;0;0;7;\n')
+    assert 0 in sensor.children
+    assert sensor.children[0].type == gateway.const.Presentation.S_LIGHT_LEVEL
+
+
+def test_set_light_level(gateway, add_sensor):
+    """Test set of light level."""
+    sensor = add_sensor(1)
+    sensor.add_child_sensor(0, gateway.const.Presentation.S_LIGHT_LEVEL)
+    gateway.logic('1;0;1;0;23;43\n')
+    assert (
+        sensor.children[0].values[gateway.const.SetReq.V_LIGHT_LEVEL] == '43')
+
+
+def test_set_humidity_level(gateway, add_sensor):
+    """Test set humidity level."""
+    sensor = add_sensor(1)
+    sensor.add_child_sensor(1, gateway.const.Presentation.S_HUM)
+    gateway.logic('1;1;1;0;1;75\n')
+    assert sensor.children[1].values[gateway.const.SetReq.V_HUM] == '75'
+
+
+def test_battery_level(gateway, add_sensor):
+    """Test internal receive of battery level."""
+    sensor = add_sensor(1)
+    gateway.logic('1;255;3;0;0;79\n')
+    assert sensor.battery_level == 79
+
+
+def test_bad_battery_level(gateway, add_sensor):
+    """Test internal receive of bad battery level."""
+    sensor = add_sensor(1)
+    gateway.logic('1;255;3;0;0;-1\n')
+    assert sensor.battery_level == 0
+
+
+def test_req(gateway, add_sensor):
+    """Test req message in case where value exists."""
+    sensor = add_sensor(1)
+    sensor.add_child_sensor(1, gateway.const.Presentation.S_POWER)
+    sensor.set_child_value(1, gateway.const.SetReq.V_WATT, 42)
+    ret = gateway.logic('1;1;2;0;17;\n')
+    assert ret == '1;1;1;0;17;42\n'
+
+
+def test_req_zerovalue(gateway, add_sensor):
+    """Test req message in case where value exists but is zero."""
+    sensor = add_sensor(1)
+    sensor.add_child_sensor(1, gateway.const.Presentation.S_POWER)
+    sensor.set_child_value(1, gateway.const.SetReq.V_WATT, 0)
+    ret = gateway.logic('1;1;2;0;17;\n')
+    assert ret == '1;1;1;0;17;0\n'
+
+
+def test_req_novalue(gateway, add_sensor):
+    """Test req message for sensor with no value."""
+    sensor = add_sensor(1)
+    sensor.add_child_sensor(1, gateway.const.Presentation.S_POWER)
+    ret = gateway.logic('1;1;2;0;17;\n')
+    assert ret is None
+
+
+def test_req_notasensor(gateway):
+    """Test req message for non-existent sensor."""
+    ret = gateway.logic('1;1;2;0;17;\n')
+    assert ret is None
+
+
+def test_callback(gateway, add_sensor):
+    """Test gateway callback function."""
+    messages = []
+
+    def callback(message):
+        """Add message to messages list."""
+        messages.append(message)
+
+    gateway.event_callback = callback
+    sensor = add_sensor(1)
+    sensor.add_child_sensor(0, gateway.const.Presentation.S_LIGHT_LEVEL)
+    gateway.logic('1;0;1;0;23;43\n')
+    assert len(messages) == 1
+    assert messages[0].gateway is gateway
+    assert messages[0].node_id == 1
+    assert messages[0].child_id == 0
+    assert messages[0].type == 1
+    assert messages[0].ack == 0
+    assert messages[0].sub_type == 23
+    assert messages[0].payload == '43'
+
+
+def test_callback_exception(gateway, caplog):
+    """Test gateway callback with exception."""
+    side_effect = ValueError('test callback error')
+    msg = mock.MagicMock()
+    caplog.set_level(logging.ERROR)
+    with mock.patch.object(gateway, 'event_callback',
+                           side_effect=side_effect) as mock_callback:
+        gateway.alert(msg)
+    assert mock_callback.call_count == 1
+    assert 'test callback error' in caplog.text
+
+
+def test_set_and_reboot(gateway, add_sensor):
+    """Test set message with reboot attribute true."""
+    sensor = add_sensor(1)
+    sensor.add_child_sensor(0, gateway.const.Presentation.S_LIGHT_LEVEL)
+    sensor.reboot = True
+    ret = gateway.logic('1;0;1;0;23;43\n')
+    assert ret == '1;255;3;0;13;\n'
+    gateway.logic('1;255;0;0;17;1.4.1\n')
+    assert sensor.reboot is False
+
+
+def test_set_child_value(gateway, add_sensor):
+    """Test Gateway method set_child_value."""
+    sensor = add_sensor(1)
+    sensor.add_child_sensor(0, gateway.const.Presentation.S_LIGHT)
+    gateway.set_child_value(1, 0, gateway.const.SetReq.V_LIGHT, '1')
+    ret = gateway.run_job()
+    assert ret == '1;0;1;0;2;1\n'
+    # test integer value
+    gateway.set_child_value(1, 0, gateway.const.SetReq.V_LIGHT, 0)
+    ret = gateway.run_job()
+    assert ret == '1;0;1;0;2;0\n'
+
+
+@pytest.mark.parametrize('protocol_version, return_value', [
+    ('1.4', None),
+    ('1.5', None),
+    ('2.0', '1;255;3;0;19;\n'),
+    ('2.1', '1;255;3;0;19;\n'),
+    ('2.2', '1;255;3;0;19;\n'),
+])
+def test_set_child_value_no_sensor(protocol_version, return_value):
+    """Test Gateway method set_child_value with no sensor."""
+    gateway = get_gateway(protocol_version=protocol_version)
+    gateway.set_child_value(1, 0, gateway.const.SetReq.V_LIGHT, '1')
+    ret = gateway.run_job()
+    assert ret == return_value
+
+
+@pytest.mark.parametrize('protocol_version, return_value', [
+    ('1.4', None),
+    ('1.5', None),
+    ('2.0', '1;255;3;0;19;\n'),
+    ('2.1', '1;255;3;0;19;\n'),
+    ('2.2', '1;255;3;0;19;\n'),
+])
+def test_non_presented_child(protocol_version, return_value):
+    """Test non presented sensor child."""
+    gateway = get_gateway(protocol_version=protocol_version)
+    sensor = get_sensor(1, gateway)
+    gateway.logic('1;0;1;0;23;43\n')
+    assert 0 not in sensor.children
+    ret = gateway.run_job()
+    assert ret == return_value
+    gateway.logic('1;1;2;0;1;\n')
+    assert 1 not in sensor.children
+    ret = gateway.run_job()
+    assert ret == return_value
+
+
+def test_set_child_no_children(gateway, add_sensor):
+    """Test Gateway method set_child_value without child in children."""
+    sensor = add_sensor(1)
+    sensor.add_child_sensor(0, gateway.const.Presentation.S_LIGHT)
+    gateway.set_child_value(1, 0, gateway.const.SetReq.V_LIGHT, 1, children={})
+    ret = gateway.run_job()
+    assert ret is None
+
+
+def test_set_child_value_bad_type(gateway, add_sensor):
+    """Test Gateway method set_child_value with bad type."""
+    sensor = add_sensor(1)
+    sensor.add_child_sensor(0, gateway.const.Presentation.S_LIGHT)
+    gateway.set_child_value(
+        1, 0, gateway.const.SetReq.V_LIGHT, 1, msg_type='one')
+    ret = gateway.run_job()
+    assert ret is None
+
+
+def test_set_child_value_bad_ack(gateway, add_sensor):
+    """Test Gateway method set_child_value with bad ack."""
+    sensor = add_sensor(1)
+    sensor.add_child_sensor(0, gateway.const.Presentation.S_LIGHT)
+    gateway.set_child_value(1, 0, gateway.const.SetReq.V_LIGHT, 1, ack='one')
+    ret = gateway.run_job()
+    assert ret is None
+
+
+def test_set_child_value_value_type(gateway, add_sensor):
+    """Test Gateway method set_child_value with string value type."""
+    sensor = add_sensor(1)
+    sensor.add_child_sensor(0, gateway.const.Presentation.S_LIGHT)
+    gateway.set_child_value(1, 0, 2, 1)
+    ret = gateway.run_job()
+    assert ret == '1;0;1;0;2;1\n'
+    child_values = dict(sensor.children[0].values)
+    gateway.set_child_value(1, 0, '2', 1)
+    ret = gateway.run_job()
+    assert child_values == sensor.children[0].values
+    assert ret == '1;0;1;0;2;1\n'
+
+
+def test_child_validate(gateway, add_sensor):
+    """Test child validate method."""
+    sensor = add_sensor(1)
+    sensor.add_child_sensor(0, gateway.const.Presentation.S_LIGHT_LEVEL)
+    sensor.children[0].values[gateway.const.SetReq.V_LIGHT_LEVEL] = '43'
+    sensor.children[0].validate(gateway.protocol_version)
+    assert (
+        sensor.children[0].values[gateway.const.SetReq.V_LIGHT_LEVEL] == '43')
+    sensor.children[0].values[gateway.const.SetReq.V_TRIPPED] = '1'
+    with pytest.raises(vol.Invalid):
+        sensor.children[0].validate(gateway.protocol_version)
+
+
+def test_set_forecast(gateway, add_sensor):
+    """Test set of V_FORECAST."""
+    sensor = add_sensor(1)
+    sensor.add_child_sensor(0, gateway.const.Presentation.S_BARO)
+    gateway.logic('1;0;1;0;5;sunny\n')
+    assert (
+        sensor.children[0].values[gateway.const.SetReq.V_FORECAST] == 'sunny')
+    gateway.logic('1;0;1;0;5;rainy\n')
+    assert (
+        sensor.children[0].values[gateway.const.SetReq.V_FORECAST] == 'rainy')
+
+
+def test_set_bad_battery_attribute(add_sensor):
+    """Test set a bad battery_level attribute on a node."""
+    sensor = add_sensor(1)
+    sensor.battery_level = None
+    assert sensor.battery_level == 0
+
+
+@pytest.mark.parametrize(
+    'protocol_version', ['1.5', '2.0', '2.1', '2.2'])
+def test_set_rgb(protocol_version):
+    """Test set of V_RGB."""
+    gateway = get_gateway(protocol_version=protocol_version)
+    sensor = get_sensor(1, gateway)
+    sensor.protocol_version = protocol_version
+    sensor.add_child_sensor(0, gateway.const.Presentation.S_RGB_LIGHT)
+    gateway.logic('1;0;1;0;40;ffffff\n')
+    assert sensor.children[0].values[gateway.const.SetReq.V_RGB] == 'ffffff'
+    gateway.logic('1;0;1;0;40;ffffff00\n')
+    assert sensor.children[0].values[gateway.const.SetReq.V_RGB] == 'ffffff'
+    gateway.logic('1;0;1;0;40;nothex\n')
+    assert sensor.children[0].values[gateway.const.SetReq.V_RGB] == 'ffffff'
+
+
+@pytest.mark.parametrize(
+    'protocol_version', ['1.5', '2.0', '2.1', '2.2'])
+def test_set_rgbw(protocol_version):
+    """Test set of V_RGBW."""
+    gateway = get_gateway(protocol_version=protocol_version)
+    sensor = get_sensor(1, gateway)
+    sensor.protocol_version = protocol_version
+    sensor.add_child_sensor(0, gateway.const.Presentation.S_RGBW_LIGHT)
+    gateway.logic('1;0;1;0;41;ffffffff\n')
+    assert sensor.children[0].values[gateway.const.SetReq.V_RGBW] == 'ffffffff'
+    gateway.logic('1;0;1;0;41;ffffffff00\n')
+    assert sensor.children[0].values[gateway.const.SetReq.V_RGBW] == 'ffffffff'
+    gateway.logic('1;0;1;0;41;nothexxx\n')
+    assert sensor.children[0].values[gateway.const.SetReq.V_RGBW] == 'ffffffff'
+
+
+@pytest.mark.parametrize('protocol_version, wake_msg', [
+    ('2.0', '1;255;3;0;22;\n'),
+    ('2.1', '1;255;3;0;22;\n'),
+    ('2.2', '1;255;3;0;32;500\n'),
+])
+def test_smartsleep(protocol_version, wake_msg):
+    """Test smartsleep feature."""
+    gateway = get_gateway(protocol_version=protocol_version)
+    sensor = get_sensor(1, gateway)
+    sensor.add_child_sensor(0, gateway.const.Presentation.S_LIGHT_LEVEL)
+    gateway.logic('1;0;1;0;23;43\n')
+    ret = gateway.run_job()
+    assert ret is None
+    # heartbeat
+    gateway.logic(wake_msg)
+    ret = gateway.run_job()
+    # nothing has changed
+    assert ret is None
+    # change from controller side
+    gateway.set_child_value(1, 0, gateway.const.SetReq.V_LIGHT_LEVEL, '57')
+    ret = gateway.run_job()
+    # no heartbeat
+    assert ret is None
+    # heartbeat comes in
+    gateway.logic(wake_msg)
+    ret = gateway.run_job()
+    # instance responds with new values
+    assert ret == '1;0;1;0;23;57\n'
+    # request from node
+    gateway.logic('1;0;2;0;23;\n')
+    ret = gateway.run_job()
+    # no heartbeat
+    assert ret is None
+    # heartbeat
+    gateway.logic(wake_msg)
+    ret = gateway.run_job()
+    # instance responds to request with current value
+    assert ret == '1;0;1;0;23;57\n'
+    # heartbeat
+    gateway.logic(wake_msg)
+    ret = gateway.run_job()
+    # nothing has changed
+    assert ret is None
+
+
+@pytest.mark.parametrize('protocol_version, wake_msg', [
+    ('2.0', '1;255;3;0;22;\n'),
+    ('2.1', '1;255;3;0;22;\n'),
+    ('2.2', '1;255;3;0;32;500\n'),
+])
+def test_smartsleep_from_unknown(protocol_version, wake_msg):
+    """Test smartsleep message from unknown node."""
+    gateway = get_gateway(protocol_version=protocol_version)
+    gateway.logic(wake_msg)
+    ret = gateway.run_job()
+    assert ret == '1;255;3;0;19;\n'
+
+
+@pytest.mark.parametrize('protocol_version, wake_msg', [
+    ('2.0', '1;255;3;0;22;\n'),
+    ('2.1', '1;255;3;0;22;\n'),
+    ('2.2', '1;255;3;0;32;500\n'),
+])
+def test_set_with_new_state(protocol_version, wake_msg):
+    """Test set message with populated new_state."""
+    gateway = get_gateway(protocol_version=protocol_version)
+    sensor = get_sensor(1, gateway)
+    sensor.add_child_sensor(0, gateway.const.Presentation.S_LIGHT_LEVEL)
+    gateway.logic('1;0;1;0;23;43\n')
+    gateway.logic(wake_msg)
+    gateway.logic('1;0;1;0;23;57\n')
+    assert (
+        sensor.children[0].values[gateway.const.SetReq.V_LIGHT_LEVEL] ==
+        sensor.new_state[0].values[gateway.const.SetReq.V_LIGHT_LEVEL])
+
+
+@pytest.mark.parametrize(
+    'protocol_version', ['2.0', '2.1', '2.2'])
+def test_discover_response_unknown(protocol_version):
+    """Test internal receive discover response."""
+    gateway = get_gateway(protocol_version=protocol_version)
+    # Test sensor 1 unknown.
+    gateway.logic('1;255;3;0;21;0')
+    ret = gateway.run_job()
+    assert ret == '1;255;3;0;19;\n'
+
+
+@pytest.mark.parametrize(
+    'protocol_version', ['2.0', '2.1', '2.2'])
+@mock.patch('mysensors.Gateway.is_sensor')
+def test_discover_response_known(mock_is_sensor, protocol_version):
+    """Test internal receive discover response."""
+    gateway = get_gateway(protocol_version=protocol_version)
+    # Test sensor 1 known.
+    get_sensor(1, gateway)
+    gateway.logic('1;255;3;0;21;0')
+    assert mock_is_sensor.call_count == 1
+
+
+@pytest.mark.parametrize(
+    'protocol_version', ['2.0', '2.1', '2.2'])
+def test_set_position(protocol_version):
+    """Test set of V_POSITION."""
+    gateway = get_gateway(protocol_version=protocol_version)
+    sensor = get_sensor(1, gateway)
+    sensor.protocol_version = protocol_version
+    sensor.add_child_sensor(0, gateway.const.Presentation.S_GPS)
+    gateway.logic('1;0;1;0;49;10.0,10.0,10.0\n')
+    assert (
+        sensor.children[0].values[gateway.const.SetReq.V_POSITION] ==
+        '10.0,10.0,10.0')
+    gateway.logic('1;0;1;0;49;bad,format\n')
+    assert (
+        sensor.children[0].values[gateway.const.SetReq.V_POSITION] ==
+        '10.0,10.0,10.0')
+    gateway.logic('1;0;1;0;41;bad,bad,bad\n')
+    assert (
+        sensor.children[0].values[gateway.const.SetReq.V_POSITION] ==
+        '10.0,10.0,10.0')
 
 
 def test_gateway_bad_protocol():
     """Test initializing gateway with a bad protocol_version."""
-    gateway = Gateway(protocol_version=None)
+    gateway = get_gateway(protocol_version=None)
     assert gateway.protocol_version == '1.4'
 
 
 def test_gateway_low_protocol():
     """Test initializing gateway with too low protocol_version."""
-    gateway = Gateway(protocol_version='1.3')
+    gateway = get_gateway(protocol_version='1.3')
     assert gateway.protocol_version == '1.4'
 
 
@@ -682,14 +628,10 @@ def test_update_fw_bad_path(caplog):
     gateway = ThreadingGateway()
     sensor_id = 1
     bad_path = '/bad/path'
-    gateway.sensors[sensor_id] = Sensor(sensor_id)
+    get_sensor(sensor_id, gateway)
     gateway.update_fw(sensor_id, 1, 1, bad_path)
     ret = gateway.logic('1;255;4;0;0;01000200B00626E80300\n')
     assert ret is None
     log_msg = 'Firmware path {} does not exist or is not readable'.format(
         bad_path)
     assert log_msg in caplog.text
-
-
-if __name__ == '__main__':
-    main()

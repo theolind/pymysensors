@@ -1,6 +1,4 @@
 """Test mysensors messages."""
-from unittest import TestCase
-
 import pytest
 import voluptuous as vol
 
@@ -183,140 +181,157 @@ INTERNAL_FIXTURES_22.update({
 })
 
 
-def get_gateway(protocol_version):
+def get_gateway(**kwargs):
     """Return a gateway."""
-    gateway = Gateway(protocol_version=protocol_version)
-    return gateway
+    return Gateway(**kwargs)
 
 
-class TestMessage(TestCase):
-    """Test the Message class and it's encode/decode functions."""
-
-    def test_encode(self):
-        """Test encode of message."""
-        msg = Message()
-        cmd = msg.encode()
-        self.assertEqual(cmd, '0;0;0;0;0;\n')
-
-        msg.node_id = 1
-        msg.child_id = 255
-        msg.type = MessageType.internal
-        msg.sub_type = Internal.I_BATTERY_LEVEL
-        msg.ack = 0
-        msg.payload = 57
-
-        cmd = msg.encode()
-        self.assertEqual(cmd, '1;255;3;0;0;57\n')
-
-    def test_encode_bad_message(self):
-        """Test encode of bad message."""
-        msg = Message()
-        msg.sub_type = 'bad'
-        cmd = msg.encode()
-        self.assertEqual(cmd, None)
-
-    def test_decode(self):
-        """Test decode of message."""
-        msg = Message('1;255;3;0;0;57\n')
-        self.assertEqual(msg.node_id, 1)
-        self.assertEqual(msg.child_id, 255)
-        self.assertEqual(msg.type, MessageType.internal)
-        self.assertEqual(msg.sub_type, Internal.I_BATTERY_LEVEL)
-        self.assertEqual(msg.ack, 0)
-        self.assertEqual(msg.payload, '57')
-
-    def test_decode_bad_message(self):
-        """Test decode of bad message."""
-        with self.assertRaises(ValueError):
-            Message('bad;bad;bad;bad;bad;bad\n')
+def get_message(message_data=None):
+    """Return a message."""
+    return Message(message_data)
 
 
-def test_validate_pres():
+def test_encode():
+    """Test encode of message."""
+    msg = get_message()
+    cmd = msg.encode()
+    assert cmd == '0;0;0;0;0;\n'
+
+    msg.node_id = 1
+    msg.child_id = 255
+    msg.type = MessageType.internal
+    msg.sub_type = Internal.I_BATTERY_LEVEL
+    msg.ack = 0
+    msg.payload = 57
+
+    cmd = msg.encode()
+    assert cmd == '1;255;3;0;0;57\n'
+
+
+def test_encode_bad_message():
+    """Test encode of bad message."""
+    msg = get_message()
+    msg.sub_type = 'bad'
+    cmd = msg.encode()
+    assert cmd is None
+
+
+def test_decode():
+    """Test decode of message."""
+    msg = get_message('1;255;3;0;0;57\n')
+    assert msg.node_id == 1
+    assert msg.child_id == 255
+    assert msg.type == MessageType.internal
+    assert msg.sub_type == Internal.I_BATTERY_LEVEL
+    assert msg.ack == 0
+    assert msg.payload == '57'
+
+
+def test_decode_bad_message():
+    """Test decode of bad message."""
+    with pytest.raises(ValueError):
+        get_message('bad;bad;bad;bad;bad;bad\n')
+
+
+@pytest.mark.parametrize(
+    'protocol_version, name, payload',
+    [('1.4', name, payload) for name, payload in PRES_FIXTURES_14.items()] +
+    [('1.5', name, payload) for name, payload in PRES_FIXTURES_15.items()] +
+    [('2.0', name, payload) for name, payload in PRES_FIXTURES_20.items()] +
+    [('2.1', name, payload) for name, payload in PRES_FIXTURES_20.items()] +
+    [('2.2', name, payload) for name, payload in PRES_FIXTURES_20.items()]
+)
+def test_validate_pres(protocol_version, name, payload):
     """Test Presentation messages."""
-    versions = [
-        ('1.4', PRES_FIXTURES_14), ('1.5', PRES_FIXTURES_15),
-        ('2.0', PRES_FIXTURES_20)]
-    for protocol_version, fixture in versions:
-        gateway = get_gateway(protocol_version)
-        const = get_const(protocol_version)
-        for name, payload in fixture.items():
-            sub_type = const.Presentation[name]
-            msg = Message('1;0;0;0;{};{}\n'.format(sub_type, payload))
-            valid = msg.validate(protocol_version)
-            assert valid == {
-                'node_id': 1, 'child_id': 0, 'type': 0, 'ack': 0,
-                'sub_type': sub_type, 'payload': payload}
-            ret = gateway.logic('1;0;0;0;{};{}\n'.format(sub_type, payload))
-            assert ret is None
+    gateway = get_gateway(protocol_version=protocol_version)
+    const = get_const(protocol_version)
+    sub_type = const.Presentation[name]
+    msg = get_message('1;0;0;0;{};{}\n'.format(sub_type, payload))
+    valid = msg.validate(protocol_version)
+    assert valid == {
+        'node_id': 1, 'child_id': 0, 'type': 0, 'ack': 0,
+        'sub_type': sub_type, 'payload': payload}
+    ret = gateway.logic('1;0;0;0;{};{}\n'.format(sub_type, payload))
+    assert ret is None
 
 
-def test_validate_bad_pres():
+@pytest.mark.parametrize(
+    'protocol_version, name, payload',
+    [('1.4', name, payload)
+     for name, payload in PRES_BAD_FIXTURES_14.items()] +
+    [('1.5', name, payload)
+     for name, payload in PRES_BAD_FIXTURES_15.items()] +
+    [('2.0', name, payload)
+     for name, payload in PRES_BAD_FIXTURES_20.items()] +
+    [('2.1', name, payload)
+     for name, payload in PRES_BAD_FIXTURES_20.items()] +
+    [('2.2', name, payload)
+     for name, payload in PRES_BAD_FIXTURES_20.items()]
+)
+def test_validate_bad_pres(protocol_version, name, payload):
     """Test bad Presentation messages."""
-    versions = [
-        ('1.4', PRES_BAD_FIXTURES_14), ('1.5', PRES_BAD_FIXTURES_15),
-        ('2.0', PRES_BAD_FIXTURES_20)]
-    for protocol_version, fixture in versions:
-        const = get_const(protocol_version)
-        for name, payload in fixture.items():
-            sub_type = const.Presentation[name]
-            msg = Message('1;0;0;0;{};{}\n'.format(sub_type, payload))
-            with pytest.raises(vol.Invalid):
-                msg.validate(protocol_version)
+    const = get_const(protocol_version)
+    sub_type = const.Presentation[name]
+    msg = get_message('1;0;0;0;{};{}\n'.format(sub_type, payload))
+    with pytest.raises(vol.Invalid):
+        msg.validate(protocol_version)
 
 
-def test_validate_set():
+@pytest.mark.parametrize(
+    'protocol_version, name, payload',
+    [('1.4', name, payload) for name, payload in SET_FIXTURES_14.items()] +
+    [('1.5', name, payload) for name, payload in SET_FIXTURES_15.items()] +
+    [('2.0', name, payload) for name, payload in SET_FIXTURES_20.items()] +
+    [('2.1', name, payload) for name, payload in SET_FIXTURES_20.items()] +
+    [('2.2', name, payload) for name, payload in SET_FIXTURES_20.items()]
+)
+def test_validate_set(protocol_version, name, payload):
     """Test Set messages."""
-    versions = [
-        ('1.4', SET_FIXTURES_14), ('1.5', SET_FIXTURES_15),
-        ('2.0', SET_FIXTURES_20)]
-    for protocol_version, fixture in versions:
-        gateway = get_gateway(protocol_version)
-        const = get_const(protocol_version)
-        for name, payload in fixture.items():
-            sub_type = const.SetReq[name]
-            msg = Message('1;0;1;0;{};{}\n'.format(sub_type, payload))
-            valid = msg.validate(protocol_version)
-            assert valid == {
-                'node_id': 1, 'child_id': 0, 'type': 1, 'ack': 0,
-                'sub_type': sub_type, 'payload': payload}
-            ret = gateway.logic('1;0;1;0;{};{}\n'.format(sub_type, payload))
-            assert ret is None
+    gateway = get_gateway(protocol_version=protocol_version)
+    const = get_const(protocol_version)
+    sub_type = const.SetReq[name]
+    msg = get_message('1;0;1;0;{};{}\n'.format(sub_type, payload))
+    valid = msg.validate(protocol_version)
+    assert valid == {
+        'node_id': 1, 'child_id': 0, 'type': 1, 'ack': 0,
+        'sub_type': sub_type, 'payload': payload}
+    ret = gateway.logic('1;0;1;0;{};{}\n'.format(sub_type, payload))
+    assert ret is None
 
 
-def test_validate_internal():
+@pytest.mark.parametrize(
+    'protocol_version, name, payload',
+    [('1.4', name, payload)
+     for name, payload in INTERNAL_FIXTURES_14.items()] +
+    [('1.5', name, payload)
+     for name, payload in INTERNAL_FIXTURES_15.items()] +
+    [('2.0', name, payload)
+     for name, payload in INTERNAL_FIXTURES_20.items()] +
+    [('2.1', name, payload)
+     for name, payload in INTERNAL_FIXTURES_21.items()] +
+    [('2.2', name, payload)
+     for name, payload in INTERNAL_FIXTURES_22.items()]
+)
+def test_validate_internal(protocol_version, name, payload):
     """Test Internal messages."""
-    versions = [
-        ('1.4', INTERNAL_FIXTURES_14), ('1.5', INTERNAL_FIXTURES_15),
-        ('2.0', INTERNAL_FIXTURES_20), ('2.1', INTERNAL_FIXTURES_21),
-        ('2.2', INTERNAL_FIXTURES_22)]
-    for protocol_version, fixture in versions:
-        gateway = get_gateway(protocol_version)
-        const = get_const(protocol_version)
-        for name, payload in fixture.items():
-            if isinstance(payload, dict):
-                _payload = payload.get('payload')
-                return_value = payload.get('return')
-            else:
-                _payload = payload
-                return_value = None
-            sub_type = const.Internal[name]
-            msg = Message('1;255;3;0;{};{}\n'.format(sub_type, _payload))
-            try:
-                valid = msg.validate(protocol_version)
-            except vol.MultipleInvalid:
-                print('fixture version: ', protocol_version)
-                print('gateway version: ', gateway.protocol_version)
-                print('name: ', name)
-                print('subtype: ', sub_type)
-                print('payload: ', _payload)
-                raise
-            assert valid == {
-                'node_id': 1, 'child_id': 255, 'type': 3, 'ack': 0,
-                'sub_type': sub_type, 'payload': _payload}
-            ret = gateway.logic('1;255;3;0;{};{}\n'.format(sub_type, _payload))
-            if return_value is None:
-                assert ret is None, 'Version: {} Message: {}'.format(
-                    protocol_version, msg)
-            else:
-                assert ret, 'Version: {} Message: {}'.format(
-                    protocol_version, msg)
+    gateway = get_gateway(protocol_version=protocol_version)
+    const = get_const(protocol_version)
+    if isinstance(payload, dict):
+        _payload = payload.get('payload')
+        return_value = payload.get('return')
+    else:
+        _payload = payload
+        return_value = None
+    sub_type = const.Internal[name]
+    msg = get_message('1;255;3;0;{};{}\n'.format(sub_type, _payload))
+    valid = msg.validate(protocol_version)
+    assert valid == {
+        'node_id': 1, 'child_id': 255, 'type': 3, 'ack': 0,
+        'sub_type': sub_type, 'payload': _payload}
+    ret = gateway.logic('1;255;3;0;{};{}\n'.format(sub_type, _payload))
+    if return_value is None:
+        assert ret is None, 'Version: {} Message: {}'.format(
+            protocol_version, msg)
+    else:
+        assert ret, 'Version: {} Message: {}'.format(
+            protocol_version, msg)
