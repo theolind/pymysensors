@@ -1,7 +1,16 @@
 # Change Log
 
-# [0.13.0](https://github.com/theolind/pymysensors/tree/0.13.0) (2018-04-02)
-[Full Changelog](https://github.com/theolind/pymysensors/compare/0.12.1...0.13.0)
+# [0.14.0](https://github.com/theolind/pymysensors/tree/0.14.0) (2018-05-10)
+[Full Changelog](https://github.com/theolind/pymysensors/compare/0.13...0.14.0)
+
+**Merged pull requests:**
+
+- Fix node presentation after id request [\#146](https://github.com/theolind/pymysensors/pull/146) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Scheduled monthly dependency update for May [\#145](https://github.com/theolind/pymysensors/pull/145) ([pyup-bot](https://github.com/pyup-bot))
+- Call event callback when gateway is ready [\#144](https://github.com/theolind/pymysensors/pull/144) ([MartinHjelmare](https://github.com/MartinHjelmare))
+
+# [0.13](https://github.com/theolind/pymysensors/tree/0.13) (2018-04-02)
+[Full Changelog](https://github.com/theolind/pymysensors/compare/0.12.1...0.13)
 
 **Breaking Changes:**
 
@@ -14,6 +23,7 @@
 
 **Merged pull requests:**
 
+- 0.13 [\#138](https://github.com/theolind/pymysensors/pull/138) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Add pyup config file [\#137](https://github.com/theolind/pymysensors/pull/137) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Update changelog generator to use python package [\#136](https://github.com/theolind/pymysensors/pull/136) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Upgrade requirements packages [\#134](https://github.com/theolind/pymysensors/pull/134) ([MartinHjelmare](https://github.com/MartinHjelmare))
@@ -257,3 +267,4 @@
 - Add setup.py [\#4](https://github.com/theolind/pymysensors/pull/4) ([balloob](https://github.com/balloob))
 - Fix ValueError issue when decoding a message. [\#2](https://github.com/theolind/pymysensors/pull/2) ([andythigpen](https://github.com/andythigpen))
 - Improvements [\#1](https://github.com/theolind/pymysensors/pull/1) ([andythigpen](https://github.com/andythigpen))
+

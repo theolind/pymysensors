@@ -101,7 +101,7 @@ VALID_PAYLOADS = {
 HANDLE_INTERNAL = dict(HANDLE_INTERNAL)
 HANDLE_INTERNAL.update({
     Internal.I_GATEWAY_READY: {
-        'log': 'info', 'msg': {
+        'log': 'info', 'fun': 'alert', 'msg': {
             'node_id': 255, 'ack': 0, 'sub_type': Internal.I_DISCOVER_REQUEST,
             'payload': ''}},
 })
