@@ -411,7 +411,7 @@ class TestGateway15(TestGateway):
             sensor.children[0].values[self.gateway.const.SetReq.V_RGBW],
             'ffffffff')
 
-    def test_id_request_and_presentation(self):
+    def test_id_request_presentation(self):
         """Test id request with subsequent presentation."""
         ret = self.gateway.logic('255;255;3;0;3;\n')
         self.assertEqual(ret, '255;255;3;0;4;1\n')
