@@ -411,6 +411,17 @@ class TestGateway15(TestGateway):
             sensor.children[0].values[self.gateway.const.SetReq.V_RGBW],
             'ffffffff')
 
+    def test_id_request_and_presentation(self):
+        """Test id request with subsequent presentation."""
+        ret = self.gateway.logic('255;255;3;0;3;\n')
+        self.assertEqual(ret, '255;255;3;0;4;1\n')
+        self.assertIn(1, self.gateway.sensors)
+        self.gateway.logic('1;255;0;0;17;1.5.0\n')
+        self.assertEqual(
+            self.gateway.sensors[1].type,
+            self.gateway.const.Presentation.S_ARDUINO_NODE)
+        self.assertEqual(self.gateway.sensors[1].protocol_version, '1.5.0')
+
 
 class TestGateway20(TestGateway):
     """Use protocol_version 2.0."""

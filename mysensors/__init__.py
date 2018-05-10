@@ -67,11 +67,11 @@ class Gateway(object):
             # this is a presentation of the sensor platform
             sensorid = self.add_sensor(msg.node_id)
             if sensorid is None:
-                if msg.node_id in self.sensors:
-                    self.sensors[msg.node_id].reboot = False
                 return None
             self.sensors[msg.node_id].type = msg.sub_type
             self.sensors[msg.node_id].protocol_version = msg.payload
+            # Set reboot to False after a node reboot.
+            self.sensors[msg.node_id].reboot = False
             self.alert(msg)
             return msg
         else:
@@ -233,8 +233,7 @@ class Gateway(object):
             sensorid = self._get_next_id()
         if sensorid is not None and sensorid not in self.sensors:
             self.sensors[sensorid] = Sensor(sensorid)
-            return sensorid
-        return None
+        return sensorid if sensorid in self.sensors else None
 
     def is_sensor(self, sensorid, child_id=None):
         """Return True if a sensor and its child exist."""
