@@ -225,3 +225,12 @@ def test_nested_prefix(mock_pub, mock_sub):
     gateway.send(ret)
     assert mock_pub.call_args == mock.call(
         'test/test-out/1/1/1/1/1', '20', 1, True)
+
+
+def test_get_gateway_id(mock_pub, mock_sub):
+    """Test get_gateway_id method."""
+    gateway = get_gateway(
+        mock_pub, mock_sub, in_prefix='test/test-in',
+        out_prefix='test/test-out')
+    gateway_id = gateway.get_gateway_id()
+    assert gateway_id == 'test/test-in'

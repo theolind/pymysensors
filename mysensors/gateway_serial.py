@@ -6,6 +6,7 @@ import time
 
 import serial
 import serial.threaded
+import serial.tools.list_ports
 import serial_asyncio
 
 from mysensors import (BaseAsyncGateway, BaseMySensorsProtocol,
@@ -24,6 +25,11 @@ class BaseSerialGateway(BaseTransportGateway):
         super().__init__(**kwargs)
         self.port = port
         self.baud = baud
+
+    def get_gateway_id(self):
+        """Return a unique id for the gateway."""
+        info = next(serial.tools.list_ports.grep(self.port), None)
+        return info.serial_number if info is not None else None
 
 
 class SerialGateway(BaseSerialGateway, ThreadingGateway):
@@ -87,3 +93,10 @@ class AsyncSerialGateway(BaseSerialGateway, BaseAsyncGateway):
                         self.reconnect_timeout, loop=self.loop)
         except asyncio.CancelledError:
             _LOGGER.debug('Connect attempt to %s cancelled', self.port)
+
+    @asyncio.coroutine
+    def get_gateway_id(self):
+        """Return a unique id for the gateway."""
+        serial_number = yield from self.loop.run_in_executor(
+            None, super().get_gateway_id)
+        return serial_number

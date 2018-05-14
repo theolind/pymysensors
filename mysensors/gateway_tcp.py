@@ -1,5 +1,6 @@
 """Implement a TCP gateway."""
 import asyncio
+import ipaddress
 import logging
 import select
 import socket
@@ -7,6 +8,7 @@ import threading
 import time
 
 import serial.threaded
+from getmac import get_mac_address
 
 from mysensors import (BaseAsyncGateway, BaseMySensorsProtocol,
                        BaseTransportGateway, Message, ThreadingGateway)
@@ -47,6 +49,20 @@ class BaseTCPGateway(BaseTransportGateway):
             self.tcp_disconnect_timer = time.time()
             return None
         return super()._handle_internal(msg)
+
+    def get_gateway_id(self):
+        """Return a unique id for the gateway."""
+        host, _ = self.server_address
+        try:
+            ip_address = ipaddress.ip_address(host)
+        except ValueError:
+            # Only hosts using ip address supports unique id.
+            return None
+        if ip_address.version == 6:
+            mac = get_mac_address(ip6=host)
+        else:
+            mac = get_mac_address(ip=host)
+        return mac
 
 
 class TCPGateway(BaseTCPGateway, ThreadingGateway):
@@ -149,6 +165,13 @@ class AsyncTCPGateway(BaseTCPGateway, BaseAsyncGateway):
             return
         self.loop.call_later(
             self.reconnect_timeout + 0.1, self._check_connection)
+
+    @asyncio.coroutine
+    def get_gateway_id(self):
+        """Return a unique id for the gateway."""
+        mac = yield from self.loop.run_in_executor(
+            None, super().get_gateway_id)
+        return mac
 
 
 class TCPTransport(serial.threaded.ReaderThread):
