@@ -320,6 +320,10 @@ class Gateway(object):
                 self.sensors[sensor_id].set_child_value, child_id, value_type,
                 value, **kwargs))
 
+    def get_gateway_id(self):
+        """Return a unique id for the gateway."""
+        raise NotImplementedError
+
     def send(self, message):
         """Send a command string to the gateway.
 
