@@ -125,9 +125,10 @@ class Persistence(object):
         specific file types.
         """
         ext = os.path.splitext(filename)[1]
-        func = getattr(self, '_%s_%s' % (action, ext[1:]), None)
-        if func is None:
-            raise Exception('Unsupported file type %s' % ext[1:])
+        try:
+            func = getattr(self, '_{}_{}'.format(action, ext[1:]))
+        except AttributeError:
+            raise Exception('Unsupported file type {}'.format(ext[1:]))
         func(filename)
 
 
