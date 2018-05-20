@@ -6,8 +6,9 @@ from unittest import mock
 import pytest
 import voluptuous as vol
 
-from mysensors import Gateway, ThreadingGateway
+from mysensors import Gateway
 from mysensors.sensor import Sensor
+from mysensors.task import SyncTasks
 
 # pylint: disable=redefined-outer-name
 
@@ -15,12 +16,20 @@ from mysensors.sensor import Sensor
 @pytest.fixture(params=['1.4', '1.5', '2.0', '2.1', '2.2'])
 def gateway(request):
     """Return gateway instance."""
-    return Gateway(protocol_version=request.param)
+    _gateway = Gateway(protocol_version=request.param)
+    _gateway.tasks = SyncTasks(
+        _gateway.const, _gateway.persistence, _gateway.persistence_file,
+        _gateway.sensors, None)
+    return _gateway
 
 
 def get_gateway(**kwargs):
     """Return a gateway instance."""
-    return Gateway(**kwargs)
+    _gateway = Gateway(**kwargs)
+    _gateway.tasks = SyncTasks(
+        _gateway.const, _gateway.persistence, _gateway.persistence_file,
+        _gateway.sensors, None)
+    return _gateway
 
 
 @pytest.fixture
@@ -84,17 +93,17 @@ def test_non_presented_sensor(protocol_version, return_value):
     gateway = get_gateway(protocol_version=protocol_version)
 
     gateway.logic('1;0;1;0;23;43\n')
-    ret = gateway.run_job()
+    ret = gateway.tasks.run_job()
     assert 1 not in gateway.sensors
     assert ret == return_value
 
     gateway.logic('1;1;1;0;1;75\n')
-    ret = gateway.run_job()
+    ret = gateway.tasks.run_job()
     assert 1 not in gateway.sensors
     assert ret == return_value
 
     gateway.logic('1;255;3;0;0;79\n')
-    ret = gateway.run_job()
+    ret = gateway.tasks.run_job()
     assert 1 not in gateway.sensors
     assert ret == return_value
 
@@ -111,7 +120,7 @@ def test_present_to_non_sensor(protocol_version, return_value):
     gateway = get_gateway(protocol_version=protocol_version)
     ret = gateway.logic('1;1;0;0;0;\n')
     assert 1 not in gateway.sensors
-    ret = gateway.run_job()
+    ret = gateway.tasks.run_job()
     assert ret == return_value
 
 
@@ -193,6 +202,9 @@ def test_internal_sketch_version(gateway, add_sensor):
 
 def test_internal_log_message(gateway, caplog):
     """Test internal receive of log message."""
+    mock_transport = mock.MagicMock()
+    mock_transport.can_log = False
+    gateway.tasks.transport = mock_transport
     payload = 'read: 1-1-0 s=0,c=1,t=1,pt=7,l=5,sg=0:22.0\n'
     data = '0;255;3;0;9;{}'.format(payload)
     caplog.set_level(logging.DEBUG)
@@ -392,11 +404,11 @@ def test_set_child_value(gateway, add_sensor):
     sensor = add_sensor(1)
     sensor.add_child_sensor(0, gateway.const.Presentation.S_LIGHT)
     gateway.set_child_value(1, 0, gateway.const.SetReq.V_LIGHT, '1')
-    ret = gateway.run_job()
+    ret = gateway.tasks.run_job()
     assert ret == '1;0;1;0;2;1\n'
     # test integer value
     gateway.set_child_value(1, 0, gateway.const.SetReq.V_LIGHT, 0)
-    ret = gateway.run_job()
+    ret = gateway.tasks.run_job()
     assert ret == '1;0;1;0;2;0\n'
 
 
@@ -411,7 +423,7 @@ def test_set_child_value_no_sensor(protocol_version, return_value):
     """Test Gateway method set_child_value with no sensor."""
     gateway = get_gateway(protocol_version=protocol_version)
     gateway.set_child_value(1, 0, gateway.const.SetReq.V_LIGHT, '1')
-    ret = gateway.run_job()
+    ret = gateway.tasks.run_job()
     assert ret == return_value
 
 
@@ -428,11 +440,11 @@ def test_non_presented_child(protocol_version, return_value):
     sensor = get_sensor(1, gateway)
     gateway.logic('1;0;1;0;23;43\n')
     assert 0 not in sensor.children
-    ret = gateway.run_job()
+    ret = gateway.tasks.run_job()
     assert ret == return_value
     gateway.logic('1;1;2;0;1;\n')
     assert 1 not in sensor.children
-    ret = gateway.run_job()
+    ret = gateway.tasks.run_job()
     assert ret == return_value
 
 
@@ -441,7 +453,7 @@ def test_set_child_no_children(gateway, add_sensor):
     sensor = add_sensor(1)
     sensor.add_child_sensor(0, gateway.const.Presentation.S_LIGHT)
     gateway.set_child_value(1, 0, gateway.const.SetReq.V_LIGHT, 1, children={})
-    ret = gateway.run_job()
+    ret = gateway.tasks.run_job()
     assert ret is None
 
 
@@ -451,7 +463,7 @@ def test_set_child_value_bad_type(gateway, add_sensor):
     sensor.add_child_sensor(0, gateway.const.Presentation.S_LIGHT)
     gateway.set_child_value(
         1, 0, gateway.const.SetReq.V_LIGHT, 1, msg_type='one')
-    ret = gateway.run_job()
+    ret = gateway.tasks.run_job()
     assert ret is None
 
 
@@ -460,7 +472,7 @@ def test_set_child_value_bad_ack(gateway, add_sensor):
     sensor = add_sensor(1)
     sensor.add_child_sensor(0, gateway.const.Presentation.S_LIGHT)
     gateway.set_child_value(1, 0, gateway.const.SetReq.V_LIGHT, 1, ack='one')
-    ret = gateway.run_job()
+    ret = gateway.tasks.run_job()
     assert ret is None
 
 
@@ -469,11 +481,11 @@ def test_set_child_value_value_type(gateway, add_sensor):
     sensor = add_sensor(1)
     sensor.add_child_sensor(0, gateway.const.Presentation.S_LIGHT)
     gateway.set_child_value(1, 0, 2, 1)
-    ret = gateway.run_job()
+    ret = gateway.tasks.run_job()
     assert ret == '1;0;1;0;2;1\n'
     child_values = dict(sensor.children[0].values)
     gateway.set_child_value(1, 0, '2', 1)
-    ret = gateway.run_job()
+    ret = gateway.tasks.run_job()
     assert child_values == sensor.children[0].values
     assert ret == '1;0;1;0;2;1\n'
 
@@ -557,36 +569,36 @@ def test_smartsleep(protocol_version, wake_msg):
     sensor = get_sensor(1, gateway)
     sensor.add_child_sensor(0, gateway.const.Presentation.S_LIGHT_LEVEL)
     gateway.logic('1;0;1;0;23;43\n')
-    ret = gateway.run_job()
+    ret = gateway.tasks.run_job()
     assert ret is None
     # heartbeat
     gateway.logic(wake_msg)
-    ret = gateway.run_job()
+    ret = gateway.tasks.run_job()
     # nothing has changed
     assert ret is None
     # change from controller side
     gateway.set_child_value(1, 0, gateway.const.SetReq.V_LIGHT_LEVEL, '57')
-    ret = gateway.run_job()
+    ret = gateway.tasks.run_job()
     # no heartbeat
     assert ret is None
     # heartbeat comes in
     gateway.logic(wake_msg)
-    ret = gateway.run_job()
+    ret = gateway.tasks.run_job()
     # instance responds with new values
     assert ret == '1;0;1;0;23;57\n'
     # request from node
     gateway.logic('1;0;2;0;23;\n')
-    ret = gateway.run_job()
+    ret = gateway.tasks.run_job()
     # no heartbeat
     assert ret is None
     # heartbeat
     gateway.logic(wake_msg)
-    ret = gateway.run_job()
+    ret = gateway.tasks.run_job()
     # instance responds to request with current value
     assert ret == '1;0;1;0;23;57\n'
     # heartbeat
     gateway.logic(wake_msg)
-    ret = gateway.run_job()
+    ret = gateway.tasks.run_job()
     # nothing has changed
     assert ret is None
 
@@ -600,7 +612,7 @@ def test_smartsleep_from_unknown(protocol_version, wake_msg):
     """Test smartsleep message from unknown node."""
     gateway = get_gateway(protocol_version=protocol_version)
     gateway.logic(wake_msg)
-    ret = gateway.run_job()
+    ret = gateway.tasks.run_job()
     assert ret == '1;255;3;0;19;\n'
 
 
@@ -629,7 +641,7 @@ def test_discover_response_unknown(protocol_version):
     gateway = get_gateway(protocol_version=protocol_version)
     # Test sensor 1 unknown.
     gateway.logic('1;255;3;0;21;0')
-    ret = gateway.run_job()
+    ret = gateway.tasks.run_job()
     assert ret == '1;255;3;0;19;\n'
 
 
@@ -679,47 +691,23 @@ def test_gateway_low_protocol():
     assert gateway.protocol_version == '1.4'
 
 
-@mock.patch('mysensors.persistence.Persistence.save_sensors')
-@mock.patch('mysensors.threading.Timer')
-def test_threading_persistence(mock_timer_class, mock_save_sensors):
-    """Test schedule persistence on threading gateway."""
-    mock_timer_1 = mock.MagicMock()
-    mock_timer_2 = mock.MagicMock()
-    mock_timer_class.side_effect = [mock_timer_1, mock_timer_2]
-    gateway = ThreadingGateway(persistence=True)
-    gateway.persistence.schedule_save_sensors()
-    assert mock_save_sensors.call_count == 1
-    assert mock_timer_class.call_count == 1
-    assert mock_timer_1.start.call_count == 1
-    gateway.persistence.schedule_save_sensors()
-    assert mock_save_sensors.call_count == 2
-    assert mock_timer_class.call_count == 2
-    assert mock_timer_1.start.call_count == 1
-    assert mock_timer_2.start.call_count == 1
-    gateway.stop()
-    assert mock_timer_2.cancel.call_count == 1
-    assert mock_save_sensors.call_count == 3
-
-
 def test_update_fw():
-    """Test calling fw_update with bad path."""
-    gateway = ThreadingGateway()
-    sensor_id = 1
+    """Test calling fw_update."""
+    gateway = get_gateway()
     mock_update = mock.MagicMock()
-    gateway.ota.make_update = mock_update
-    gateway.update_fw(sensor_id, 1, 1)
+    gateway.tasks.ota.make_update = mock_update
+    gateway.update_fw(1, 1, 1)
     assert mock_update.call_count == 1
 
 
 def test_update_fw_bad_path(caplog):
     """Test calling fw_update with bad path."""
-    gateway = ThreadingGateway()
-    sensor_id = 1
+    gateway = get_gateway()
+    mock_update = mock.MagicMock()
+    gateway.tasks.ota.make_update = mock_update
     bad_path = '/bad/path'
-    get_sensor(sensor_id, gateway)
-    gateway.update_fw(sensor_id, 1, 1, bad_path)
-    ret = gateway.logic('1;255;4;0;0;01000200B00626E80300\n')
-    assert ret is None
+    gateway.update_fw(1, 1, 1, bad_path)
     log_msg = 'Firmware path {} does not exist or is not readable'.format(
         bad_path)
+    assert mock_update.call_count == 0
     assert log_msg in caplog.text

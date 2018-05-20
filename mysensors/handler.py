@@ -2,6 +2,7 @@
 import calendar
 import logging
 import time
+
 from .const import SYSTEM_CHILD_ID
 from .sensor import ChildSensor
 from .util import Registry
@@ -14,7 +15,7 @@ HANDLERS = Registry()
 def handle_smartsleep(msg):
     """Process a message before going back to smartsleep."""
     while msg.gateway.sensors[msg.node_id].queue:
-        msg.gateway.add_job(
+        msg.gateway.tasks.add_job(
             str, msg.gateway.sensors[msg.node_id].queue.popleft())
     for child in msg.gateway.sensors[msg.node_id].children.values():
         new_child = msg.gateway.sensors[msg.node_id].new_state.get(
@@ -23,7 +24,7 @@ def handle_smartsleep(msg):
         for value_type, value in child.values.items():
             new_value = new_child.values.get(value_type)
             if new_value is not None and new_value != value:
-                msg.gateway.add_job(
+                msg.gateway.tasks.add_job(
                     msg.gateway.sensors[msg.node_id].set_child_value,
                     child.id, value_type, new_value)
 
@@ -118,13 +119,13 @@ def handle_stream(msg):
 @HANDLERS.register('ST_FIRMWARE_CONFIG_REQUEST')
 def handle_firmware_config_request(msg):
     """Process a firmware config request message."""
-    return msg.gateway.ota.respond_fw_config(msg)
+    return msg.gateway.tasks.ota.respond_fw_config(msg)
 
 
 @HANDLERS.register('ST_FIRMWARE_REQUEST')
 def handle_firmware_request(msg):
     """Process a firmware request message."""
-    return msg.gateway.ota.respond_fw(msg)
+    return msg.gateway.tasks.ota.respond_fw(msg)
 
 
 @HANDLERS.register('I_ID_REQUEST')
