@@ -377,7 +377,7 @@ class ThreadingGateway(Gateway):
     def _create_scheduler(self, save_sensors):
         """Return function to schedule saving sensors."""
         def schedule_save():
-            """Return a function to cancel the schedule."""
+            """Save sensors and schedule a new save."""
             save_sensors()
             scheduler = threading.Timer(10.0, schedule_save)
             scheduler.start()
@@ -505,7 +505,7 @@ class BaseAsyncGateway(BaseTransportGateway):
         """Return function to schedule saving sensors."""
         @asyncio.coroutine
         def schedule_save():
-            """Return a function to cancel the schedule."""
+            """Save sensors and schedule a new save."""
             yield from self.loop.run_in_executor(None, save_sensors)
             callback = partial(
                 ensure_future, schedule_save(), loop=self.loop)
