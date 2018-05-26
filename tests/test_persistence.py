@@ -45,7 +45,7 @@ def test_persistence(gateway, add_sensor, filename, tmpdir):
 
     persistence_file = tmpdir.join(filename)
     gateway.persistence = Persistence(
-        gateway.sensors, persistence_file.strpath)
+        gateway.sensors, mock.MagicMock(), persistence_file.strpath)
     gateway.persistence.save_sensors()
     del gateway.sensors[1]
     assert 1 not in gateway.sensors
@@ -75,7 +75,7 @@ def test_bad_file_name(gateway, add_sensor, tmpdir):
     add_sensor(1)
     persistence_file = tmpdir.join('file.bad')
     gateway.persistence = Persistence(
-        gateway.sensors, persistence_file.strpath)
+        gateway.sensors, mock.MagicMock(), persistence_file.strpath)
     with pytest.raises(Exception):
         gateway.persistence.save_sensors()
 
@@ -85,7 +85,7 @@ def test_json_no_files(gateway, tmpdir):
     assert not gateway.sensors
     persistence_file = tmpdir.join('file.json')
     gateway.persistence = Persistence(
-        gateway.sensors, persistence_file.strpath)
+        gateway.sensors, mock.MagicMock(), persistence_file.strpath)
     gateway.persistence.safe_load_sensors()
     assert not gateway.sensors
 
@@ -97,7 +97,7 @@ def test_empty_files(gateway, filename, tmpdir):
     assert not gateway.sensors
     persistence_file = tmpdir.join(filename)
     gateway.persistence = Persistence(
-        gateway.sensors, persistence_file.strpath)
+        gateway.sensors, mock.MagicMock(), persistence_file.strpath)
     persistence = gateway.persistence
     persistence_file.write('')
     with open(persistence.persistence_bak, 'w') as file_handle:
@@ -112,7 +112,8 @@ def test_json_empty_file_good_bak(gateway, add_sensor, tmpdir):
     assert 1 in gateway.sensors
     persistence_file = tmpdir.join('file.json')
     orig_file_name = persistence_file.strpath
-    gateway.persistence = Persistence(gateway.sensors, orig_file_name)
+    gateway.persistence = Persistence(
+        gateway.sensors, mock.MagicMock(), orig_file_name)
     gateway.persistence.save_sensors()
     del gateway.sensors[1]
     assert 1 not in gateway.sensors
@@ -160,7 +161,7 @@ def test_persistence_upgrade(
     assert 'description' not in sensor.children[0].__dict__
     persistence_file = tmpdir.join(filename)
     gateway.persistence = Persistence(
-        gateway.sensors, persistence_file.strpath)
+        gateway.sensors, mock.MagicMock(), persistence_file.strpath)
     gateway.persistence.save_sensors()
     del gateway.sensors[1]
     assert 1 not in gateway.sensors
@@ -175,16 +176,21 @@ def test_persistence_upgrade(
     assert gateway.sensors[1].children[0].type == sensor.children[0].type
 
 
-@mock.patch('mysensors.persistence.threading.Timer')
 @mock.patch('mysensors.persistence.Persistence.save_sensors')
-def test_schedule_save_sensors(mock_save, mock_timer_class, gateway):
+def test_schedule_save_sensors(mock_save, gateway):
     """Test schedule save sensors."""
-    mock_timer = mock.MagicMock()
-    mock_timer_class.return_value = mock_timer
-    gateway.persistence = Persistence(gateway.sensors)
+    mock_schedule_save = mock.MagicMock()
+    mock_schedule_factory = mock.MagicMock()
+    mock_schedule_factory.return_value = mock_schedule_save
+
+    gateway.persistence = Persistence(gateway.sensors, mock_schedule_factory)
+
+    assert mock_schedule_factory.call_count == 1
+    assert mock_schedule_factory.call_args == mock.call(mock_save)
+
     gateway.persistence.schedule_save_sensors()
-    assert mock_save.call_count == 1
-    assert mock_timer.start.call_count == 1
+
+    assert mock_schedule_save.call_count == 1
 
 
 class MySensorsJSONEncoderTestUpgrade(MySensorsJSONEncoder):
