@@ -49,7 +49,7 @@ class Gateway(object):
         self.metric = True  # if true - use metric, if false - use imperial
         if persistence:
             self.persistence = Persistence(
-                self.sensors, persistence_file, persistence_scheduler)
+                self.sensors, persistence_scheduler, persistence_file)
         else:
             self.persistence = None
         self.protocol_version = safe_is_version(protocol_version)
@@ -351,7 +351,8 @@ class ThreadingGateway(Gateway):
 
     def __init__(self, *args, **kwargs):
         """Set up gateway instance."""
-        super().__init__(*args, **kwargs)
+        super().__init__(
+            *args, persistence_scheduler=self._create_scheduler, **kwargs)
         self.lock = threading.Lock()
         self._stop_event = threading.Event()
         self._cancel_save = None
@@ -373,12 +374,22 @@ class ThreadingGateway(Gateway):
                 continue
             time.sleep(0.02)
 
+    def _create_scheduler(self, save_sensors):
+        """Return function to schedule saving sensors."""
+        def schedule_save():
+            """Return a function to cancel the schedule."""
+            save_sensors()
+            scheduler = threading.Timer(10.0, schedule_save)
+            scheduler.start()
+            self._cancel_save = scheduler.cancel
+        return schedule_save
+
     def start_persistence(self):
         """Load persistence file and schedule saving of persistence file."""
         if not self.persistence:
             return
         self.persistence.safe_load_sensors()
-        self._cancel_save = self.persistence.schedule_save_sensors()
+        self.persistence.schedule_save_sensors()
 
     def stop(self):
         """Stop the background thread."""

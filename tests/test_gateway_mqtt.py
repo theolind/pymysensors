@@ -143,11 +143,10 @@ def test_subscribe_error(gateway, add_sensor, mock_sub, caplog):
 def test_start_stop_gateway(
         mock_save, mock_load, gateway, add_sensor, mock_pub, mock_sub):
     """Test start and stop of MQTT gateway."""
-    gateway.persistence = Persistence(gateway.sensors)
-    mock_cancel_save = mock.MagicMock()
+    mock_schedule_factory = mock.MagicMock()
     mock_schedule_save = mock.MagicMock()
-    mock_schedule_save.return_value = mock_cancel_save
-    gateway.persistence.schedule_save_sensors = mock_schedule_save
+    mock_schedule_factory.return_value = mock_schedule_save
+    gateway.persistence = Persistence(gateway.sensors, mock_schedule_factory)
     sensor = add_sensor(1)
     sensor.add_child_sensor(1, gateway.const.Presentation.S_HUM)
     sensor.children[1].values[gateway.const.SetReq.V_HUM] = '20'
@@ -173,7 +172,6 @@ def test_start_stop_gateway(
     assert mock_pub.call_count == 2
     assert mock_pub.mock_calls == calls
     gateway.stop()
-    assert mock_cancel_save.call_count == 1
     assert mock_save.call_count == 1
 
 
@@ -185,7 +183,7 @@ def test_mqtt_load_persistence(gateway, add_sensor, mock_sub, tmpdir):
 
     persistence_file = tmpdir.join('file.json')
     gateway.persistence = Persistence(
-        gateway.sensors, persistence_file.strpath)
+        gateway.sensors, mock.MagicMock(), persistence_file.strpath)
     gateway.persistence.save_sensors()
     del gateway.sensors[1]
     assert 1 not in gateway.sensors
