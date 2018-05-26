@@ -613,6 +613,28 @@ def test_gateway_low_protocol():
     assert gateway.protocol_version == '1.4'
 
 
+@mock.patch('mysensors.persistence.Persistence.save_sensors')
+@mock.patch('mysensors.threading.Timer')
+def test_threading_persistence(mock_timer_class, mock_save_sensors):
+    """Test schedule persistence on threading gateway."""
+    mock_timer_1 = mock.MagicMock()
+    mock_timer_2 = mock.MagicMock()
+    mock_timer_class.side_effect = [mock_timer_1, mock_timer_2]
+    gateway = ThreadingGateway(persistence=True)
+    gateway.persistence.schedule_save_sensors()
+    assert mock_save_sensors.call_count == 1
+    assert mock_timer_class.call_count == 1
+    assert mock_timer_1.start.call_count == 1
+    gateway.persistence.schedule_save_sensors()
+    assert mock_save_sensors.call_count == 2
+    assert mock_timer_class.call_count == 2
+    assert mock_timer_1.start.call_count == 1
+    assert mock_timer_2.start.call_count == 1
+    gateway.stop()
+    assert mock_timer_2.cancel.call_count == 1
+    assert mock_save_sensors.call_count == 3
+
+
 def test_update_fw():
     """Test calling fw_update with bad path."""
     gateway = ThreadingGateway()
