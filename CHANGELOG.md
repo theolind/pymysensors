@@ -1,10 +1,26 @@
 # Change Log
 
+# [0.15.0](https://github.com/theolind/pymysensors/tree/0.15.0) (2018-05-27)
+[Full Changelog](https://github.com/theolind/pymysensors/compare/0.14.0...0.15.0)
+
+**Closed issues:**
+
+- Main program does not exit cleanly [\#153](https://github.com/theolind/pymysensors/issues/153)
+
+**Merged pull requests:**
+
+- Fix threading gateway persistence scheduling [\#154](https://github.com/theolind/pymysensors/pull/154) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Clean up get\_const [\#151](https://github.com/theolind/pymysensors/pull/151) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Remove leftover old style string formatting [\#150](https://github.com/theolind/pymysensors/pull/150) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Add unique id for gateway [\#149](https://github.com/theolind/pymysensors/pull/149) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Use pytest for tests [\#148](https://github.com/theolind/pymysensors/pull/148) ([MartinHjelmare](https://github.com/MartinHjelmare))
+
 # [0.14.0](https://github.com/theolind/pymysensors/tree/0.14.0) (2018-05-10)
 [Full Changelog](https://github.com/theolind/pymysensors/compare/0.13...0.14.0)
 
 **Merged pull requests:**
 
+- 0.14.0 [\#147](https://github.com/theolind/pymysensors/pull/147) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Fix node presentation after id request [\#146](https://github.com/theolind/pymysensors/pull/146) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Scheduled monthly dependency update for May [\#145](https://github.com/theolind/pymysensors/pull/145) ([pyup-bot](https://github.com/pyup-bot))
 - Call event callback when gateway is ready [\#144](https://github.com/theolind/pymysensors/pull/144) ([MartinHjelmare](https://github.com/MartinHjelmare))

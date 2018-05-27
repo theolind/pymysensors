@@ -3,35 +3,21 @@ import json
 import logging
 import os
 import pickle
-import threading
 
 from .sensor import ChildSensor, Sensor
 
 _LOGGER = logging.getLogger(__name__)
 
 
-def create_scheduler(save_sensors):
-    """Return function to schedule saving sensors."""
-    def schedule_save():
-        """Return a function to cancel the schedule."""
-        save_sensors()
-        scheduler = threading.Timer(10.0, schedule_save)
-        scheduler.start()
-        return scheduler.cancel
-    return schedule_save
-
-
 class Persistence(object):
     """Organize persistence file saving and loading."""
 
     def __init__(
-            self, sensors, persistence_file='mysensors.pickle',
-            schedule_factory=None):
+            self, sensors, schedule_factory,
+            persistence_file='mysensors.pickle'):
         """Set up Persistence instance."""
         self.persistence_file = persistence_file
         self.persistence_bak = '{}.bak'.format(self.persistence_file)
-        if schedule_factory is None:
-            schedule_factory = create_scheduler
         self.schedule_save_sensors = schedule_factory(self.save_sensors)
         self._sensors = sensors
         self.need_save = True
@@ -125,9 +111,10 @@ class Persistence(object):
         specific file types.
         """
         ext = os.path.splitext(filename)[1]
-        func = getattr(self, '_%s_%s' % (action, ext[1:]), None)
-        if func is None:
-            raise Exception('Unsupported file type %s' % ext[1:])
+        try:
+            func = getattr(self, '_{}_{}'.format(action, ext[1:]))
+        except AttributeError:
+            raise Exception('Unsupported file type {}'.format(ext[1:]))
         func(filename)
 
 

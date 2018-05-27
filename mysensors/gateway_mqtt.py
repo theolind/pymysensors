@@ -119,6 +119,10 @@ class BaseMQTTGateway(Gateway):
             int(self.const.MessageType.stream)))
         self._handle_subscription(topics)
 
+    def get_gateway_id(self):
+        """Return a unique id for the gateway."""
+        return self._in_prefix if self._in_prefix else None
+
     def recv(self, topic, payload, qos):
         """Receive a MQTT message.
 
@@ -171,3 +175,8 @@ class AsyncMQTTGateway(BaseMQTTGateway, BaseAsyncGateway):
     def _connect(self):
         """Connect to the transport."""
         self._init_topics()
+
+    @asyncio.coroutine
+    def get_gateway_id(self):
+        """Return a unique id for the gateway."""
+        return super().get_gateway_id()

@@ -139,11 +139,18 @@ continue until all blocks of firmware are sent. If the CRC of the transmitted
 firmware match the CRC of the firmware config response, the node will restart
 and load the new firmware.
 
+## Gateway id
+The gateway method `get_gateway_id` will try to return a unique id for the
+gateway. This will be the serial number of the usb device for serial gateways,
+the mac address of the connected gateway for tcp gateways or the publish topic
+prefix (in_prefix) for mqtt gateways.
+
 ## Async gateway
 The serial, TCP and MQTT gateways now also have versions that support asyncio. Use the
 `AsyncSerialGateway` class, `AsyncTCPGateway` class or `AsyncMQTTGateway` class to make a gateway that
 uses asyncio. The following public methods are coroutines in the async gateway:
 
+- get_gateway_id
 - start_persistence
 - start
 - stop
