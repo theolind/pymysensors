@@ -2,7 +2,7 @@
 import pytest
 import voluptuous as vol
 
-from mysensors import Gateway, Message, get_const
+from mysensors import Gateway, Message, get_const, Sensor
 from mysensors.const_14 import Internal, MessageType
 
 PRES_FIXTURES_14 = {
@@ -191,6 +191,12 @@ def get_message(message_data=None):
     return Message(message_data)
 
 
+def get_sensor(sensor_id, gateway):
+    """Add sensor on gateway and return sensor instance."""
+    gateway.sensors[sensor_id] = Sensor(sensor_id)
+    return gateway.sensors[sensor_id]
+
+
 def test_encode():
     """Test encode of message."""
     msg = get_message()
@@ -315,6 +321,7 @@ def test_validate_set(protocol_version, name, payload):
 def test_validate_internal(protocol_version, name, payload):
     """Test Internal messages."""
     gateway = get_gateway(protocol_version=protocol_version)
+    get_sensor(1, gateway)
     const = get_const(protocol_version)
     if isinstance(payload, dict):
         _payload = payload.get('payload')

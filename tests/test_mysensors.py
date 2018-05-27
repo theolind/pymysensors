@@ -248,6 +248,35 @@ def test_bad_battery_level(gateway, add_sensor):
     assert sensor.battery_level == 0
 
 
+@pytest.mark.parametrize('protocol_version, return_value', [
+    ('1.4', 0),
+    ('1.5', 0),
+    ('2.0', 123456),
+    ('2.1', 123456),
+    ('2.2', 123456),
+])
+def test_heartbeat_value(protocol_version, return_value):
+    """Test internal receive of heartbeat."""
+    gateway = get_gateway(protocol_version=protocol_version)
+    sensor = get_sensor(1, gateway)
+    gateway.logic('1;255;3;0;22;123456\n')
+    assert sensor.heartbeat == return_value
+
+
+def test_bad_heartbeat_value(gateway, add_sensor):
+    """Test internal receive of bad heartbeat."""
+    sensor = add_sensor(1)
+    gateway.logic('1;255;3;0;22;bad\n')
+    assert sensor.heartbeat == 0
+
+
+def test_set_bad_heartbeat(add_sensor):
+    """Test set a bad battery_level attribute on a node."""
+    sensor = add_sensor(1)
+    sensor.heartbeat = 'bad'
+    assert sensor.heartbeat == 0
+
+
 def test_req(gateway, add_sensor):
     """Test req message in case where value exists."""
     sensor = add_sensor(1)
@@ -481,8 +510,8 @@ def test_set_rgbw(protocol_version):
 
 
 @pytest.mark.parametrize('protocol_version, wake_msg', [
-    ('2.0', '1;255;3;0;22;\n'),
-    ('2.1', '1;255;3;0;22;\n'),
+    ('2.0', '1;255;3;0;22;123456\n'),
+    ('2.1', '1;255;3;0;22;123456\n'),
     ('2.2', '1;255;3;0;32;500\n'),
 ])
 def test_smartsleep(protocol_version, wake_msg):
@@ -526,8 +555,8 @@ def test_smartsleep(protocol_version, wake_msg):
 
 
 @pytest.mark.parametrize('protocol_version, wake_msg', [
-    ('2.0', '1;255;3;0;22;\n'),
-    ('2.1', '1;255;3;0;22;\n'),
+    ('2.0', '1;255;3;0;22;123456\n'),
+    ('2.1', '1;255;3;0;22;123456\n'),
     ('2.2', '1;255;3;0;32;500\n'),
 ])
 def test_smartsleep_from_unknown(protocol_version, wake_msg):
@@ -539,8 +568,8 @@ def test_smartsleep_from_unknown(protocol_version, wake_msg):
 
 
 @pytest.mark.parametrize('protocol_version, wake_msg', [
-    ('2.0', '1;255;3;0;22;\n'),
-    ('2.1', '1;255;3;0;22;\n'),
+    ('2.0', '1;255;3;0;22;123456\n'),
+    ('2.1', '1;255;3;0;22;123456\n'),
     ('2.2', '1;255;3;0;32;500\n'),
 ])
 def test_set_with_new_state(protocol_version, wake_msg):

@@ -45,3 +45,15 @@ def is_battery_level(value):
             '%s is not a valid battery level, falling back to battery level 0',
             value)
         return 0
+
+
+def is_heartbeat(value):
+    """Validate that value is a valid heartbeat integer."""
+    try:
+        value = vol.Coerce(int)(value)
+        return value
+    except vol.Invalid:
+        _LOGGER.warning(
+            '%s is not a valid heartbeat value, falling back to heartbeat 0',
+            value)
+        return 0
