@@ -31,21 +31,19 @@
 - Merge the pull request into master, do not squash.
 - Go to github releases and tag a new release on the master branch. Put the PR message as the description for the release.
 - Fetch and checkout the master branch.
-- Build source and wheel distributions:
+- Build source and wheel distributions. PyPi now supports markdown as description. See this [blog](https://dustingram.com/articles/2018/03/16/markdown-descriptions-on-pypi):
   ```
   rm -rf build
   rm -rf dist
   python3 setup.py sdist bdist_wheel
   ```
-- Stage release (upload distributions one at a time to avoid bug, see this [blog](https://dustingram.com/articles/2018/03/16/markdown-descriptions-on-pypi)):
+- Stage release:
   ```
-  twine upload -r testpypi dist/*.tar.gz
-  twine upload -r testpypi dist/*.whl
+  twine upload -r testpypi dist/*
   ```
 - Release:
   ```
-  twine upload -r pypi dist/*.tar.gz
-  twine upload -r pypi dist/*.whl
+  twine upload -r pypi dist/*
   ```
 - Fetch and checkout the develop branch.
 - Merge master into develop.
