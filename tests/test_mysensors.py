@@ -276,7 +276,7 @@ def test_bad_heartbeat_value(mock_alert, gateway, add_sensor):
 
 
 def test_set_bad_heartbeat(add_sensor):
-    """Test set a bad battery_level attribute on a node."""
+    """Test set a bad heartbeat attribute on a node."""
     sensor = add_sensor(1)
     sensor.heartbeat = 'bad'
     assert sensor.heartbeat == 0
