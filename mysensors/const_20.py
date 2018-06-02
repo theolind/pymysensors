@@ -356,7 +356,7 @@ HANDLE_INTERNAL.update({
             'node_id': 255, 'ack': 0, 'sub_type': Internal.I_DISCOVER,
             'payload': ''}},
     Internal.I_HEARTBEAT_RESPONSE: {
-        'is_sensor': True, 'fun': '_handle_smartsleep',
+        'is_sensor': True, 'fun': ['_handle_smartsleep', 'alert'],
         'setattr': 'heartbeat'},
     Internal.I_DISCOVER_RESPONSE: {
         'is_sensor': True},

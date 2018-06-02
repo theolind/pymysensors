@@ -114,7 +114,7 @@ VALID_PAYLOADS = {
 HANDLE_INTERNAL = dict(HANDLE_INTERNAL)
 HANDLE_INTERNAL.update({
     Internal.I_HEARTBEAT_RESPONSE: {
-        'is_sensor': True, 'setattr': 'heartbeat'},
+        'is_sensor': True, 'setattr': 'heartbeat', 'fun': 'alert'},
     Internal.I_PRE_SLEEP_NOTIFICATION: {
         'fun': '_handle_smartsleep'},
 })

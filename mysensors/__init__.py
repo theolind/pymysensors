@@ -156,7 +156,11 @@ class Gateway(object):
         if actions.get('setattr'):
             setattr(self.sensors[msg.node_id], actions['setattr'], msg.payload)
         if actions.get('fun'):
-            getattr(self, actions['fun'])(msg)
+            functions = actions['fun']
+            if not isinstance(functions, list):
+                functions = [functions]
+            for func in functions:
+                getattr(self, func)(msg)
         if actions.get('log'):
             getattr(_LOGGER, actions['log'])('n:%s c:%s t:%s s:%s p:%s',
                                              msg.node_id,

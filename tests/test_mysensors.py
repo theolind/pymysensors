@@ -248,26 +248,31 @@ def test_bad_battery_level(gateway, add_sensor):
     assert sensor.battery_level == 0
 
 
-@pytest.mark.parametrize('protocol_version, return_value', [
-    ('1.4', 0),
-    ('1.5', 0),
-    ('2.0', 123456),
-    ('2.1', 123456),
-    ('2.2', 123456),
+@pytest.mark.parametrize('protocol_version, return_value, call_count', [
+    ('1.4', 0, 0),
+    ('1.5', 0, 0),
+    ('2.0', 123456, 1),
+    ('2.1', 123456, 1),
+    ('2.2', 123456, 1),
 ])
-def test_heartbeat_value(protocol_version, return_value):
+@mock.patch('mysensors.Gateway.alert')
+def test_heartbeat_value(
+        mock_alert, protocol_version, return_value, call_count):
     """Test internal receive of heartbeat."""
     gateway = get_gateway(protocol_version=protocol_version)
     sensor = get_sensor(1, gateway)
     gateway.logic('1;255;3;0;22;123456\n')
     assert sensor.heartbeat == return_value
+    assert mock_alert.call_count == call_count
 
 
-def test_bad_heartbeat_value(gateway, add_sensor):
+@mock.patch('mysensors.Gateway.alert')
+def test_bad_heartbeat_value(mock_alert, gateway, add_sensor):
     """Test internal receive of bad heartbeat."""
     sensor = add_sensor(1)
     gateway.logic('1;255;3;0;22;bad\n')
     assert sensor.heartbeat == 0
+    assert mock_alert.call_count == 0
 
 
 def test_set_bad_heartbeat(add_sensor):
