@@ -143,7 +143,7 @@ def test_internal_config(gateway):
 def test_internal_time(gateway, add_sensor):
     """Test internal time request."""
     add_sensor(1)
-    with mock.patch('mysensors.time') as mock_time:
+    with mock.patch('mysensors.handler.time') as mock_time:
         mock_time.localtime.return_value = time.gmtime(123456789)
         ret = gateway.logic('1;255;3;0;1;\n')
         assert ret == '1;255;3;0;1;123456789\n'

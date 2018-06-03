@@ -1,14 +1,13 @@
 """MySensors constants for version 2.1 of MySensors."""
-from enum import IntEnum
-
 # pylint: disable=unused-import
-from mysensors.const_20 import (HANDLE_INTERNAL, MAX_NODE_ID,  # noqa: F401
-                                VALID_INTERNAL, VALID_PRESENTATION,
-                                VALID_SETREQ, VALID_STREAM, VALID_TYPES,
-                                MessageType, Presentation, SetReq, Stream)
+from mysensors.const_20 import MAX_NODE_ID, VALID_TYPES  # noqa: F401
+from mysensors.const_20 import (VALID_INTERNAL, VALID_PRESENTATION,
+                                VALID_SETREQ, VALID_STREAM,
+                                Const20, MessageType, Presentation,
+                                SetReq, Stream)
 
 
-class Internal(IntEnum):
+class Internal(Const20):
     """MySensors internal sub-types."""
 
     # pylint: disable=too-few-public-methods
@@ -97,11 +96,3 @@ VALID_PAYLOADS = {
     MessageType.internal: VALID_INTERNAL,
     MessageType.stream: VALID_STREAM,
 }
-
-HANDLE_INTERNAL = dict(HANDLE_INTERNAL)
-HANDLE_INTERNAL.update({
-    Internal.I_GATEWAY_READY: {
-        'log': 'info', 'fun': 'alert', 'msg': {
-            'node_id': 255, 'ack': 0, 'sub_type': Internal.I_DISCOVER_REQUEST,
-            'payload': ''}},
-})
