@@ -42,6 +42,7 @@ def test_persistence(gateway, add_sensor, filename, tmpdir):
     sensor.sketch_version = '1.0'
     sensor.battery_level = 78
     sensor.protocol_version = '1.4.1'
+    sensor.heartbeat = 123456
 
     persistence_file = tmpdir.join(filename)
     gateway.persistence = Persistence(
@@ -55,6 +56,7 @@ def test_persistence(gateway, add_sensor, filename, tmpdir):
     assert gateway.sensors[1].battery_level == sensor.battery_level
     assert gateway.sensors[1].type == sensor.type
     assert gateway.sensors[1].protocol_version == sensor.protocol_version
+    assert gateway.sensors[1].heartbeat == sensor.heartbeat
     assert gateway.sensors[1].children[0].id == sensor.children[0].id
     assert gateway.sensors[1].children[0].type == sensor.children[0].type
     assert (
@@ -157,6 +159,8 @@ def test_persistence_upgrade(
     del sensor.__dict__['_protocol_version']
     assert '_protocol_version' not in sensor.__dict__
     sensor.__dict__['protocol_version'] = gateway.protocol_version
+    del sensor.__dict__['_heartbeat']
+    assert '_heartbeat' not in sensor.__dict__
     del sensor.children[0].__dict__['description']
     assert 'description' not in sensor.children[0].__dict__
     persistence_file = tmpdir.join(filename)
@@ -168,6 +172,7 @@ def test_persistence_upgrade(
     gateway.persistence.safe_load_sensors()
     assert gateway.sensors[1].battery_level == 58
     assert gateway.sensors[1].protocol_version == gateway.protocol_version
+    assert gateway.sensors[1].heartbeat == 0
     assert gateway.sensors[1].new_state == {}
     assert gateway.sensors[1].queue == deque()
     assert gateway.sensors[1].reboot is False

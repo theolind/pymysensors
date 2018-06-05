@@ -332,7 +332,7 @@ VALID_INTERNAL.update({
     Internal.I_DISCOVER: '',
     Internal.I_DISCOVER_RESPONSE: vol.All(
         vol.Coerce(int), vol.Range(min=0, max=MAX_NODE_ID), vol.Coerce(str)),
-    Internal.I_HEARTBEAT_RESPONSE: str,
+    Internal.I_HEARTBEAT_RESPONSE: vol.All(vol.Coerce(int), vol.Coerce(str)),
     Internal.I_LOCKED: str,
     Internal.I_PING: vol.All(vol.Coerce(int), vol.Coerce(str)),
     Internal.I_PONG: vol.All(vol.Coerce(int), vol.Coerce(str)),
@@ -356,7 +356,8 @@ HANDLE_INTERNAL.update({
             'node_id': 255, 'ack': 0, 'sub_type': Internal.I_DISCOVER,
             'payload': ''}},
     Internal.I_HEARTBEAT_RESPONSE: {
-        'fun': '_handle_smartsleep'},
+        'is_sensor': True, 'fun': ['_handle_smartsleep', 'alert'],
+        'setattr': 'heartbeat'},
     Internal.I_DISCOVER_RESPONSE: {
         'is_sensor': True},
 })
