@@ -4,6 +4,7 @@ import logging
 import threading
 
 from mysensors import BaseAsyncGateway, Gateway, Message, ThreadingGateway
+from .handler import handle_presentation
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -27,6 +28,7 @@ class BaseMQTTGateway(Gateway):
         self._retain = retain  # flag to publish with retain
         # topic structure:
         # prefix/node/child/type/ack/subtype : payload
+        self.const.MessageType.presentation.handler = self._handle_presentation
 
     def _handle_subscription(self, topics):
         """Handle subscription of topics."""
@@ -103,7 +105,7 @@ class BaseMQTTGateway(Gateway):
 
     def _handle_presentation(self, msg):
         """Process a MQTT presentation message."""
-        ret_msg = super()._handle_presentation(msg)
+        ret_msg = handle_presentation(msg)
         if msg.child_id == 255 or ret_msg is None:
             return
         # this is a presentation of a child sensor

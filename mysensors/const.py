@@ -13,6 +13,8 @@ CONST_VERSIONS = {
     '2.2': 'mysensors.const_22',
 }
 
+SYSTEM_CHILD_ID = 255
+
 
 def get_const(protocol_version):
     """Return the const module for the protocol_version."""

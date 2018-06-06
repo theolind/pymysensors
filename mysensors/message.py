@@ -3,12 +3,11 @@ import logging
 
 import voluptuous as vol
 
-from .const import get_const
+from .const import SYSTEM_CHILD_ID, get_const
 
 _LOGGER = logging.getLogger(__name__)
 
 BROADCAST_ID = 255
-SYSTEM_CHILD_ID = 255
 
 
 class Message(object):

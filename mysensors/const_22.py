@@ -4,13 +4,29 @@ from enum import IntEnum
 import voluptuous as vol
 
 # pylint: disable=unused-import
-from mysensors.const_21 import (HANDLE_INTERNAL, MAX_NODE_ID,  # noqa: F401
+from mysensors.const_21 import (MAX_NODE_ID,  # noqa: F401
                                 VALID_INTERNAL, VALID_PRESENTATION,
                                 VALID_SETREQ, VALID_STREAM, VALID_TYPES,
-                                MessageType, Presentation, SetReq, Stream)
+                                MessageType, Presentation,
+                                SetReq, Stream)
+from .handler import HANDLERS_22
 
 
-class Internal(IntEnum):
+class Const22(IntEnum):
+    """MySensors message types for version 2.2."""
+
+    @property
+    def handler(self):
+        """Return correct message handler."""
+        return HANDLERS_22.get(self.name, None)
+
+    @handler.setter
+    def handler(self, function):
+        """Set message handler for name."""
+        HANDLERS_22[self.name] = function
+
+
+class Internal(Const22):
     """MySensors internal sub-types."""
 
     # pylint: disable=too-few-public-methods
@@ -110,11 +126,3 @@ VALID_PAYLOADS = {
     MessageType.internal: VALID_INTERNAL,
     MessageType.stream: VALID_STREAM,
 }
-
-HANDLE_INTERNAL = dict(HANDLE_INTERNAL)
-HANDLE_INTERNAL.update({
-    Internal.I_HEARTBEAT_RESPONSE: {
-        'is_sensor': True, 'setattr': 'heartbeat', 'fun': 'alert'},
-    Internal.I_PRE_SLEEP_NOTIFICATION: {
-        'fun': '_handle_smartsleep'},
-})

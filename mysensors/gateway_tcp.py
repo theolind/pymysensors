@@ -27,6 +27,7 @@ class BaseTCPGateway(BaseTransportGateway):
         self.server_address = (host, port)
         self.tcp_check_timer = time.time()
         self.tcp_disconnect_timer = time.time()
+        self.const.Internal.I_VERSION.handler = self._handle_i_version
 
     def _check_connection(self):
         """Check if connection is alive every reconnect_timeout seconds."""
@@ -44,11 +45,10 @@ class BaseTCPGateway(BaseTransportGateway):
         self.tcp_check_timer = time.time()
         return
 
-    def _handle_internal(self, msg):
-        if msg.sub_type == self.const.Internal.I_VERSION:
-            self.tcp_disconnect_timer = time.time()
-            return None
-        return super()._handle_internal(msg)
+    def _handle_i_version(self, msg):
+        # pylint: disable=unused-argument
+        self.tcp_disconnect_timer = time.time()
+        return None
 
     def get_gateway_id(self):
         """Return a unique id for the gateway."""

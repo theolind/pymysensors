@@ -4,9 +4,24 @@ from enum import IntEnum
 import voluptuous as vol
 
 from mysensors.validation import is_version, percent_int
+from .handler import HANDLERS
 
 
-class MessageType(IntEnum):
+class BaseConst(IntEnum):
+    """MySensors message types."""
+
+    @property
+    def handler(self):
+        """Return correct message handler."""
+        return HANDLERS.get(self.name, None)
+
+    @handler.setter
+    def handler(self, function):
+        """Set message handler for name."""
+        HANDLERS[self.name] = function
+
+
+class MessageType(BaseConst):
     """MySensors message types."""
 
     # pylint: disable=too-few-public-methods
@@ -17,7 +32,7 @@ class MessageType(IntEnum):
     stream = 4              # OTA firmware updates
 
 
-class Presentation(IntEnum):
+class Presentation(BaseConst):
     """MySensors presentation sub-types."""
 
     # pylint: disable=too-few-public-methods
@@ -49,7 +64,7 @@ class Presentation(IntEnum):
     S_SCENE_CONTROLLER = 25     # Scene controller device
 
 
-class SetReq(IntEnum):
+class SetReq(BaseConst):
     """MySensors set/req sub-types."""
 
     # pylint: disable=too-few-public-methods
@@ -100,7 +115,7 @@ class SetReq(IntEnum):
     V_CURRENT = 39          # Current level
 
 
-class Internal(IntEnum):
+class Internal(BaseConst):
     """MySensors internal sub-types."""
 
     # pylint: disable=too-few-public-methods
@@ -141,7 +156,7 @@ class Internal(IntEnum):
     I_GATEWAY_READY = 14
 
 
-class Stream(IntEnum):
+class Stream(BaseConst):
     """MySensors stream sub-types."""
 
     # Request new FW, payload contains current FW details
@@ -326,17 +341,4 @@ VALID_PAYLOADS = {
     MessageType.req: {member: '' for member in list(SetReq)},
     MessageType.internal: VALID_INTERNAL,
     MessageType.stream: VALID_STREAM,
-}
-
-HANDLE_INTERNAL = {
-    Internal.I_BATTERY_LEVEL: {
-        'is_sensor': True, 'setattr': 'battery_level', 'fun': 'alert'},
-    Internal.I_SKETCH_NAME: {
-        'is_sensor': True, 'setattr': 'sketch_name', 'fun': 'alert'},
-    Internal.I_SKETCH_VERSION: {
-        'is_sensor': True, 'setattr': 'sketch_version', 'fun': 'alert'},
-    Internal.I_LOG_MESSAGE: {
-        'log': 'debug'},
-    Internal.I_GATEWAY_READY: {
-        'log': 'info', 'fun': 'alert'},
 }
