@@ -160,7 +160,7 @@ class AsyncTCPGateway(BaseTCPGateway, BaseAsyncGateway):
             super()._check_connection()
         except OSError as exc:
             _LOGGER.error(exc)
-            if self.protocol.transport:
+            if self.protocol and self.protocol.transport:
                 self.protocol.transport.close()
             else:
                 _LOGGER.info("failed to close transport, continuing anyway")
