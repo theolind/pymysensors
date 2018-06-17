@@ -325,7 +325,7 @@ class BaseTransportGateway(Gateway):
 class BaseAsyncGateway(BaseTransportGateway):
     """MySensors base async gateway."""
 
-    def __init__(self, *args, loop=None, **kwargs):
+    def __init__(self, *args, loop=None, protocol=None, **kwargs):
         """Set up async serial gateway."""
         super().__init__(
             *args, persistence_scheduler=self._create_scheduler, **kwargs)
@@ -336,7 +336,9 @@ class BaseAsyncGateway(BaseTransportGateway):
             # pylint: disable=deprecated-method
             ensure_future(self._connect(), loop=self.loop)
 
-        self.protocol = AsyncMySensorsProtocol(self, conn_lost)
+        if not protocol:
+            protocol = AsyncMySensorsProtocol
+        self.protocol = protocol(self, conn_lost)
         self._cancel_save = None
 
     @asyncio.coroutine

@@ -116,6 +116,12 @@ class TCPGateway(BaseTCPGateway, ThreadingGateway):
 class AsyncTCPGateway(BaseTCPGateway, BaseAsyncGateway):
     """MySensors async TCP gateway."""
 
+    def __init__(self, *args, **kwargs):
+        """Set up async TCP gateway."""
+        self.cancel_check_conn = None
+        protocol = AsyncTCPMySensorsProtocol
+        super().__init__(*args, protocol=protocol, **kwargs)
+
     @asyncio.coroutine
     def _connect(self):
         """Connect to the socket."""
@@ -162,8 +168,9 @@ class AsyncTCPGateway(BaseTCPGateway, BaseAsyncGateway):
             self.protocol.transport.close()
             self.protocol.conn_lost_callback()
             return
-        self.loop.call_later(
+        task = self.loop.call_later(
             self.reconnect_timeout + 0.1, self._check_connection)
+        self.cancel_check_conn = task.cancel
 
     @asyncio.coroutine
     def get_gateway_id(self):
@@ -171,6 +178,21 @@ class AsyncTCPGateway(BaseTCPGateway, BaseAsyncGateway):
         mac = yield from self.loop.run_in_executor(
             None, super().get_gateway_id)
         return mac
+
+
+class AsyncTCPMySensorsProtocol(BaseMySensorsProtocol, asyncio.Protocol):
+    """Async TCP protocol class."""
+
+    def connection_lost(self, exc):
+        """Handle lost connection."""
+        _LOGGER.debug('Connection lost with %s', self.transport)
+        if self.gateway.cancel_check_conn:
+            self.gateway.cancel_check_conn()
+            self.gateway.cancel_check_conn = None
+        if exc:
+            _LOGGER.error(exc)
+            self.conn_lost_callback()
+        self.transport = None
 
 
 class TCPTransport(serial.threaded.ReaderThread):
