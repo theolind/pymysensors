@@ -43,7 +43,6 @@ class BaseTCPGateway(BaseTransportGateway):
             sub_type=self.const.Internal.I_VERSION)
         self.add_job(msg.encode)
         self.tcp_check_timer = time.time()
-        return
 
     def _handle_i_version(self, msg):
         # pylint: disable=unused-argument
