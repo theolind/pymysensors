@@ -165,7 +165,10 @@ class AsyncTCPGateway(BaseTCPGateway, BaseAsyncGateway):
             super()._check_connection()
         except OSError as exc:
             _LOGGER.error(exc)
-            self.protocol.transport.close()
+            if self.protocol and self.protocol.transport:
+                self.protocol.transport.close()
+            else:
+                _LOGGER.info("failed to close transport, continuing anyway")
             self.protocol.conn_lost_callback()
             return
         task = self.loop.call_later(
