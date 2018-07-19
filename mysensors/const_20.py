@@ -5,23 +5,27 @@ import voluptuous as vol
 
 # pylint: disable=unused-import
 from mysensors.const_15 import MAX_NODE_ID  # noqa: F401
-from mysensors.const_15 import (HANDLE_INTERNAL, VALID_INTERNAL, VALID_SETREQ,
-                                VALID_STREAM, VALID_TYPES)
+from mysensors.const_15 import (VALID_INTERNAL, VALID_SETREQ,
+                                VALID_STREAM, VALID_TYPES, MessageType, Stream)
 from mysensors.validation import is_version
+from .handler import HANDLERS_20
 
 
-class MessageType(IntEnum):
-    """MySensors message types."""
+class Const20(IntEnum):
+    """MySensors message types for version 2.0."""
 
-    # pylint: disable=too-few-public-methods
-    presentation = 0        # sent by a node when presenting attached sensors
-    set = 1                 # sent from/to sensor when value should be updated
-    req = 2                 # requests a variable value
-    internal = 3            # internal message
-    stream = 4              # OTA firmware updates
+    @property
+    def handler(self):
+        """Return correct message handler."""
+        return HANDLERS_20.get(self.name, None)
+
+    @handler.setter
+    def handler(self, function):
+        """Set message handler for name."""
+        HANDLERS_20[self.name] = function
 
 
-class Presentation(IntEnum):
+class Presentation(Const20):
     """MySensors presentation sub-types."""
 
     # pylint: disable=too-few-public-methods
@@ -71,7 +75,7 @@ class Presentation(IntEnum):
     S_WATER_QUALITY = 39            # V_TEMP, V_PH, V_ORP, V_EC, V_STATUS
 
 
-class SetReq(IntEnum):
+class SetReq(Const20):
     """MySensors set/req sub-types."""
 
     # pylint: disable=too-few-public-methods
@@ -185,7 +189,7 @@ class SetReq(IntEnum):
     V_POWER_FACTOR = 56
 
 
-class Internal(IntEnum):
+class Internal(Const20):
     """MySensors internal sub-types."""
 
     # pylint: disable=too-few-public-methods
@@ -246,19 +250,6 @@ class Internal(IntEnum):
     I_REGISTRATION_REQUEST = 26  # Register request to GW
     I_REGISTRATION_RESPONSE = 27  # Register response from GW
     I_DEBUG = 28  # Debug message
-
-
-class Stream(IntEnum):
-    """MySensors stream sub-types."""
-
-    # Request new FW, payload contains current FW details
-    ST_FIRMWARE_CONFIG_REQUEST = 0
-    # New FW details to initiate OTA FW update
-    ST_FIRMWARE_CONFIG_RESPONSE = 1
-    ST_FIRMWARE_REQUEST = 2  # Request FW block
-    ST_FIRMWARE_RESPONSE = 3  # Response FW block
-    ST_SOUND = 4  # Sound
-    ST_IMAGE = 5  # Image
 
 
 VALID_MESSAGE_TYPES = {
@@ -332,7 +323,7 @@ VALID_INTERNAL.update({
     Internal.I_DISCOVER: '',
     Internal.I_DISCOVER_RESPONSE: vol.All(
         vol.Coerce(int), vol.Range(min=0, max=MAX_NODE_ID), vol.Coerce(str)),
-    Internal.I_HEARTBEAT_RESPONSE: str,
+    Internal.I_HEARTBEAT_RESPONSE: vol.All(vol.Coerce(int), vol.Coerce(str)),
     Internal.I_LOCKED: str,
     Internal.I_PING: vol.All(vol.Coerce(int), vol.Coerce(str)),
     Internal.I_PONG: vol.All(vol.Coerce(int), vol.Coerce(str)),
@@ -348,15 +339,3 @@ VALID_PAYLOADS = {
     MessageType.internal: VALID_INTERNAL,
     MessageType.stream: VALID_STREAM,
 }
-
-HANDLE_INTERNAL = dict(HANDLE_INTERNAL)
-HANDLE_INTERNAL.update({
-    Internal.I_GATEWAY_READY: {
-        'log': 'info', 'fun': 'alert', 'msg': {
-            'node_id': 255, 'ack': 0, 'sub_type': Internal.I_DISCOVER,
-            'payload': ''}},
-    Internal.I_HEARTBEAT_RESPONSE: {
-        'fun': '_handle_smartsleep'},
-    Internal.I_DISCOVER_RESPONSE: {
-        'is_sensor': True},
-})

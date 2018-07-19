@@ -1,29 +1,18 @@
 """MySensors constants for version 1.5 of MySensors."""
 import binascii
-from enum import IntEnum
 
 import voluptuous as vol
 
 # pylint: disable=unused-import
-from mysensors.const_14 import HANDLE_INTERNAL, MAX_NODE_ID  # noqa: F401
+from mysensors.const_14 import MAX_NODE_ID  # noqa: F401
 from mysensors.const_14 import (AUTO_CHANGE_OVER, COOL_ON, FORECASTS, HEAT_ON,
                                 LOGICAL_ONE, LOGICAL_ZERO, OFF, VALID_INTERNAL,
-                                VALID_STREAM)
+                                VALID_STREAM, BaseConst, MessageType,
+                                Stream)
 from mysensors.validation import is_version, percent_int
 
 
-class MessageType(IntEnum):
-    """MySensors message types."""
-
-    # pylint: disable=too-few-public-methods
-    presentation = 0        # sent by a node when presenting attached sensors
-    set = 1                 # sent from/to sensor when value should be updated
-    req = 2                 # requests a variable value
-    internal = 3            # internal message
-    stream = 4              # OTA firmware updates
-
-
-class Presentation(IntEnum):
+class Presentation(BaseConst):
     """MySensors presentation sub-types."""
 
     # pylint: disable=too-few-public-methods
@@ -68,7 +57,7 @@ class Presentation(IntEnum):
     S_MOISTURE = 35                 # Moisture sensor
 
 
-class SetReq(IntEnum):
+class SetReq(BaseConst):
     """MySensors set/req sub-types."""
 
     # pylint: disable=too-few-public-methods
@@ -141,7 +130,7 @@ class SetReq(IntEnum):
     V_HVAC_FLOW_MODE = 46
 
 
-class Internal(IntEnum):
+class Internal(BaseConst):
     """MySensors internal sub-types."""
 
     # pylint: disable=too-few-public-methods
@@ -186,19 +175,6 @@ class Internal(IntEnum):
     I_GET_NONCE = 16
     # Used between sensors for nonce response.
     I_GET_NONCE_RESPONSE = 17
-
-
-class Stream(IntEnum):
-    """MySensors stream sub-types."""
-
-    # Request new FW, payload contains current FW details
-    ST_FIRMWARE_CONFIG_REQUEST = 0
-    # New FW details to initiate OTA FW update
-    ST_FIRMWARE_CONFIG_RESPONSE = 1
-    ST_FIRMWARE_REQUEST = 2  # Request FW block
-    ST_FIRMWARE_RESPONSE = 3  # Response FW block
-    ST_SOUND = 4  # Sound
-    ST_IMAGE = 5  # Image
 
 
 VALID_MESSAGE_TYPES = {

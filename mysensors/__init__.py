@@ -1,6 +1,5 @@
 """Python implementation of MySensors API."""
 import asyncio
-import calendar
 import logging
 import threading
 import time
@@ -22,11 +21,11 @@ except ImportError:
 import serial.threaded
 import voluptuous as vol
 
-from .const import get_const
-from .message import SYSTEM_CHILD_ID, Message
+from .const import SYSTEM_CHILD_ID, get_const
+from .message import Message
 from .ota import OTAFirmware, load_fw
 from .persistence import Persistence
-from .sensor import ChildSensor, Sensor
+from .sensor import Sensor
 from .validation import safe_is_version
 from .version import __version__  # noqa: F401
 
@@ -61,130 +60,12 @@ class Gateway(object):
         """Return the representation."""
         return '<{}>'.format(self.__class__.__name__)
 
-    def _handle_presentation(self, msg):
-        """Process a presentation message."""
-        if msg.child_id == SYSTEM_CHILD_ID:
-            # this is a presentation of the sensor platform
-            sensorid = self.add_sensor(msg.node_id)
-            if sensorid is None:
-                return None
-            self.sensors[msg.node_id].type = msg.sub_type
-            self.sensors[msg.node_id].protocol_version = msg.payload
-            # Set reboot to False after a node reboot.
-            self.sensors[msg.node_id].reboot = False
-            self.alert(msg)
-            return msg
-        else:
-            # this is a presentation of a child sensor
-            if not self.is_sensor(msg.node_id):
-                _LOGGER.error('Node %s is unknown, will not add child %s',
-                              msg.node_id, msg.child_id)
-                return None
-            child_id = self.sensors[msg.node_id].add_child_sensor(
-                msg.child_id, msg.sub_type, msg.payload)
-            if child_id is None:
-                return None
-            self.alert(msg)
-            return msg
-
-    def _handle_set(self, msg):
-        """Process a set message."""
-        if not self.is_sensor(msg.node_id, msg.child_id):
-            return None
-        self.sensors[msg.node_id].set_child_value(
-            msg.child_id, msg.sub_type, msg.payload)
-        if self.sensors[msg.node_id].new_state:
-            self.sensors[msg.node_id].set_child_value(
-                msg.child_id, msg.sub_type, msg.payload,
-                children=self.sensors[msg.node_id].new_state)
-        self.alert(msg)
-        # Check if reboot is true
-        if self.sensors[msg.node_id].reboot:
-            return msg.modify(
-                child_id=SYSTEM_CHILD_ID, type=self.const.MessageType.internal,
-                ack=0, sub_type=self.const.Internal.I_REBOOT, payload='')
-        return None
-
-    def _handle_req(self, msg):
-        """Process a req message.
-
-        This will return the value if it exists. If no value exists,
-        nothing is returned.
-        """
-        if not self.is_sensor(msg.node_id, msg.child_id):
-            return None
-        value = self.sensors[msg.node_id].children[
-            msg.child_id].values.get(msg.sub_type)
-        if value is not None:
-            return msg.modify(
-                type=self.const.MessageType.set, payload=value)
-        return None
-
-    def _handle_smartsleep(self, msg):
-        """Process a message before going back to smartsleep."""
-        if not self.is_sensor(msg.node_id):
-            return
-        while self.sensors[msg.node_id].queue:
-            self.add_job(str, self.sensors[msg.node_id].queue.popleft())
-        for child in self.sensors[msg.node_id].children.values():
-            new_child = self.sensors[msg.node_id].new_state.get(
-                child.id, ChildSensor(child.id, child.type, child.description))
-            self.sensors[msg.node_id].new_state[child.id] = new_child
-            for value_type, value in child.values.items():
-                new_value = new_child.values.get(value_type)
-                if new_value is not None and new_value != value:
-                    self.add_job(
-                        self.sensors[msg.node_id].set_child_value, child.id,
-                        value_type, new_value)
-
-    def _handle_internal(self, msg):
-        """Process an internal protocol message."""
-        if msg.sub_type == self.const.Internal.I_ID_REQUEST:
-            node_id = self.add_sensor()
-            return msg.modify(
-                ack=0, sub_type=self.const.Internal.I_ID_RESPONSE,
-                payload=node_id) if node_id is not None else None
-        elif msg.sub_type == self.const.Internal.I_CONFIG:
-            return msg.modify(ack=0, payload='M' if self.metric else 'I')
-        elif msg.sub_type == self.const.Internal.I_TIME:
-            return msg.modify(ack=0, payload=calendar.timegm(time.localtime()))
-        elif msg.sub_type == self.const.Internal.I_LOG_MESSAGE:
-            self.can_log = True
-        actions = self.const.HANDLE_INTERNAL.get(msg.sub_type, {})
-        if actions.get('is_sensor') and not self.is_sensor(msg.node_id):
-            return None
-        if actions.get('setattr'):
-            setattr(self.sensors[msg.node_id], actions['setattr'], msg.payload)
-        if actions.get('fun'):
-            getattr(self, actions['fun'])(msg)
-        if actions.get('log'):
-            getattr(_LOGGER, actions['log'])('n:%s c:%s t:%s s:%s p:%s',
-                                             msg.node_id,
-                                             msg.child_id,
-                                             msg.type,
-                                             msg.sub_type,
-                                             msg.payload)
-        if actions.get('msg'):
-            return msg.modify(**actions['msg'])
-        return None
-
-    def _handle_stream(self, msg):
-        """Process a stream type message."""
-        if not self.is_sensor(msg.node_id):
-            return None
-        if msg.sub_type == self.const.Stream.ST_FIRMWARE_CONFIG_REQUEST:
-            return self.ota.respond_fw_config(msg)
-        elif msg.sub_type == self.const.Stream.ST_FIRMWARE_REQUEST:
-            return self.ota.respond_fw(msg)
-        return None
-
     def logic(self, data):
         """Parse the data and respond to it appropriately.
 
         Response is returned to the caller and has to be sent
         data as a mysensors command string.
         """
-        ret = None
         try:
             msg = Message(data, self)
             msg.validate(self.protocol_version)
@@ -192,16 +73,9 @@ class Gateway(object):
             _LOGGER.warning('Not a valid message: %s', exc)
             return None
 
-        if msg.type == self.const.MessageType.presentation:
-            ret = self._handle_presentation(msg)
-        elif msg.type == self.const.MessageType.set:
-            ret = self._handle_set(msg)
-        elif msg.type == self.const.MessageType.req:
-            ret = self._handle_req(msg)
-        elif msg.type == self.const.MessageType.internal:
-            ret = self._handle_internal(msg)
-        elif msg.type == self.const.MessageType.stream:
-            ret = self._handle_stream(msg)
+        message_type = self.const.MessageType(msg.type)
+        handler = message_type.handler
+        ret = handler(msg)
         ret = self._route_message(ret)
         ret = ret.encode() if ret else None
         return ret
@@ -451,7 +325,7 @@ class BaseTransportGateway(Gateway):
 class BaseAsyncGateway(BaseTransportGateway):
     """MySensors base async gateway."""
 
-    def __init__(self, *args, loop=None, **kwargs):
+    def __init__(self, *args, loop=None, protocol=None, **kwargs):
         """Set up async serial gateway."""
         super().__init__(
             *args, persistence_scheduler=self._create_scheduler, **kwargs)
@@ -462,7 +336,9 @@ class BaseAsyncGateway(BaseTransportGateway):
             # pylint: disable=deprecated-method
             ensure_future(self._connect(), loop=self.loop)
 
-        self.protocol = AsyncMySensorsProtocol(self, conn_lost)
+        if not protocol:
+            protocol = AsyncMySensorsProtocol
+        self.protocol = protocol(self, conn_lost)
         self._cancel_save = None
 
     @asyncio.coroutine

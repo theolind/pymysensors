@@ -6,7 +6,7 @@ import voluptuous as vol
 
 from .const import get_const
 from .message import Message
-from .validation import is_battery_level, safe_is_version
+from .validation import is_battery_level, is_heartbeat, safe_is_version
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -25,6 +25,7 @@ class Sensor(object):
         self.sketch_version = None
         self._battery_level = 0
         self._protocol_version = '1.4'
+        self._heartbeat = 0
         self.new_state = {}
         self.queue = deque()
         self.reboot = False
@@ -32,7 +33,7 @@ class Sensor(object):
     def __getstate__(self):
         """Get state to save as pickle."""
         state = self.__dict__.copy()
-        for attr in ('_battery_level', '_protocol_version'):
+        for attr in ('_battery_level', '_heartbeat', '_protocol_version'):
             value = state.pop(attr, None)
             prop = attr
             if prop.startswith('_'):
@@ -51,6 +52,8 @@ class Sensor(object):
         self.new_state = {}
         self.queue = deque()
         self.reboot = False
+        if '_heartbeat' not in self.__dict__:
+            self.heartbeat = 0
 
     def __repr__(self):
         """Return the representation."""
@@ -66,6 +69,16 @@ class Sensor(object):
     def battery_level(self, value):
         """Set valid battery level."""
         self._battery_level = is_battery_level(value)
+
+    @property
+    def heartbeat(self):
+        """Return heartbeat value."""
+        return self._heartbeat
+
+    @heartbeat.setter
+    def heartbeat(self, value):
+        """Set valid heartbeat value."""
+        self._heartbeat = is_heartbeat(value)
 
     @property
     def protocol_version(self):

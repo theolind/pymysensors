@@ -27,6 +27,7 @@ class BaseTCPGateway(BaseTransportGateway):
         self.server_address = (host, port)
         self.tcp_check_timer = time.time()
         self.tcp_disconnect_timer = time.time()
+        self.const.Internal.I_VERSION.handler = self._handle_i_version
 
     def _check_connection(self):
         """Check if connection is alive every reconnect_timeout seconds."""
@@ -42,13 +43,11 @@ class BaseTCPGateway(BaseTransportGateway):
             sub_type=self.const.Internal.I_VERSION)
         self.add_job(msg.encode)
         self.tcp_check_timer = time.time()
-        return
 
-    def _handle_internal(self, msg):
-        if msg.sub_type == self.const.Internal.I_VERSION:
-            self.tcp_disconnect_timer = time.time()
-            return None
-        return super()._handle_internal(msg)
+    def _handle_i_version(self, msg):
+        # pylint: disable=unused-argument
+        self.tcp_disconnect_timer = time.time()
+        return None
 
     def get_gateway_id(self):
         """Return a unique id for the gateway."""
@@ -117,6 +116,12 @@ class TCPGateway(BaseTCPGateway, ThreadingGateway):
 class AsyncTCPGateway(BaseTCPGateway, BaseAsyncGateway):
     """MySensors async TCP gateway."""
 
+    def __init__(self, *args, **kwargs):
+        """Set up async TCP gateway."""
+        self.cancel_check_conn = None
+        protocol = AsyncTCPMySensorsProtocol
+        super().__init__(*args, protocol=protocol, **kwargs)
+
     @asyncio.coroutine
     def _connect(self):
         """Connect to the socket."""
@@ -163,8 +168,9 @@ class AsyncTCPGateway(BaseTCPGateway, BaseAsyncGateway):
             self.protocol.transport.close()
             self.protocol.conn_lost_callback()
             return
-        self.loop.call_later(
+        task = self.loop.call_later(
             self.reconnect_timeout + 0.1, self._check_connection)
+        self.cancel_check_conn = task.cancel
 
     @asyncio.coroutine
     def get_gateway_id(self):
@@ -172,6 +178,21 @@ class AsyncTCPGateway(BaseTCPGateway, BaseAsyncGateway):
         mac = yield from self.loop.run_in_executor(
             None, super().get_gateway_id)
         return mac
+
+
+class AsyncTCPMySensorsProtocol(BaseMySensorsProtocol, asyncio.Protocol):
+    """Async TCP protocol class."""
+
+    def connection_lost(self, exc):
+        """Handle lost connection."""
+        _LOGGER.debug('Connection lost with %s', self.transport)
+        if self.gateway.cancel_check_conn:
+            self.gateway.cancel_check_conn()
+            self.gateway.cancel_check_conn = None
+        if exc:
+            _LOGGER.error(exc)
+            self.conn_lost_callback()
+        self.transport = None
 
 
 class TCPTransport(serial.threaded.ReaderThread):
