@@ -486,6 +486,10 @@ def test_child_validate(gateway, add_sensor):
     sensor.children[0].validate(gateway.protocol_version)
     assert (
         sensor.children[0].values[gateway.const.SetReq.V_LIGHT_LEVEL] == '43')
+    sensor.children[0].values[gateway.const.SetReq.V_VAR1] = 'custom'
+    sensor.children[0].validate(gateway.protocol_version)
+    assert (
+        sensor.children[0].values[gateway.const.SetReq.V_VAR1] == 'custom')
     sensor.children[0].values[gateway.const.SetReq.V_TRIPPED] = '1'
     with pytest.raises(vol.Invalid):
         sensor.children[0].validate(gateway.protocol_version)
