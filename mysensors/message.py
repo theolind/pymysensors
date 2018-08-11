@@ -10,7 +10,7 @@ _LOGGER = logging.getLogger(__name__)
 BROADCAST_ID = 255
 
 
-class Message(object):
+class Message:
     """Represent a message from the gateway."""
 
     def __init__(self, data=None, gateway=None):

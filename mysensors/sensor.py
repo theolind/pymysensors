@@ -11,7 +11,7 @@ from .validation import is_battery_level, is_heartbeat, safe_is_version
 _LOGGER = logging.getLogger(__name__)
 
 
-class Sensor(object):
+class Sensor:
     """Represent a sensor."""
 
     # pylint: disable=too-many-instance-attributes
@@ -129,7 +129,7 @@ class Sensor(object):
         return msg_string
 
 
-class ChildSensor(object):
+class ChildSensor:
     """Represent a child sensor."""
 
     def __init__(self, child_id, child_type, description=''):

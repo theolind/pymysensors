@@ -9,7 +9,7 @@ from .sensor import ChildSensor, Sensor
 _LOGGER = logging.getLogger(__name__)
 
 
-class Persistence(object):
+class Persistence:
     """Organize persistence file saving and loading."""
 
     def __init__(
@@ -82,9 +82,8 @@ class Persistence(object):
             _LOGGER.debug('Loading sensors from persistence file %s', path)
             self._perform_file_action(path, 'load')
             return True
-        else:
-            _LOGGER.warning('File does not exist or is not readable: %s', path)
-            return False
+        _LOGGER.warning('File does not exist or is not readable: %s', path)
+        return False
 
     def safe_load_sensors(self):
         """Load sensors safely from file."""
@@ -161,11 +160,11 @@ class MySensorsJSONDecoder(json.JSONDecoder):
             for key, val in obj.items():
                 setattr(sensor, key, val)
             return sensor
-        elif all(k in obj for k in ['id', 'type', 'values']):
+        if all(k in obj for k in ['id', 'type', 'values']):
             child = ChildSensor(
                 obj['id'], obj['type'], obj.get('description', ''))
             child.values = obj['values']
             return child
-        elif all(k.isdigit() for k in obj.keys()):
+        if all(k.isdigit() for k in obj.keys()):
             return {int(k): v for k, v in obj.items()}
         return obj

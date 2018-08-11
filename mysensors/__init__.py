@@ -31,7 +31,7 @@ from .version import __version__  # noqa: F401
 _LOGGER = logging.getLogger(__name__)
 
 
-class Gateway(object):
+class Gateway:
     """Base implementation for a MySensors Gateway."""
 
     # pylint: disable=too-many-instance-attributes, too-many-arguments

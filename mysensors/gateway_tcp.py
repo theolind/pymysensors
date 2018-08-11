@@ -45,7 +45,7 @@ class BaseTCPGateway(BaseTransportGateway):
         self.add_job(msg.encode)
         self.tcp_check_timer = time.time()
 
-    def _handle_i_version(self, msg):
+    def _handle_i_version(self, msg):  # pylint: disable=useless-return
         # pylint: disable=unused-argument
         self.tcp_disconnect_timer = time.time()
         return None
