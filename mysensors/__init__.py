@@ -13,9 +13,7 @@ try:
     from asyncio import ensure_future  # pylint: disable=ungrouped-imports
 except ImportError:
     # Python 3.4.3 and earlier has this as async
-    # pylint: disable=unused-import
-    from asyncio import async  # pylint: disable=ungrouped-imports
-    ensure_future = async
+    ensure_future = getattr(asyncio, 'async')
 
 import serial.threaded
 import voluptuous as vol
