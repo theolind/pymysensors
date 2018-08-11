@@ -157,7 +157,10 @@ class ChildSensor:
     def get_schema(self, protocol_version):
         """Return the child schema for the correct const version."""
         const = get_const(protocol_version)
-        return vol.Schema({
+        custom_schema = vol.Schema({
+            typ.value: const.VALID_SETREQ[typ]
+            for typ in const.VALID_TYPES[const.Presentation.S_CUSTOM]})
+        return custom_schema.extend({
             typ.value: const.VALID_SETREQ[typ]
             for typ in const.VALID_TYPES[self.type]})
 
