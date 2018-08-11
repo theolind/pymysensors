@@ -51,12 +51,12 @@ def test_per_instance_handler():
     gateway_1_actions = []
     gateway_2_actions = []
 
-    def gateway_1_handler(_):
+    def gateway_1_handler(_):  # pylint: disable=useless-return
         """Handle message for gateway_1."""
         gateway_1_actions.append(1)
         return None
 
-    def gateway_2_handler(_):
+    def gateway_2_handler(_):  # pylint: disable=useless-return
         """Handle message for gateway_2."""
         gateway_2_actions.append(2)
         return None
