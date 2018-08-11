@@ -9,8 +9,9 @@ import serial.threaded
 import serial.tools.list_ports
 import serial_asyncio
 
-from mysensors import (BaseAsyncGateway, BaseMySensorsProtocol,
-                       BaseTransportGateway, ThreadingGateway)
+from mysensors import (
+    BaseAsyncGateway, BaseMySensorsProtocol, BaseTransportGateway,
+    ThreadingGateway)
 
 _LOGGER = logging.getLogger(__name__)
 

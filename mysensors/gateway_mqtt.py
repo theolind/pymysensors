@@ -28,7 +28,8 @@ class BaseMQTTGateway(Gateway):
         self._retain = retain  # flag to publish with retain
         # topic structure:
         # prefix/node/child/type/ack/subtype : payload
-        self.const.MessageType.presentation.handler = self._handle_presentation
+        self.const.MessageType.presentation.set_handler(
+            self.handlers, self._handle_presentation)
 
     def _handle_subscription(self, topics):
         """Handle subscription of topics."""
