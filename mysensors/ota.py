@@ -69,7 +69,7 @@ def prepare_fw(bin_string):
     return fware
 
 
-class OTAFirmware(object):
+class OTAFirmware:
     """Organize OTAFirmware updates."""
 
     def __init__(self, sensors, const):
