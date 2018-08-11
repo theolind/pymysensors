@@ -4,11 +4,10 @@ import binascii
 import voluptuous as vol
 
 # pylint: disable=unused-import
-from mysensors.const_14 import MAX_NODE_ID  # noqa: F401
-from mysensors.const_14 import (AUTO_CHANGE_OVER, COOL_ON, FORECASTS, HEAT_ON,
-                                LOGICAL_ONE, LOGICAL_ZERO, OFF, VALID_INTERNAL,
-                                VALID_STREAM, BaseConst, MessageType,
-                                Stream)
+from mysensors.const_14 import (  # noqa: F401
+    AUTO_CHANGE_OVER, COOL_ON, FORECASTS, HEAT_ON, LOGICAL_ONE, LOGICAL_ZERO,
+    MAX_NODE_ID, OFF, VALID_INTERNAL, VALID_STREAM, BaseConst, MessageType,
+    Stream, get_handler_registry)
 from mysensors.validation import is_version, percent_int
 
 

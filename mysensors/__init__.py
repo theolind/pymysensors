@@ -3,7 +3,6 @@ import asyncio
 import logging
 import threading
 import time
-
 from collections import deque
 # pylint: disable=no-name-in-module, import-error
 from distutils.version import LooseVersion as parse_ver
@@ -53,6 +52,9 @@ class Gateway(object):
             self.persistence = None
         self.protocol_version = safe_is_version(protocol_version)
         self.const = get_const(self.protocol_version)
+        handlers = self.const.get_handler_registry()
+        # Copy to allow safe modification.
+        self.handlers = dict(handlers)
         self.ota = OTAFirmware(self.sensors, self.const)
         self.can_log = False
 
@@ -74,7 +76,7 @@ class Gateway(object):
             return None
 
         message_type = self.const.MessageType(msg.type)
-        handler = message_type.handler
+        handler = message_type.get_handler(self.handlers)
         ret = handler(msg)
         ret = self._route_message(ret)
         ret = ret.encode() if ret else None

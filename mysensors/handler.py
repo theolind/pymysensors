@@ -98,9 +98,10 @@ def handle_req(msg):
 def handle_internal(msg):
     """Process an internal message."""
     internal = msg.gateway.const.Internal(msg.sub_type)
-    if internal.handler is None:
+    handler = internal.get_handler(msg.gateway.handlers)
+    if handler is None:
         return None
-    return internal.handler(msg)
+    return handler(msg)
 
 
 @HANDLERS.register('stream')
@@ -109,9 +110,10 @@ def handle_stream(msg):
     if not msg.gateway.is_sensor(msg.node_id):
         return None
     stream = msg.gateway.const.Stream(msg.sub_type)
-    if stream.handler is None:
+    handler = stream.get_handler(msg.gateway.handlers)
+    if handler is None:
         return None
-    return stream.handler(msg)
+    return handler(msg)
 
 
 @HANDLERS.register('ST_FIRMWARE_CONFIG_REQUEST')

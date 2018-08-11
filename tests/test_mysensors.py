@@ -61,8 +61,10 @@ def test_per_instance_handler():
         gateway_2_actions.append(2)
         return None
 
-    gateway_1.const.Internal.I_VERSION.handler = gateway_1_handler
-    gateway_2.const.Internal.I_VERSION.handler = gateway_2_handler
+    gateway_1.const.Internal.I_VERSION.set_handler(
+        gateway_1.handlers, gateway_1_handler)
+    gateway_2.const.Internal.I_VERSION.set_handler(
+        gateway_2.handlers, gateway_2_handler)
 
     gateway_2.logic('0;255;3;0;2;\n')
     assert gateway_2_actions[-1] == 2
