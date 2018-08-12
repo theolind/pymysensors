@@ -11,7 +11,7 @@ from .validation import is_battery_level, is_heartbeat, safe_is_version
 _LOGGER = logging.getLogger(__name__)
 
 
-class Sensor(object):
+class Sensor:
     """Represent a sensor."""
 
     # pylint: disable=too-many-instance-attributes
@@ -129,7 +129,7 @@ class Sensor(object):
         return msg_string
 
 
-class ChildSensor(object):
+class ChildSensor:
     """Represent a child sensor."""
 
     def __init__(self, child_id, child_type, description=''):
@@ -157,7 +157,10 @@ class ChildSensor(object):
     def get_schema(self, protocol_version):
         """Return the child schema for the correct const version."""
         const = get_const(protocol_version)
-        return vol.Schema({
+        custom_schema = vol.Schema({
+            typ.value: const.VALID_SETREQ[typ]
+            for typ in const.VALID_TYPES[const.Presentation.S_CUSTOM]})
+        return custom_schema.extend({
             typ.value: const.VALID_SETREQ[typ]
             for typ in const.VALID_TYPES[self.type]})
 

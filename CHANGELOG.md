@@ -1,10 +1,25 @@
 # Change Log
 
+## [0.17.0](https://github.com/theolind/pymysensors/tree/0.17.0) (2018-08-12)
+[Full Changelog](https://github.com/theolind/pymysensors/compare/0.16.0...0.17.0)
+
+**Merged pull requests:**
+
+- Cancel connection task for async gateways [\#171](https://github.com/theolind/pymysensors/pull/171) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Fix reraise msg decode ValueError [\#170](https://github.com/theolind/pymysensors/pull/170) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Allow custom V\_VAR1-5 for any child type [\#169](https://github.com/theolind/pymysensors/pull/169) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Update travis and tox python envs [\#168](https://github.com/theolind/pymysensors/pull/168) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Pin all requirements [\#167](https://github.com/theolind/pymysensors/pull/167) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Fix pylint issues [\#166](https://github.com/theolind/pymysensors/pull/166) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Fix instance specific handler [\#165](https://github.com/theolind/pymysensors/pull/165) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Scheduled monthly dependency update for August [\#164](https://github.com/theolind/pymysensors/pull/164) ([pyup-bot](https://github.com/pyup-bot))
+
 ## [0.16.0](https://github.com/theolind/pymysensors/tree/0.16.0) (2018-07-19)
 [Full Changelog](https://github.com/theolind/pymysensors/compare/0.15.0...0.16.0)
 
 **Merged pull requests:**
 
+- 0.16.0 [\#163](https://github.com/theolind/pymysensors/pull/163) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Scheduled monthly dependency update for July [\#162](https://github.com/theolind/pymysensors/pull/162) ([pyup-bot](https://github.com/pyup-bot))
 - Cancel check connection when closing transport [\#161](https://github.com/theolind/pymysensors/pull/161) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Refactor message type handler selection [\#159](https://github.com/theolind/pymysensors/pull/159) ([MartinHjelmare](https://github.com/MartinHjelmare))

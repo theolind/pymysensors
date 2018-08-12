@@ -7,18 +7,21 @@ from mysensors.validation import is_version, percent_int
 from .handler import HANDLERS
 
 
+def get_handler_registry():
+    """Return handler registry for this version."""
+    return HANDLERS
+
+
 class BaseConst(IntEnum):
     """MySensors message types."""
 
-    @property
-    def handler(self):
+    def get_handler(self, handler_registry):
         """Return correct message handler."""
-        return HANDLERS.get(self.name, None)
+        return handler_registry.get(self.name)
 
-    @handler.setter
-    def handler(self, function):
+    def set_handler(self, handler_registry, function):
         """Set message handler for name."""
-        HANDLERS[self.name] = function
+        handler_registry[self.name] = function
 
 
 class MessageType(BaseConst):

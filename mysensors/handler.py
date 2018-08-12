@@ -42,18 +42,17 @@ def handle_presentation(msg):
         msg.gateway.sensors[msg.node_id].reboot = False
         msg.gateway.alert(msg)
         return msg
-    else:
-        # this is a presentation of a child sensor
-        if not msg.gateway.is_sensor(msg.node_id):
-            _LOGGER.error('Node %s is unknown, will not add child %s',
-                          msg.node_id, msg.child_id)
-            return None
-        child_id = msg.gateway.sensors[msg.node_id].add_child_sensor(
-            msg.child_id, msg.sub_type, msg.payload)
-        if child_id is None:
-            return None
-        msg.gateway.alert(msg)
-        return msg
+    # this is a presentation of a child sensor
+    if not msg.gateway.is_sensor(msg.node_id):
+        _LOGGER.error('Node %s is unknown, will not add child %s',
+                      msg.node_id, msg.child_id)
+        return None
+    child_id = msg.gateway.sensors[msg.node_id].add_child_sensor(
+        msg.child_id, msg.sub_type, msg.payload)
+    if child_id is None:
+        return None
+    msg.gateway.alert(msg)
+    return msg
 
 
 @HANDLERS.register('set')
@@ -98,9 +97,10 @@ def handle_req(msg):
 def handle_internal(msg):
     """Process an internal message."""
     internal = msg.gateway.const.Internal(msg.sub_type)
-    if internal.handler is None:
+    handler = internal.get_handler(msg.gateway.handlers)
+    if handler is None:
         return None
-    return internal.handler(msg)
+    return handler(msg)
 
 
 @HANDLERS.register('stream')
@@ -109,9 +109,10 @@ def handle_stream(msg):
     if not msg.gateway.is_sensor(msg.node_id):
         return None
     stream = msg.gateway.const.Stream(msg.sub_type)
-    if stream.handler is None:
+    handler = stream.get_handler(msg.gateway.handlers)
+    if handler is None:
         return None
-    return stream.handler(msg)
+    return handler(msg)
 
 
 @HANDLERS.register('ST_FIRMWARE_CONFIG_REQUEST')
@@ -178,7 +179,7 @@ def handle_sketch_version(msg):
 
 
 @HANDLERS.register('I_LOG_MESSAGE')
-def handle_log_message(msg):
+def handle_log_message(msg):  # pylint: disable=useless-return
     """Process an internal log message."""
     msg.gateway.can_log = True
     _LOGGER.debug(
@@ -188,7 +189,7 @@ def handle_log_message(msg):
 
 
 @HANDLERS.register('I_GATEWAY_READY')
-def handle_gateway_ready(msg):
+def handle_gateway_ready(msg):  # pylint: disable=useless-return
     """Process an internal gateway ready message."""
     _LOGGER.info(
         'n:%s c:%s t:%s s:%s p:%s', msg.node_id, msg.child_id, msg.type,
@@ -225,7 +226,7 @@ def handle_heartbeat_response(msg):
 
 
 @HANDLERS_20.register('I_DISCOVER_RESPONSE')
-def handle_discover_response(msg):
+def handle_discover_response(msg):  # pylint: disable=useless-return
     """Process an internal discover response message."""
     msg.gateway.is_sensor(msg.node_id)
     return None

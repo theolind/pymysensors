@@ -27,7 +27,8 @@ class BaseTCPGateway(BaseTransportGateway):
         self.server_address = (host, port)
         self.tcp_check_timer = time.time()
         self.tcp_disconnect_timer = time.time()
-        self.const.Internal.I_VERSION.handler = self._handle_i_version
+        self.const.Internal.I_VERSION.set_handler(
+            self.handlers, self._handle_i_version)
 
     def _check_connection(self):
         """Check if connection is alive every reconnect_timeout seconds."""
@@ -44,7 +45,7 @@ class BaseTCPGateway(BaseTransportGateway):
         self.add_job(msg.encode)
         self.tcp_check_timer = time.time()
 
-    def _handle_i_version(self, msg):
+    def _handle_i_version(self, msg):  # pylint: disable=useless-return
         # pylint: disable=unused-argument
         self.tcp_disconnect_timer = time.time()
         return None
@@ -126,7 +127,7 @@ class AsyncTCPGateway(BaseTCPGateway, BaseAsyncGateway):
     def _connect(self):
         """Connect to the socket."""
         try:
-            while self.loop.is_running() and self.protocol:
+            while True:
                 _LOGGER.info('Trying to connect to %s', self.server_address)
                 try:
                     yield from asyncio.wait_for(

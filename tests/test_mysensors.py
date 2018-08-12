@@ -44,6 +44,34 @@ def test_logic_bad_message(gateway):
     assert gateway.logic('bad;bad;bad;bad;bad;bad\n') is None
 
 
+def test_per_instance_handler():
+    """Test that gateway can add own handlers."""
+    gateway_1 = get_gateway()
+    gateway_2 = get_gateway()
+    gateway_1_actions = []
+    gateway_2_actions = []
+
+    def gateway_1_handler(_):  # pylint: disable=useless-return
+        """Handle message for gateway_1."""
+        gateway_1_actions.append(1)
+        return None
+
+    def gateway_2_handler(_):  # pylint: disable=useless-return
+        """Handle message for gateway_2."""
+        gateway_2_actions.append(2)
+        return None
+
+    gateway_1.const.Internal.I_VERSION.set_handler(
+        gateway_1.handlers, gateway_1_handler)
+    gateway_2.const.Internal.I_VERSION.set_handler(
+        gateway_2.handlers, gateway_2_handler)
+
+    gateway_2.logic('0;255;3;0;2;\n')
+    assert gateway_2_actions[-1] == 2
+    gateway_1.logic('0;255;3;0;2;\n')
+    assert gateway_1_actions[-1] == 1
+
+
 @pytest.mark.parametrize('protocol_version, return_value', [
     ('1.4', None),
     ('1.5', None),
@@ -458,6 +486,10 @@ def test_child_validate(gateway, add_sensor):
     sensor.children[0].validate(gateway.protocol_version)
     assert (
         sensor.children[0].values[gateway.const.SetReq.V_LIGHT_LEVEL] == '43')
+    sensor.children[0].values[gateway.const.SetReq.V_VAR1] = 'custom'
+    sensor.children[0].validate(gateway.protocol_version)
+    assert (
+        sensor.children[0].values[gateway.const.SetReq.V_VAR1] == 'custom')
     sensor.children[0].values[gateway.const.SetReq.V_TRIPPED] = '1'
     with pytest.raises(vol.Invalid):
         sensor.children[0].validate(gateway.protocol_version)

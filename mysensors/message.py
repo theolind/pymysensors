@@ -10,7 +10,7 @@ _LOGGER = logging.getLogger(__name__)
 BROADCAST_ID = 255
 
 
-class Message(object):
+class Message:
     """Represent a message from the gateway."""
 
     def __init__(self, data=None, gateway=None):
@@ -56,8 +56,8 @@ class Message(object):
              self.sub_type) = [int(f) for f in list_data]
         except ValueError:
             _LOGGER.warning('Error decoding message from gateway, '
-                            'bad data received: %s', data)
-            raise ValueError
+                            'bad data received: %s', data.rstrip())
+            raise
 
     def encode(self, delimiter=';'):
         """Encode a command string from message."""

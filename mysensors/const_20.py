@@ -1,31 +1,22 @@
 """MySensors constants for version 2.0 of MySensors."""
-from enum import IntEnum
-
 import voluptuous as vol
 
 # pylint: disable=unused-import
+from mysensors.const_15 import (
+    VALID_INTERNAL, VALID_SETREQ, VALID_STREAM, VALID_TYPES, BaseConst,
+    MessageType, Stream)
 from mysensors.const_15 import MAX_NODE_ID  # noqa: F401
-from mysensors.const_15 import (VALID_INTERNAL, VALID_SETREQ,
-                                VALID_STREAM, VALID_TYPES, MessageType, Stream)
 from mysensors.validation import is_version
+
 from .handler import HANDLERS_20
 
 
-class Const20(IntEnum):
-    """MySensors message types for version 2.0."""
-
-    @property
-    def handler(self):
-        """Return correct message handler."""
-        return HANDLERS_20.get(self.name, None)
-
-    @handler.setter
-    def handler(self, function):
-        """Set message handler for name."""
-        HANDLERS_20[self.name] = function
+def get_handler_registry():
+    """Return handler registry for this version."""
+    return HANDLERS_20
 
 
-class Presentation(Const20):
+class Presentation(BaseConst):
     """MySensors presentation sub-types."""
 
     # pylint: disable=too-few-public-methods
@@ -75,7 +66,7 @@ class Presentation(Const20):
     S_WATER_QUALITY = 39            # V_TEMP, V_PH, V_ORP, V_EC, V_STATUS
 
 
-class SetReq(Const20):
+class SetReq(BaseConst):
     """MySensors set/req sub-types."""
 
     # pylint: disable=too-few-public-methods
@@ -189,7 +180,7 @@ class SetReq(Const20):
     V_POWER_FACTOR = 56
 
 
-class Internal(Const20):
+class Internal(BaseConst):
     """MySensors internal sub-types."""
 
     # pylint: disable=too-few-public-methods

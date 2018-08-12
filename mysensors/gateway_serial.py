@@ -9,8 +9,9 @@ import serial.threaded
 import serial.tools.list_ports
 import serial_asyncio
 
-from mysensors import (BaseAsyncGateway, BaseMySensorsProtocol,
-                       BaseTransportGateway, ThreadingGateway)
+from mysensors import (
+    BaseAsyncGateway, BaseMySensorsProtocol, BaseTransportGateway,
+    ThreadingGateway)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -78,7 +79,7 @@ class AsyncSerialGateway(BaseSerialGateway, BaseAsyncGateway):
     def _connect(self):
         """Connect to the serial port."""
         try:
-            while self.loop.is_running() and self.protocol:
+            while True:
                 _LOGGER.info('Trying to connect to %s', self.port)
                 try:
                     yield from serial_asyncio.create_serial_connection(

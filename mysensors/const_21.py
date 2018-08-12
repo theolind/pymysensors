@@ -1,13 +1,12 @@
 """MySensors constants for version 2.1 of MySensors."""
 # pylint: disable=unused-import
-from mysensors.const_20 import MAX_NODE_ID, VALID_TYPES  # noqa: F401
-from mysensors.const_20 import (VALID_INTERNAL, VALID_PRESENTATION,
-                                VALID_SETREQ, VALID_STREAM,
-                                Const20, MessageType, Presentation,
-                                SetReq, Stream)
+from mysensors.const_20 import (  # noqa: F401
+    MAX_NODE_ID, VALID_INTERNAL, VALID_PRESENTATION, VALID_SETREQ,
+    VALID_STREAM, VALID_TYPES, BaseConst, MessageType, Presentation, SetReq,
+    Stream, get_handler_registry)
 
 
-class Internal(Const20):
+class Internal(BaseConst):
     """MySensors internal sub-types."""
 
     # pylint: disable=too-few-public-methods

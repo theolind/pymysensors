@@ -3,7 +3,6 @@ import asyncio
 import logging
 import threading
 import time
-
 from collections import deque
 # pylint: disable=no-name-in-module, import-error
 from distutils.version import LooseVersion as parse_ver
@@ -14,9 +13,7 @@ try:
     from asyncio import ensure_future  # pylint: disable=ungrouped-imports
 except ImportError:
     # Python 3.4.3 and earlier has this as async
-    # pylint: disable=unused-import
-    from asyncio import async  # pylint: disable=ungrouped-imports
-    ensure_future = async
+    ensure_future = getattr(asyncio, 'async')
 
 import serial.threaded
 import voluptuous as vol
@@ -32,7 +29,7 @@ from .version import __version__  # noqa: F401
 _LOGGER = logging.getLogger(__name__)
 
 
-class Gateway(object):
+class Gateway:
     """Base implementation for a MySensors Gateway."""
 
     # pylint: disable=too-many-instance-attributes, too-many-arguments
@@ -53,6 +50,9 @@ class Gateway(object):
             self.persistence = None
         self.protocol_version = safe_is_version(protocol_version)
         self.const = get_const(self.protocol_version)
+        handlers = self.const.get_handler_registry()
+        # Copy to allow safe modification.
+        self.handlers = dict(handlers)
         self.ota = OTAFirmware(self.sensors, self.const)
         self.can_log = False
 
@@ -74,7 +74,7 @@ class Gateway(object):
             return None
 
         message_type = self.const.MessageType(msg.type)
-        handler = message_type.handler
+        handler = message_type.get_handler(self.handlers)
         ret = handler(msg)
         ret = self._route_message(ret)
         ret = ret.encode() if ret else None
@@ -330,11 +330,12 @@ class BaseAsyncGateway(BaseTransportGateway):
         super().__init__(
             *args, persistence_scheduler=self._create_scheduler, **kwargs)
         self.loop = loop or asyncio.get_event_loop()
+        self.connect_task = None
 
         def conn_lost():
             """Handle connection_lost in protocol class."""
             # pylint: disable=deprecated-method
-            ensure_future(self._connect(), loop=self.loop)
+            self.connect_task = self.loop.create_task(self._connect())
 
         if not protocol:
             protocol = AsyncMySensorsProtocol
@@ -356,6 +357,9 @@ class BaseAsyncGateway(BaseTransportGateway):
         """Stop the gateway."""
         _LOGGER.info('Stopping gateway')
         self._disconnect()
+        if self.connect_task and not self.connect_task.cancelled():
+            self.connect_task.cancel()
+            self.connect_task = None
         if not self.persistence:
             return
         if self._cancel_save is not None:
