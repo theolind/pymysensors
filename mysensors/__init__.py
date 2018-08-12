@@ -9,12 +9,6 @@ from distutils.version import LooseVersion as parse_ver
 from functools import partial
 from timeit import default_timer as timer
 
-try:
-    from asyncio import ensure_future  # pylint: disable=ungrouped-imports
-except ImportError:
-    # Python 3.4.3 and earlier has this as async
-    ensure_future = getattr(asyncio, 'async')
-
 import serial.threaded
 import voluptuous as vol
 
@@ -387,8 +381,7 @@ class BaseAsyncGateway(BaseTransportGateway):
         def schedule_save():
             """Save sensors and schedule a new save."""
             yield from self.loop.run_in_executor(None, save_sensors)
-            callback = partial(
-                ensure_future, schedule_save(), loop=self.loop)
+            callback = partial(self.loop.create_task, schedule_save())
             task = self.loop.call_later(10.0, callback)
             self._cancel_save = task.cancel
         return schedule_save
