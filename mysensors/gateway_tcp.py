@@ -127,7 +127,7 @@ class AsyncTCPGateway(BaseTCPGateway, BaseAsyncGateway):
     def _connect(self):
         """Connect to the socket."""
         try:
-            while self.loop.is_running() and self.protocol:
+            while True:
                 _LOGGER.info('Trying to connect to %s', self.server_address)
                 try:
                     yield from asyncio.wait_for(

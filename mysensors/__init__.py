@@ -330,11 +330,12 @@ class BaseAsyncGateway(BaseTransportGateway):
         super().__init__(
             *args, persistence_scheduler=self._create_scheduler, **kwargs)
         self.loop = loop or asyncio.get_event_loop()
+        self.connect_task = None
 
         def conn_lost():
             """Handle connection_lost in protocol class."""
             # pylint: disable=deprecated-method
-            ensure_future(self._connect(), loop=self.loop)
+            self.connect_task = self.loop.create_task(self._connect())
 
         if not protocol:
             protocol = AsyncMySensorsProtocol
@@ -356,6 +357,9 @@ class BaseAsyncGateway(BaseTransportGateway):
         """Stop the gateway."""
         _LOGGER.info('Stopping gateway')
         self._disconnect()
+        if self.connect_task and not self.connect_task.cancelled():
+            self.connect_task.cancel()
+            self.connect_task = None
         if not self.persistence:
             return
         if self._cancel_save is not None:
