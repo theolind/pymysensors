@@ -79,7 +79,7 @@ class AsyncSerialGateway(BaseSerialGateway, BaseAsyncGateway):
     def _connect(self):
         """Connect to the serial port."""
         try:
-            while self.loop.is_running() and self.protocol:
+            while True:
                 _LOGGER.info('Trying to connect to %s', self.port)
                 try:
                     yield from serial_asyncio.create_serial_connection(
