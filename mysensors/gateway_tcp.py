@@ -39,7 +39,7 @@ class BaseTCPGateway(BaseTransportGateway):
                 self.server_address))
         if (self.tcp_check_timer + self.reconnect_timeout) >= time.time():
             return
-        msg = Message().copy(
+        msg = Message().modify(
             child_id=255, type=self.const.MessageType.internal,
             sub_type=self.const.Internal.I_VERSION)
         self.add_job(msg.encode)
