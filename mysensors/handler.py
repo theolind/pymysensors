@@ -69,7 +69,7 @@ def handle_set(msg):
     msg.gateway.alert(msg)
     # Check if reboot is true
     if msg.gateway.sensors[msg.node_id].reboot:
-        return msg.modify(
+        return msg.copy(
             child_id=SYSTEM_CHILD_ID,
             type=msg.gateway.const.MessageType.internal, ack=0,
             sub_type=msg.gateway.const.Internal.I_REBOOT, payload='')
@@ -88,7 +88,7 @@ def handle_req(msg):
     value = msg.gateway.sensors[msg.node_id].children[
         msg.child_id].values.get(msg.sub_type)
     if value is not None:
-        return msg.modify(
+        return msg.copy(
             type=msg.gateway.const.MessageType.set, payload=value)
     return None
 
@@ -131,7 +131,7 @@ def handle_firmware_request(msg):
 def handle_id_request(msg):
     """Process an internal id request message."""
     node_id = msg.gateway.add_sensor()
-    return msg.modify(
+    return msg.copy(
         ack=0, sub_type=msg.gateway.const.Internal['I_ID_RESPONSE'],
         payload=node_id) if node_id is not None else None
 
@@ -139,13 +139,13 @@ def handle_id_request(msg):
 @HANDLERS.register('I_CONFIG')
 def handle_config(msg):
     """Process an internal config message."""
-    return msg.modify(ack=0, payload='M' if msg.gateway.metric else 'I')
+    return msg.copy(ack=0, payload='M' if msg.gateway.metric else 'I')
 
 
 @HANDLERS.register('I_TIME')
 def handle_time(msg):
     """Process an internal time request message."""
-    return msg.modify(ack=0, payload=calendar.timegm(time.localtime()))
+    return msg.copy(ack=0, payload=calendar.timegm(time.localtime()))
 
 
 @HANDLERS.register('I_BATTERY_LEVEL')
@@ -209,7 +209,7 @@ def handle_gateway_ready_20(msg):
         'n:%s c:%s t:%s s:%s p:%s', msg.node_id, msg.child_id, msg.type,
         msg.sub_type, msg.payload)
     msg.gateway.alert(msg)
-    return msg.modify(
+    return msg.copy(
         node_id=255, ack=0,
         sub_type=msg.gateway.const.Internal.I_DISCOVER, payload='')
 
