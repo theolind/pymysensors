@@ -1,10 +1,25 @@
 # Change Log
 
+## [0.18.0](https://github.com/theolind/pymysensors/tree/0.18.0) (2018-10-21)
+[Full Changelog](https://github.com/theolind/pymysensors/compare/0.17.0...0.18.0)
+
+**Closed issues:**
+
+- Usage [\#176](https://github.com/theolind/pymysensors/issues/176)
+
+**Merged pull requests:**
+
+- Fix modify existing message [\#177](https://github.com/theolind/pymysensors/pull/177) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Scheduled monthly dependency update for October [\#175](https://github.com/theolind/pymysensors/pull/175) ([pyup-bot](https://github.com/pyup-bot))
+- Scheduled monthly dependency update for September [\#174](https://github.com/theolind/pymysensors/pull/174) ([pyup-bot](https://github.com/pyup-bot))
+- Clean up ensure\_future [\#173](https://github.com/theolind/pymysensors/pull/173) ([MartinHjelmare](https://github.com/MartinHjelmare))
+
 ## [0.17.0](https://github.com/theolind/pymysensors/tree/0.17.0) (2018-08-12)
 [Full Changelog](https://github.com/theolind/pymysensors/compare/0.16.0...0.17.0)
 
 **Merged pull requests:**
 
+- 0.17.0 [\#172](https://github.com/theolind/pymysensors/pull/172) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Cancel connection task for async gateways [\#171](https://github.com/theolind/pymysensors/pull/171) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Fix reraise msg decode ValueError [\#170](https://github.com/theolind/pymysensors/pull/170) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Allow custom V\_VAR1-5 for any child type [\#169](https://github.com/theolind/pymysensors/pull/169) ([MartinHjelmare](https://github.com/MartinHjelmare))
