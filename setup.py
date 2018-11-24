@@ -9,6 +9,8 @@ REQUIRES = [
     'click', 'crcmod>=1.7', 'getmac', 'IntelHex>=2.2.1', 'pyserial>=3.4',
     'pyserial-asyncio>=0.4', 'voluptuous>=0.11.1',
 ]
+EXTRAS = {'mqtt-client': ['paho-mqtt']}
+
 
 setup(
     name='pymysensors',
@@ -21,6 +23,7 @@ setup(
     author_email='theodor.lindquist@gmail.com',
     license='MIT License',
     install_requires=REQUIRES,
+    extras_require=EXTRAS,
     packages=find_packages(exclude=['tests', 'tests.*']),
     entry_points={
         'console_scripts': ['pymysensors = mysensors.cli:cli']},
