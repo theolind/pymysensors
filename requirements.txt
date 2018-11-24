@@ -1,5 +1,5 @@
 crcmod==1.7
-get-mac==0.5.1
+getmac==0.6.0
 IntelHex==2.2.1
 pyserial==3.4
 pyserial-asyncio==0.4
