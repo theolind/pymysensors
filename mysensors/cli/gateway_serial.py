@@ -1,10 +1,8 @@
 """Start a serial gateway."""
-import asyncio
-import time
-
 import click
 
-from mysensors.cli.helper import common_gateway_options, handle_msg
+from mysensors.cli.helper import (
+    common_gateway_options, handle_msg, run_async_gateway, run_gateway)
 from mysensors.gateway_serial import AsyncSerialGateway, SerialGateway
 
 
@@ -25,12 +23,7 @@ def common_serial_options(func):
 def serial_gateway(**kwargs):
     """Start a serial gateway."""
     gateway = SerialGateway(event_callback=handle_msg, **kwargs)
-    gateway.start()
-    try:
-        while True:
-            time.sleep(0.5)
-    except KeyboardInterrupt:
-        gateway.stop()
+    run_gateway(gateway)
 
 
 @click.command(options_metavar='<options>')
@@ -38,12 +31,5 @@ def serial_gateway(**kwargs):
 @common_gateway_options
 def async_serial_gateway(**kwargs):
     """Start an async serial gateway."""
-    loop = asyncio.get_event_loop()
-    gateway = AsyncSerialGateway(
-        event_callback=handle_msg, loop=loop, **kwargs)
-    try:
-        loop.run_until_complete(gateway.start())
-        loop.run_forever()
-    except KeyboardInterrupt:
-        gateway.stop()
-        loop.close()
+    gateway = AsyncSerialGateway(event_callback=handle_msg, **kwargs)
+    run_async_gateway(gateway)

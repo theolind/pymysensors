@@ -5,6 +5,7 @@ import click
 
 from mysensors import __version__
 from mysensors.cli.gateway_serial import async_serial_gateway, serial_gateway
+from mysensors.cli.gateway_tcp import async_tcp_gateway, tcp_gateway
 
 SETTINGS = dict(help_option_names=['-h', '--help'])
 
@@ -23,4 +24,6 @@ def cli(debug):
 
 
 cli.add_command(async_serial_gateway)
+cli.add_command(async_tcp_gateway)
 cli.add_command(serial_gateway)
+cli.add_command(tcp_gateway)
