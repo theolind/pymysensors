@@ -142,8 +142,8 @@ def test_presentation_arduino_node(gateway):
     """Test presentation of sensor node."""
     gateway.logic('1;255;0;0;17;1.4.1\n')
     assert (
-        gateway.sensors[1].type ==
-        gateway.const.Presentation.S_ARDUINO_NODE)
+        gateway.sensors[1].type
+        == gateway.const.Presentation.S_ARDUINO_NODE)
     assert gateway.sensors[1].protocol_version == '1.4.1'
 
 
@@ -618,8 +618,8 @@ def test_set_with_new_state(protocol_version, wake_msg):
     gateway.logic(wake_msg)
     gateway.logic('1;0;1;0;23;57\n')
     assert (
-        sensor.children[0].values[gateway.const.SetReq.V_LIGHT_LEVEL] ==
-        sensor.new_state[0].values[gateway.const.SetReq.V_LIGHT_LEVEL])
+        sensor.children[0].values[gateway.const.SetReq.V_LIGHT_LEVEL]
+        == sensor.new_state[0].values[gateway.const.SetReq.V_LIGHT_LEVEL])
 
 
 @pytest.mark.parametrize(
@@ -655,16 +655,16 @@ def test_set_position(protocol_version):
     sensor.add_child_sensor(0, gateway.const.Presentation.S_GPS)
     gateway.logic('1;0;1;0;49;10.0,10.0,10.0\n')
     assert (
-        sensor.children[0].values[gateway.const.SetReq.V_POSITION] ==
-        '10.0,10.0,10.0')
+        sensor.children[0].values[gateway.const.SetReq.V_POSITION]
+        == '10.0,10.0,10.0')
     gateway.logic('1;0;1;0;49;bad,format\n')
     assert (
-        sensor.children[0].values[gateway.const.SetReq.V_POSITION] ==
-        '10.0,10.0,10.0')
+        sensor.children[0].values[gateway.const.SetReq.V_POSITION]
+        == '10.0,10.0,10.0')
     gateway.logic('1;0;1;0;41;bad,bad,bad\n')
     assert (
-        sensor.children[0].values[gateway.const.SetReq.V_POSITION] ==
-        '10.0,10.0,10.0')
+        sensor.children[0].values[gateway.const.SetReq.V_POSITION]
+        == '10.0,10.0,10.0')
 
 
 def test_gateway_bad_protocol():
