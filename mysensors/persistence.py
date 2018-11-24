@@ -55,8 +55,8 @@ class Persistence:
         fname = os.path.realpath(self.persistence_file)
         exists = os.path.isfile(fname)
         dirname = os.path.dirname(fname)
-        if (not os.access(dirname, os.W_OK) or exists and
-                not os.access(fname, os.W_OK)):
+        if (not os.access(dirname, os.W_OK) or exists
+                and not os.access(fname, os.W_OK)):
             _LOGGER.error('Permission denied when writing to %s', fname)
             return
         split_fname = os.path.splitext(fname)
