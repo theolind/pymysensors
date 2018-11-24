@@ -4,7 +4,7 @@ cache: pip
 python:
   - "3.4"
   - "3.5"
-# Enable 3.7 without globally enabling dist: xenial for other build jobs
+# Run some envs on xenial, without globally enabling dist: xenial
 matrix:
   include:
     - python: 3.6
