@@ -6,7 +6,7 @@ exec(open('mysensors/version.py').read())
 README = open('README.md').read()
 
 REQUIRES = [
-    'crcmod>=1.7', 'get-mac>=0.2.1', 'IntelHex>=2.2.1', 'pyserial>=3.4',
+    'crcmod>=1.7', 'getmac', 'IntelHex>=2.2.1', 'pyserial>=3.4',
     'pyserial-asyncio>=0.4', 'voluptuous>=0.11.1',
 ]
 
