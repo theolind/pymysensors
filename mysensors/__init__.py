@@ -127,9 +127,9 @@ class Gateway:
         if not isinstance(msg, Message) or \
                 msg.type == self.const.MessageType.presentation:
             return None
-        if (msg.node_id not in self.sensors or
-                msg.type == self.const.MessageType.stream or
-                not self.sensors[msg.node_id].new_state):
+        if (msg.node_id not in self.sensors
+                or msg.type == self.const.MessageType.stream
+                or not self.sensors[msg.node_id].new_state):
             return msg
         self.sensors[msg.node_id].queue.append(msg.encode())
         return None
