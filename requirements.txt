@@ -1,3 +1,4 @@
+click==7.0
 crcmod==1.7
 getmac==0.6.0
 IntelHex==2.2.1
