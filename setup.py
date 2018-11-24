@@ -22,6 +22,8 @@ setup(
     license='MIT License',
     install_requires=REQUIRES,
     packages=find_packages(exclude=['tests', 'tests.*']),
+    entry_points={
+        'console_scripts': ['pymysensors = mysensors.cli:cli']},
     keywords=['sensor', 'actuator', 'IoT', 'DYI'],
     zip_safe=True,
     classifiers=[
