@@ -60,11 +60,11 @@ def test_persistence(gateway, add_sensor, filename, tmpdir):
     assert gateway.sensors[1].children[0].id == sensor.children[0].id
     assert gateway.sensors[1].children[0].type == sensor.children[0].type
     assert (
-        gateway.sensors[1].children[0].description ==
-        sensor.children[0].description)
+        gateway.sensors[1].children[0].description
+        == sensor.children[0].description)
     assert (
-        gateway.sensors[1].children[0].values ==
-        sensor.children[0].values)
+        gateway.sensors[1].children[0].values
+        == sensor.children[0].values)
     gateway.persistence.save_sensors()
     del gateway.sensors[1]
     assert 1 not in gateway.sensors
