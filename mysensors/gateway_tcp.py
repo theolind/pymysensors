@@ -32,8 +32,8 @@ class BaseTCPGateway(BaseTransportGateway):
 
     def _check_connection(self):
         """Check if connection is alive every reconnect_timeout seconds."""
-        if ((self.tcp_disconnect_timer + 2 * self.reconnect_timeout) <
-                time.time()):
+        if ((self.tcp_disconnect_timer + 2 * self.reconnect_timeout)
+                < time.time()):
             self.tcp_disconnect_timer = time.time()
             raise OSError('No response from {}. Disconnecting'.format(
                 self.server_address))
