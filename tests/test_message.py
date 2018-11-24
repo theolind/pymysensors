@@ -241,11 +241,11 @@ def test_decode_bad_message():
 
 @pytest.mark.parametrize(
     'protocol_version, name, payload',
-    [('1.4', name, payload) for name, payload in PRES_FIXTURES_14.items()] +
-    [('1.5', name, payload) for name, payload in PRES_FIXTURES_15.items()] +
-    [('2.0', name, payload) for name, payload in PRES_FIXTURES_20.items()] +
-    [('2.1', name, payload) for name, payload in PRES_FIXTURES_20.items()] +
-    [('2.2', name, payload) for name, payload in PRES_FIXTURES_20.items()]
+    [('1.4', name, payload) for name, payload in PRES_FIXTURES_14.items()]
+    + [('1.5', name, payload) for name, payload in PRES_FIXTURES_15.items()]
+    + [('2.0', name, payload) for name, payload in PRES_FIXTURES_20.items()]
+    + [('2.1', name, payload) for name, payload in PRES_FIXTURES_20.items()]
+    + [('2.2', name, payload) for name, payload in PRES_FIXTURES_20.items()]
 )
 def test_validate_pres(protocol_version, name, payload):
     """Test Presentation messages."""
@@ -264,15 +264,15 @@ def test_validate_pres(protocol_version, name, payload):
 @pytest.mark.parametrize(
     'protocol_version, name, payload',
     [('1.4', name, payload)
-     for name, payload in PRES_BAD_FIXTURES_14.items()] +
-    [('1.5', name, payload)
-     for name, payload in PRES_BAD_FIXTURES_15.items()] +
-    [('2.0', name, payload)
-     for name, payload in PRES_BAD_FIXTURES_20.items()] +
-    [('2.1', name, payload)
-     for name, payload in PRES_BAD_FIXTURES_20.items()] +
-    [('2.2', name, payload)
-     for name, payload in PRES_BAD_FIXTURES_20.items()]
+     for name, payload in PRES_BAD_FIXTURES_14.items()]
+    + [('1.5', name, payload)
+       for name, payload in PRES_BAD_FIXTURES_15.items()]
+    + [('2.0', name, payload)
+       for name, payload in PRES_BAD_FIXTURES_20.items()]
+    + [('2.1', name, payload)
+       for name, payload in PRES_BAD_FIXTURES_20.items()]
+    + [('2.2', name, payload)
+       for name, payload in PRES_BAD_FIXTURES_20.items()]
 )
 def test_validate_bad_pres(protocol_version, name, payload):
     """Test bad Presentation messages."""
@@ -285,11 +285,11 @@ def test_validate_bad_pres(protocol_version, name, payload):
 
 @pytest.mark.parametrize(
     'protocol_version, name, payload',
-    [('1.4', name, payload) for name, payload in SET_FIXTURES_14.items()] +
-    [('1.5', name, payload) for name, payload in SET_FIXTURES_15.items()] +
-    [('2.0', name, payload) for name, payload in SET_FIXTURES_20.items()] +
-    [('2.1', name, payload) for name, payload in SET_FIXTURES_20.items()] +
-    [('2.2', name, payload) for name, payload in SET_FIXTURES_20.items()]
+    [('1.4', name, payload) for name, payload in SET_FIXTURES_14.items()]
+    + [('1.5', name, payload) for name, payload in SET_FIXTURES_15.items()]
+    + [('2.0', name, payload) for name, payload in SET_FIXTURES_20.items()]
+    + [('2.1', name, payload) for name, payload in SET_FIXTURES_20.items()]
+    + [('2.2', name, payload) for name, payload in SET_FIXTURES_20.items()]
 )
 def test_validate_set(protocol_version, name, payload):
     """Test Set messages."""
@@ -308,15 +308,15 @@ def test_validate_set(protocol_version, name, payload):
 @pytest.mark.parametrize(
     'protocol_version, name, payload',
     [('1.4', name, payload)
-     for name, payload in INTERNAL_FIXTURES_14.items()] +
-    [('1.5', name, payload)
-     for name, payload in INTERNAL_FIXTURES_15.items()] +
-    [('2.0', name, payload)
-     for name, payload in INTERNAL_FIXTURES_20.items()] +
-    [('2.1', name, payload)
-     for name, payload in INTERNAL_FIXTURES_21.items()] +
-    [('2.2', name, payload)
-     for name, payload in INTERNAL_FIXTURES_22.items()]
+     for name, payload in INTERNAL_FIXTURES_14.items()]
+    + [('1.5', name, payload)
+       for name, payload in INTERNAL_FIXTURES_15.items()]
+    + [('2.0', name, payload)
+       for name, payload in INTERNAL_FIXTURES_20.items()]
+    + [('2.1', name, payload)
+       for name, payload in INTERNAL_FIXTURES_21.items()]
+    + [('2.2', name, payload)
+       for name, payload in INTERNAL_FIXTURES_22.items()]
 )
 def test_validate_internal(protocol_version, name, payload):
     """Test Internal messages."""
