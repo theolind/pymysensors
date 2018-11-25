@@ -97,8 +97,8 @@ class MQTTClient:
             import paho.mqtt.client as mqtt  # pylint: disable=import-error
         except ImportError:
             print(
-                'paho.mqtt.client is missing.'
-                'Make sure to install extras:\n\n'
+                'paho.mqtt.client is missing. '
+                'Make sure to install extras:\n'
                 'pip3 install pymysensors[mqtt-client]')
             sys.exit()
         self.broker = broker
