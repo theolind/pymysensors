@@ -1,7 +1,10 @@
 """Offer common helper functions for the CLI."""
+import logging
 import time
 
 import click
+
+_LOGGER = logging.getLogger(__name__)
 
 
 def common_gateway_options(func):
@@ -17,7 +20,7 @@ def common_gateway_options(func):
 
 def handle_msg(msg):
     """Handle mysensors updates."""
-    print('Received message:', str(msg.node_id))
+    _LOGGER.info('Received message: %s', msg.encode().strip())
 
 
 def run_gateway(gateway):

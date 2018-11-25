@@ -1,6 +1,7 @@
 """Start a mqtt gateway."""
 import asyncio
 from contextlib import contextmanager
+import logging
 import socket
 import sys
 
@@ -9,6 +10,8 @@ import click
 from mysensors.cli.helper import (
     common_gateway_options, handle_msg, run_async_gateway, run_gateway)
 from mysensors.gateway_mqtt import AsyncMQTTGateway, MQTTGateway
+
+_LOGGER = logging.getLogger(__name__)
 
 
 def common_mqtt_options(func):
@@ -64,9 +67,9 @@ def run_mqtt_client(broker, port):
     try:
         mqttc.start()
     except OSError as exc:
-        print(
-            'Connecting to broker {}:{} failed, exiting: {}'.format(
-                broker, port, exc))
+        _LOGGER.error(
+            'Connecting to broker %s:%s failed, exiting: %s',
+            broker, port, exc)
         sys.exit()
     try:
         yield mqttc
@@ -81,9 +84,9 @@ def async_start_mqtt_client(loop, broker, port):
     try:
         yield from mqttc.start()
     except OSError as exc:
-        print(
-            'Connecting to broker {}:{} failed, exiting: {}'.format(
-                broker, port, exc))
+        _LOGGER.error(
+            'Connecting to broker %s:%s failed, exiting: %s',
+            broker, port, exc)
         sys.exit()
     return mqttc
 
@@ -96,7 +99,7 @@ class MQTTClient:
         try:
             import paho.mqtt.client as mqtt  # pylint: disable=import-error
         except ImportError:
-            print(
+            _LOGGER.error(
                 'paho.mqtt.client is missing. '
                 'Make sure to install extras:\n'
                 'pip3 install pymysensors[mqtt-client]')
@@ -131,13 +134,13 @@ class MQTTClient:
 
     def start(self):
         """Run the MQTT client."""
-        print('Start MQTT client')
+        _LOGGER.info('Start MQTT client')
         self._connect()
         self._client.loop_start()
 
     def stop(self):
         """Stop the MQTT client."""
-        print('Stop MQTT client')
+        _LOGGER.info('Stop MQTT client')
         self._client.disconnect()
         self._client.loop_stop()
 
@@ -169,13 +172,13 @@ class AsyncMQTTClient(MQTTClient):
     @asyncio.coroutine
     def start(self):
         """Run the MQTT client."""
-        print('Start MQTT client')
+        _LOGGER.info('Start MQTT client')
         self._connect()
 
     @asyncio.coroutine
     def stop(self):
         """Stop the MQTT client."""
-        print('Stop MQTT client')
+        _LOGGER.info('Stop MQTT client')
         self._client.disconnect()
         yield from self.disconnected
 
