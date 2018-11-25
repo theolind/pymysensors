@@ -1,4 +1,6 @@
 """Start a mqtt gateway."""
+import asyncio
+import socket
 import sys
 from contextlib import contextmanager
 
@@ -46,12 +48,13 @@ def mqtt_gateway(broker, port, **kwargs):
 @common_gateway_options
 def async_mqtt_gateway(broker, port, **kwargs):
     """Start an async mqtt gateway."""
-    with run_mqtt_client(broker, port) as mqttc:
-        # FIXME: fix async client publish and subscribe callbacks
-        gateway = AsyncMQTTGateway(
-            mqttc.publish, mqttc.subscribe, event_callback=handle_msg,
-            **kwargs)
-        run_async_gateway(gateway)
+    loop = asyncio.get_event_loop()
+    mqttc = loop.run_until_complete(
+        async_start_mqtt_client(loop, broker, port))
+    gateway = AsyncMQTTGateway(
+        mqttc.publish, mqttc.subscribe, event_callback=handle_msg, loop=loop,
+        **kwargs)
+    run_async_gateway(gateway, mqttc.stop())
 
 
 @contextmanager
@@ -59,17 +62,30 @@ def run_mqtt_client(broker, port):
     """Run mqtt client."""
     mqttc = MQTTClient(broker, port)
     try:
-        mqttc.connect()
+        mqttc.start()
     except OSError as exc:
         print(
             'Connecting to broker {}:{} failed, exiting: {}'.format(
                 broker, port, exc))
         sys.exit()
-    mqttc.start()
     try:
         yield mqttc
     finally:
         mqttc.stop()
+
+
+@asyncio.coroutine
+def async_start_mqtt_client(loop, broker, port):
+    """Start async mqtt client."""
+    mqttc = AsyncMQTTClient(loop, broker, port)
+    try:
+        yield from mqttc.start()
+    except OSError as exc:
+        print(
+            'Connecting to broker {}:{} failed, exiting: {}'.format(
+                broker, port, exc))
+        sys.exit()
+    return mqttc
 
 
 class MQTTClient:
@@ -86,37 +102,128 @@ class MQTTClient:
         self.port = port
         self.keepalive = keepalive
         self.topics = {}
-        self._mqttc = mqtt.Client()
+        self._client = mqtt.Client()
 
-    def connect(self):
+    def _connect(self):
         """Connect to broker."""
-        self._mqttc.connect(self.broker, self.port, self.keepalive)
+        self._client.connect(self.broker, self.port, self.keepalive)
 
     def publish(self, topic, payload, qos, retain):
         """Publish an MQTT message."""
-        self._mqttc.publish(topic, payload, qos, retain)
+        self._client.publish(topic, payload, qos, retain)
 
     def subscribe(self, topic, callback, qos):
         """Subscribe to an MQTT topic."""
         if topic in self.topics:
             return
 
-        def _message_callback(mqttc, userdata, msg):
+        def message_callback(mqttc, userdata, msg):
             """Handle received message."""
             # pylint: disable=unused-argument
             callback(msg.topic, msg.payload.decode('utf-8'), msg.qos)
 
-        self._mqttc.subscribe(topic, qos)
-        self._mqttc.message_callback_add(topic, _message_callback)
+        self._client.subscribe(topic, qos)
+        self._client.message_callback_add(topic, message_callback)
         self.topics[topic] = callback
 
     def start(self):
         """Run the MQTT client."""
         print('Start MQTT client')
-        self._mqttc.loop_start()
+        self._connect()
+        self._client.loop_start()
 
     def stop(self):
         """Stop the MQTT client."""
         print('Stop MQTT client')
-        self._mqttc.disconnect()
-        self._mqttc.loop_stop()
+        self._client.disconnect()
+        self._client.loop_stop()
+
+
+class AsyncMQTTClient(MQTTClient):
+    """Async MQTT client."""
+
+    def __init__(self, loop, *args):
+        """Set up async MQTT client."""
+        self.loop = loop
+        self.disconnected = None
+        self._aio_helper = None
+        super().__init__(*args)
+
+    def on_disconnect(self, client, userdata, rc):
+        """Handle disconnection."""
+        self.disconnected.set_result(rc)
+
+    def _connect(self):
+        """Connect to broker."""
+        self.disconnected = self.loop.create_future()
+        self._client.on_disconnect = self.on_disconnect
+        self._aio_helper = AsyncioHelper(self.loop, self._client)
+        super()._connect()
+        self._client.socket().setsockopt(
+            socket.SOL_SOCKET, socket.SO_SNDBUF, 2048)
+
+    @asyncio.coroutine
+    def start(self):
+        """Run the MQTT client."""
+        print('Start MQTT client')
+        self._connect()
+
+    @asyncio.coroutine
+    def stop(self):
+        """Stop the MQTT client."""
+        print('Stop MQTT client')
+        self._client.disconnect()
+        yield from self.disconnected
+
+
+class AsyncioHelper:
+    """Provide asyncio loop support.
+
+    Based on example at https://github.com/eclipse/paho.mqtt.python.
+    """
+
+    # pylint: disable=unused-argument
+
+    def __init__(self, loop, client):
+        """Set up instance."""
+        self.loop = loop
+        self._client = client
+        self._client.on_socket_open = self.on_socket_open
+        self._client.on_socket_close = self.on_socket_close
+        self._client.on_socket_register_write = self.register_write
+        self._client.on_socket_unregister_write = self.unregister_write
+        self.misc_loop_task = None
+
+    def on_socket_open(self, client, userdata, sock):
+        """Handle socket open."""
+        def cb():
+            client.loop_read()
+
+        self.loop.add_reader(sock, cb)
+        self.misc_loop_task = self.loop.create_task(self.run_misc_loop())
+
+    def on_socket_close(self, client, userdata, sock):
+        """Handle socket close."""
+        self.loop.remove_reader(sock)
+        self.misc_loop_task.cancel()
+
+    def register_write(self, client, userdata, sock):
+        """Register write callback."""
+        def cb():
+            client.loop_write()
+
+        self.loop.add_writer(sock, cb)
+
+    def unregister_write(self, client, userdata, sock):
+        """Unregister write callback."""
+        self.loop.remove_writer(sock)
+
+    @asyncio.coroutine
+    def run_misc_loop(self):
+        """Provide loop for paho mqtt."""
+        import paho.mqtt.client as mqtt  # pylint: disable=import-error
+        while self._client.loop_misc() == mqtt.MQTT_ERR_SUCCESS:
+            try:
+                yield from asyncio.sleep(1)
+            except asyncio.CancelledError:
+                break

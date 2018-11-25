@@ -30,11 +30,13 @@ def run_gateway(gateway):
         gateway.stop()
 
 
-def run_async_gateway(gateway):
+def run_async_gateway(gateway, stop_task=None):
     """Run an async gateway."""
     try:
         gateway.loop.run_until_complete(gateway.start())
         gateway.loop.run_forever()
     except KeyboardInterrupt:
         gateway.stop()
+        if stop_task:
+            gateway.loop.run_until_complete(stop_task)
         gateway.loop.close()
