@@ -96,7 +96,10 @@ class MQTTClient:
         try:
             import paho.mqtt.client as mqtt  # pylint: disable=import-error
         except ImportError:
-            print('paho.mqtt.client is missing. Make sure to install extras')
+            print(
+                'paho.mqtt.client is missing.'
+                'Make sure to install extras:\n\n'
+                'pip3 install pymysensors[mqtt-client]')
             sys.exit()
         self.broker = broker
         self.port = port
@@ -149,9 +152,10 @@ class AsyncMQTTClient(MQTTClient):
         self._aio_helper = None
         super().__init__(*args)
 
-    def on_disconnect(self, client, userdata, rc):
+    def on_disconnect(self, client, userdata, ret_code):
         """Handle disconnection."""
-        self.disconnected.set_result(rc)
+        # pylint: disable=unused-argument
+        self.disconnected.set_result(ret_code)
 
     def _connect(self):
         """Connect to broker."""
@@ -196,10 +200,10 @@ class AsyncioHelper:
 
     def on_socket_open(self, client, userdata, sock):
         """Handle socket open."""
-        def cb():
+        def callback():
             client.loop_read()
 
-        self.loop.add_reader(sock, cb)
+        self.loop.add_reader(sock, callback)
         self.misc_loop_task = self.loop.create_task(self.run_misc_loop())
 
     def on_socket_close(self, client, userdata, sock):
@@ -209,10 +213,10 @@ class AsyncioHelper:
 
     def register_write(self, client, userdata, sock):
         """Register write callback."""
-        def cb():
+        def callback():
             client.loop_write()
 
-        self.loop.add_writer(sock, cb)
+        self.loop.add_writer(sock, callback)
 
     def unregister_write(self, client, userdata, sock):
         """Unregister write callback."""
