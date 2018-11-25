@@ -13,7 +13,7 @@ def common_serial_options(func):
         help='Baudrate of the serial connection.')(func)
     func = click.option(
         '-p', '--port', required=True, help='Serial port of the gateway.'
-        )(func)
+    )(func)
     return func
 
 

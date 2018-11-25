@@ -1,8 +1,8 @@
 """Start a mqtt gateway."""
 import asyncio
+from contextlib import contextmanager
 import socket
 import sys
-from contextlib import contextmanager
 
 import click
 
