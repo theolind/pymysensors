@@ -9,8 +9,8 @@ def get_gateway(**kwargs):
     """Return a gateway instance."""
     _gateway = Gateway(**kwargs)
     _gateway.tasks = SyncTasks(
-        _gateway.const, _gateway.persistence, _gateway.persistence_file,
-        _gateway.sensors, mock.MagicMock())
+        _gateway.const, True, 'mysensors.pickle', _gateway.sensors,
+        mock.MagicMock())
     return _gateway
 
 
@@ -21,7 +21,7 @@ def test_threading_persistence(mock_timer_class, mock_save_sensors):
     mock_timer_1 = mock.MagicMock()
     mock_timer_2 = mock.MagicMock()
     mock_timer_class.side_effect = [mock_timer_1, mock_timer_2]
-    gateway = get_gateway(persistence=True)
+    gateway = get_gateway()
     gateway.tasks.persistence.schedule_save_sensors()
     assert mock_save_sensors.call_count == 1
     assert mock_timer_class.call_count == 1

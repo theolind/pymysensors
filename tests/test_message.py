@@ -188,8 +188,7 @@ def get_gateway(**kwargs):
     """Return a gateway instance."""
     _gateway = Gateway(**kwargs)
     _gateway.tasks = SyncTasks(
-        _gateway.const, _gateway.persistence, _gateway.persistence_file,
-        _gateway.sensors, mock.MagicMock())
+        _gateway.const, False, None, _gateway.sensors, mock.MagicMock())
     return _gateway
 
 

@@ -21,12 +21,9 @@ _LOGGER = logging.getLogger(__name__)
 class Gateway:
     """Base implementation for a MySensors Gateway."""
 
-    # pylint: disable=too-many-instance-attributes, unused-argument
+    # pylint: disable=too-many-instance-attributes
 
-    def __init__(
-            self, event_callback=None, persistence=False,
-            persistence_file='mysensors.pickle', protocol_version='1.4',
-            **kwargs):
+    def __init__(self, event_callback=None, protocol_version='1.4'):
         """Set up Gateway."""
         protocol_version = safe_is_version(protocol_version)
         self.const = get_const(protocol_version)
@@ -36,8 +33,6 @@ class Gateway:
         # Copy to allow safe modification.
         self.handlers = dict(handlers)
         self.can_log = False
-        self.persistence = persistence
-        self.persistence_file = persistence_file
         self.protocol_version = protocol_version
         self.sensors = {}
         self.tasks = None
@@ -172,22 +167,25 @@ class Gateway:
 class BaseSyncGateway(Gateway):
     """MySensors base sync gateway."""
 
-    def __init__(self, transport, *args, **kwargs):
+    def __init__(
+            self, transport, *args, persistence=False,
+            persistence_file='mysensors.pickle', **kwargs):
         """Set up gateway."""
         super().__init__(*args, **kwargs)
         self.tasks = SyncTasks(
-            self.const, self.persistence, self.persistence_file, self.sensors,
-            transport)
+            self.const, persistence, persistence_file, self.sensors, transport)
 
 
 class BaseAsyncGateway(Gateway):
     """MySensors base async gateway."""
 
-    def __init__(self, transport, *args, loop=None, **kwargs):
+    def __init__(
+            self, transport, *args, loop=None, persistence=False,
+            persistence_file='mysensors.pickle', **kwargs):
         """Set up gateway."""
         super().__init__(*args, **kwargs)
         self.tasks = AsyncTasks(
-            self.const, self.persistence, self.persistence_file, self.sensors,
+            self.const, persistence, persistence_file, self.sensors,
             transport, loop=loop)
 
     @asyncio.coroutine

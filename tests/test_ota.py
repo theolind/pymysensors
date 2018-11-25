@@ -28,8 +28,7 @@ class TestOTA(TestCase):
         """Set up gateway."""
         self.gateway = Gateway()
         self.gateway.tasks = SyncTasks(
-            self.gateway.const, self.gateway.persistence,
-            self.gateway.persistence_file, self.gateway.sensors, None)
+            self.gateway.const, False, None, self.gateway.sensors, None)
 
     def _add_sensor(self, sensorid):
         """Add sensor node. Return sensor node instance."""

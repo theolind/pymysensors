@@ -34,8 +34,8 @@ class BaseTCPGateway(Gateway):
             self.tcp_disconnect_timer = time.time()
             raise OSError('No response from {}. Disconnecting'.format(
                 self.server_address))
-        if ((self.tcp_check_timer + self.tasks.transport.reconnect_timeout) >=
-                time.time()):
+        if ((self.tcp_check_timer + self.tasks.transport.reconnect_timeout)
+                >= time.time()):
             return
         msg = Message().modify(
             child_id=255, type=self.const.MessageType.internal,

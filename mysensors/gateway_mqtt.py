@@ -27,7 +27,7 @@ class BaseMQTTGateway(Gateway):
             '/+/+/3/+/+',
         ]
         self.tasks.transport.handle_subscription(init_topics)
-        if not self.persistence:
+        if not self.tasks.persistence:
             return
         topics = [
             '/{}/{}/{}/+/+'.format(
@@ -107,14 +107,15 @@ class MQTTGateway(BaseMQTTGateway):
 
     def __init__(
             self, pub_callback, sub_callback, in_prefix='', out_prefix='',
-            retain=True, **kwargs):
+            retain=True, persistence=False,
+            persistence_file='mysensors.pickle', **kwargs):
         """Set up MQTT gateway."""
         super().__init__(**kwargs)
         transport = MQTTSyncTransport(
             self, pub_callback, sub_callback, in_prefix=in_prefix,
             out_prefix=out_prefix, retain=retain)
         self.tasks = SyncTasks(
-            self.const, self.persistence, self.persistence_file, self.sensors,
+            self.const, persistence, persistence_file, self.sensors,
             transport)
 
 
@@ -125,14 +126,15 @@ class AsyncMQTTGateway(BaseMQTTGateway):
 
     def __init__(
             self, pub_callback, sub_callback, loop=None, in_prefix='',
-            out_prefix='', retain=True, **kwargs):
+            out_prefix='', retain=True, persistence=False,
+            persistence_file='mysensors.pickle', **kwargs):
         """Set up MQTT gateway."""
         super().__init__(**kwargs)
         transport = MQTTAsyncTransport(
             self, pub_callback, sub_callback, in_prefix=in_prefix,
             out_prefix=out_prefix, retain=retain)
         self.tasks = AsyncTasks(
-            self.const, self.persistence, self.persistence_file, self.sensors,
+            self.const, persistence, persistence_file, self.sensors,
             transport, loop=loop)
 
     @asyncio.coroutine

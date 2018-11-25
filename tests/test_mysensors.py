@@ -18,8 +18,7 @@ def gateway(request):
     """Return gateway instance."""
     _gateway = Gateway(protocol_version=request.param)
     _gateway.tasks = SyncTasks(
-        _gateway.const, _gateway.persistence, _gateway.persistence_file,
-        _gateway.sensors, None)
+        _gateway.const, False, None, _gateway.sensors, None)
     return _gateway
 
 
@@ -27,8 +26,7 @@ def get_gateway(**kwargs):
     """Return a gateway instance."""
     _gateway = Gateway(**kwargs)
     _gateway.tasks = SyncTasks(
-        _gateway.const, _gateway.persistence, _gateway.persistence_file,
-        _gateway.sensors, None)
+        _gateway.const, False, None, _gateway.sensors, None)
     return _gateway
 
 
