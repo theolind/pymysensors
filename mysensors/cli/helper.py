@@ -39,7 +39,7 @@ def run_async_gateway(gateway, stop_task=None):
         gateway.loop.run_until_complete(gateway.start())
         gateway.loop.run_forever()
     except KeyboardInterrupt:
-        gateway.stop()
+        gateway.loop.run_until_complete(gateway.stop())
         if stop_task:
             gateway.loop.run_until_complete(stop_task)
         gateway.loop.close()
