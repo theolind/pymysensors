@@ -16,11 +16,11 @@ class Persistence:
             self, sensors, schedule_factory,
             persistence_file='mysensors.pickle'):
         """Set up Persistence instance."""
+        self._sensors = sensors
+        self.need_save = True
         self.persistence_file = persistence_file
         self.persistence_bak = '{}.bak'.format(self.persistence_file)
         self.schedule_save_sensors = schedule_factory(self.save_sensors)
-        self._sensors = sensors
-        self.need_save = True
 
     def _save_pickle(self, filename):
         """Save sensors to pickle file."""

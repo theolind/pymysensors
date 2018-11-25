@@ -1,9 +1,12 @@
 """Test mysensors messages."""
+from unittest import mock
+
 import pytest
 import voluptuous as vol
 
 from mysensors import Gateway, Message, get_const, Sensor
 from mysensors.const_14 import Internal, MessageType
+from mysensors.task import SyncTasks
 
 PRES_FIXTURES_14 = {
     'S_DOOR': 'Front Door',
@@ -182,8 +185,11 @@ INTERNAL_FIXTURES_22.update({
 
 
 def get_gateway(**kwargs):
-    """Return a gateway."""
-    return Gateway(**kwargs)
+    """Return a gateway instance."""
+    _gateway = Gateway(**kwargs)
+    _gateway.tasks = SyncTasks(
+        _gateway.const, False, None, _gateway.sensors, mock.MagicMock())
+    return _gateway
 
 
 def get_message(message_data=None):

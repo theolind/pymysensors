@@ -25,6 +25,7 @@ def handle_msg(msg):
 
 def run_gateway(gateway):
     """Run a sync gateway."""
+    gateway.start_persistence()
     gateway.start()
     try:
         while True:
@@ -36,10 +37,11 @@ def run_gateway(gateway):
 def run_async_gateway(gateway, stop_task=None):
     """Run an async gateway."""
     try:
-        gateway.loop.run_until_complete(gateway.start())
-        gateway.loop.run_forever()
+        gateway.tasks.loop.run_until_complete(gateway.start_persistence())
+        gateway.tasks.loop.run_until_complete(gateway.start())
+        gateway.tasks.loop.run_forever()
     except KeyboardInterrupt:
-        gateway.loop.run_until_complete(gateway.stop())
+        gateway.tasks.loop.run_until_complete(gateway.stop())
         if stop_task:
-            gateway.loop.run_until_complete(stop_task)
-        gateway.loop.close()
+            gateway.tasks.loop.run_until_complete(stop_task)
+        gateway.tasks.loop.close()
