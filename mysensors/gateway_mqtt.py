@@ -2,9 +2,8 @@
 import asyncio
 import logging
 
-from mysensors import Gateway, Message
+from mysensors import BaseAsyncGateway, BaseSyncGateway, Gateway, Message
 from .handler import handle_presentation
-from .task import AsyncTasks, SyncTasks
 from .transport import Transport
 
 _LOGGER = logging.getLogger(__name__)
@@ -100,42 +99,34 @@ class BaseMQTTGateway(Gateway):
             if self.tasks.transport.in_prefix else None)
 
 
-class MQTTGateway(BaseMQTTGateway):
+class MQTTGateway(BaseSyncGateway, BaseMQTTGateway):
     """MySensors MQTT client gateway."""
 
     # pylint: disable=too-many-arguments
 
     def __init__(
             self, pub_callback, sub_callback, in_prefix='', out_prefix='',
-            retain=True, persistence=False,
-            persistence_file='mysensors.pickle', **kwargs):
+            retain=True, **kwargs):
         """Set up MQTT gateway."""
-        super().__init__(**kwargs)
         transport = MQTTSyncTransport(
             self, pub_callback, sub_callback, in_prefix=in_prefix,
             out_prefix=out_prefix, retain=retain)
-        self.tasks = SyncTasks(
-            self.const, persistence, persistence_file, self.sensors,
-            transport)
+        super().__init__(transport, **kwargs)
 
 
-class AsyncMQTTGateway(BaseMQTTGateway):
+class AsyncMQTTGateway(BaseAsyncGateway, BaseMQTTGateway):
     """MySensors async MQTT client gateway."""
 
     # pylint: disable=too-many-arguments
 
     def __init__(
             self, pub_callback, sub_callback, loop=None, in_prefix='',
-            out_prefix='', retain=True, persistence=False,
-            persistence_file='mysensors.pickle', **kwargs):
+            out_prefix='', retain=True, **kwargs):
         """Set up MQTT gateway."""
-        super().__init__(**kwargs)
         transport = MQTTAsyncTransport(
             self, pub_callback, sub_callback, in_prefix=in_prefix,
             out_prefix=out_prefix, retain=retain)
-        self.tasks = AsyncTasks(
-            self.const, persistence, persistence_file, self.sensors,
-            transport, loop=loop)
+        super().__init__(transport, loop=loop, **kwargs)
 
     @asyncio.coroutine
     def get_gateway_id(self):
@@ -152,7 +143,7 @@ class MQTTTransport(Transport):
             self, gateway, pub_callback, sub_callback, in_prefix='',
             out_prefix='', retain=True):
         """Set up MQTT client gateway."""
-        super().__init__()
+        super().__init__(gateway, None)
         # Should accept topic, payload, qos, retain.
         self._pub_callback = pub_callback
         # Should accept topic, function callback for receive and qos.

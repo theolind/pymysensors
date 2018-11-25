@@ -17,9 +17,14 @@ class Transport:
 
     # pylint: disable=unused-argument
 
-    def __init__(self, timeout=1.0, reconnect_timeout=10.0, **kwargs):
+    def __init__(
+            self, gateway, connect, timeout=1.0, reconnect_timeout=10.0,
+            **kwargs):
         """Set up transport."""
+        self._connect = connect
         self.can_log = False
+        self.connect_task = None
+        self.gateway = gateway
         self.protocol = None
         self.reconnect_timeout = reconnect_timeout
         self.timeout = timeout
@@ -56,20 +61,15 @@ class Transport:
 class SyncTransport(Transport):
     """Sync version of transport class."""
 
-    def __init__(self, gateway, **kwargs):
+    def __init__(self, *args, **kwargs):
         """Set up transport."""
-        super().__init__(**kwargs)
+        super().__init__(*args, **kwargs)
         self._lock = threading.Lock()
-        self.gateway = gateway
-        self.protocol = BaseMySensorsProtocol(gateway, self.connect)
-
-    def _connect(self):
-        """Connect to the transport."""
-        raise NotImplementedError
+        self.protocol = BaseMySensorsProtocol(self.gateway, self.connect)
 
     def connect(self):
         """Connect to the transport."""
-        connect_thread = threading.Thread(target=self._connect)
+        connect_thread = threading.Thread(target=self._connect, args=(self, ))
         connect_thread.start()
 
     def send(self, message):
@@ -81,12 +81,10 @@ class SyncTransport(Transport):
 class AsyncTransport(Transport):
     """Async version of transport class."""
 
-    def __init__(self, gateway, loop=None, protocol=None, **kwargs):
+    def __init__(self, *args, loop=None, protocol=None, **kwargs):
         """Set up transport."""
-        super().__init__(**kwargs)
-        self.gateway = gateway
+        super().__init__(*args, **kwargs)
         self.loop = loop or asyncio.get_event_loop()
-        self.connect_task = None
 
         def conn_lost():
             """Handle connection_lost in protocol class."""
@@ -94,12 +92,12 @@ class AsyncTransport(Transport):
 
         if not protocol:
             protocol = AsyncMySensorsProtocol
-        self.protocol = protocol(gateway, conn_lost)
+        self.protocol = protocol(self.gateway, conn_lost)
 
     @asyncio.coroutine
     def connect(self):
         """Connect to the transport."""
-        raise NotImplementedError
+        yield from self._connect(self)
 
 
 class BaseMySensorsProtocol(serial.threaded.LineReader):

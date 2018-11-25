@@ -34,33 +34,35 @@ class SerialGateway(BaseSyncGateway, BaseSerialGateway):
 
     def __init__(self, *args, **kwargs):
         """Set up serial gateway."""
-        transport = SerialSyncTransport(self, **kwargs)
+        transport = SyncTransport(self, sync_connect, **kwargs)
         super().__init__(transport, *args, **kwargs)
 
 
-class SerialSyncTransport(SyncTransport):
-    """Serial sync version of transport class."""
+def sync_connect(transport):
+    """Connect to the serial port.
 
-    def _connect(self):
-        """Connect to the serial port. This should be run in a new thread."""
-        while self.protocol:
-            _LOGGER.info('Trying to connect to %s', self.gateway.port)
-            try:
-                ser = serial.serial_for_url(
-                    self.gateway.port, self.gateway.baud, timeout=self.timeout)
-            except serial.SerialException:
-                _LOGGER.error('Unable to connect to %s', self.gateway.port)
-                _LOGGER.info(
-                    'Waiting %s secs before trying to connect again',
-                    self.reconnect_timeout)
-                time.sleep(self.reconnect_timeout)
-            else:
-                transport = serial.threaded.ReaderThread(
-                    ser, lambda: self.protocol)
-                transport.daemon = False
-                transport.start()
-                transport.connect()
-                return
+    This should be run in a new thread.
+    """
+    while transport.protocol:
+        _LOGGER.info('Trying to connect to %s', transport.gateway.port)
+        try:
+            ser = serial.serial_for_url(
+                transport.gateway.port, transport.gateway.baud,
+                timeout=transport.timeout)
+        except serial.SerialException:
+            _LOGGER.error(
+                'Unable to connect to %s', transport.gateway.port)
+            _LOGGER.info(
+                'Waiting %s secs before trying to connect again',
+                transport.reconnect_timeout)
+            time.sleep(transport.reconnect_timeout)
+        else:
+            serial_transport = serial.threaded.ReaderThread(
+                ser, lambda: transport.protocol)
+            serial_transport.daemon = False
+            serial_transport.start()
+            serial_transport.connect()
+            return
 
 
 class AsyncSerialGateway(BaseAsyncGateway, BaseSerialGateway):
@@ -68,7 +70,7 @@ class AsyncSerialGateway(BaseAsyncGateway, BaseSerialGateway):
 
     def __init__(self, *args, loop=None, **kwargs):
         """Set up serial gateway."""
-        transport = SerialAsyncTransport(self, loop=loop, **kwargs)
+        transport = AsyncTransport(self, async_connect, loop=loop, **kwargs)
         super().__init__(transport, *args, loop=loop, **kwargs)
 
     @asyncio.coroutine
@@ -79,26 +81,26 @@ class AsyncSerialGateway(BaseAsyncGateway, BaseSerialGateway):
         return serial_number
 
 
-class SerialAsyncTransport(AsyncTransport):
-    """Serial async version of transport class."""
-
-    @asyncio.coroutine
-    def connect(self):
-        """Connect to the serial port."""
-        try:
-            while True:
-                _LOGGER.info('Trying to connect to %s', self.gateway.port)
-                try:
-                    yield from serial_asyncio.create_serial_connection(
-                        self.loop, lambda: self.protocol,
-                        self.gateway.port, self.gateway.baud)
-                    return
-                except serial.SerialException:
-                    _LOGGER.error('Unable to connect to %s', self.gateway.port)
-                    _LOGGER.info(
-                        'Waiting %s secs before trying to connect again',
-                        self.reconnect_timeout)
-                    yield from asyncio.sleep(
-                        self.reconnect_timeout, loop=self.loop)
-        except asyncio.CancelledError:
-            _LOGGER.debug('Connect attempt to %s cancelled', self.gateway.port)
+@asyncio.coroutine
+def async_connect(transport):
+    """Connect to the serial port."""
+    try:
+        while True:
+            _LOGGER.info(
+                'Trying to connect to %s', transport.gateway.port)
+            try:
+                yield from serial_asyncio.create_serial_connection(
+                    transport.loop, lambda: transport.protocol,
+                    transport.gateway.port, transport.gateway.baud)
+                return
+            except serial.SerialException:
+                _LOGGER.error(
+                    'Unable to connect to %s', transport.gateway.port)
+                _LOGGER.info(
+                    'Waiting %s secs before trying to connect again',
+                    transport.reconnect_timeout)
+                yield from asyncio.sleep(
+                    transport.reconnect_timeout, loop=transport.loop)
+    except asyncio.CancelledError:
+        _LOGGER.debug(
+            'Connect attempt to %s cancelled', transport.gateway.port)

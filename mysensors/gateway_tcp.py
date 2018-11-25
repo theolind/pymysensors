@@ -68,47 +68,45 @@ class TCPGateway(BaseSyncGateway, BaseTCPGateway):
 
     def __init__(self, *args, **kwargs):
         """Set up TCP gateway."""
-        transport = TCPSyncTransport(self, **kwargs)
+        transport = SyncTransport(self, sync_connect, **kwargs)
         super().__init__(transport, *args, **kwargs)
 
 
-class TCPSyncTransport(SyncTransport):
-    """TCP sync version of transport class."""
-
-    def _connect(self):
-        """Connect to socket. This should be run in a new thread."""
-        while self.protocol:
+def sync_connect(transport):
+    """Connect to socket. This should be run in a new thread."""
+    while transport.protocol:
+        _LOGGER.info(
+            'Trying to connect to %s',
+            transport.gateway.server_address)
+        try:
+            sock = socket.create_connection(
+                transport.gateway.server_address,
+                transport.reconnect_timeout)
+        except socket.timeout:
+            _LOGGER.error(
+                'Connecting to socket timed out for %s',
+                transport.gateway.server_address)
             _LOGGER.info(
-                'Trying to connect to %s', self.gateway.server_address)
-            try:
-                sock = socket.create_connection(
-                    self.gateway.server_address,
-                    self.reconnect_timeout)
-            except socket.timeout:
-                _LOGGER.error(
-                    'Connecting to socket timed out for %s',
-                    self.gateway.server_address)
-                _LOGGER.info(
-                    'Waiting %s secs before trying to connect again',
-                    self.reconnect_timeout)
-                time.sleep(self.reconnect_timeout)
-            except OSError:
-                _LOGGER.error(
-                    'Failed to connect to socket at %s',
-                    self.gateway.server_address)
-                _LOGGER.info(
-                    'Waiting %s secs before trying to connect again',
-                    self.reconnect_timeout)
-                time.sleep(self.reconnect_timeout)
-            else:
-                self.gateway.tcp_check_timer = time.time()
-                self.gateway.tcp_disconnect_timer = time.time()
-                transport = TCPTransport(
-                    sock, lambda: self.protocol,
-                    self.gateway.check_connection)
-                transport.start()
-                transport.connect()
-                return
+                'Waiting %s secs before trying to connect again',
+                transport.reconnect_timeout)
+            time.sleep(transport.reconnect_timeout)
+        except OSError:
+            _LOGGER.error(
+                'Failed to connect to socket at %s',
+                transport.gateway.server_address)
+            _LOGGER.info(
+                'Waiting %s secs before trying to connect again',
+                transport.reconnect_timeout)
+            time.sleep(transport.reconnect_timeout)
+        else:
+            transport.gateway.tcp_check_timer = time.time()
+            transport.gateway.tcp_disconnect_timer = time.time()
+            tcp_transport = TCPTransport(
+                sock, lambda: transport.protocol,
+                transport.gateway.check_connection)
+            tcp_transport.start()
+            tcp_transport.connect()
+            return
 
 
 class AsyncTCPGateway(BaseAsyncGateway, BaseTCPGateway):
@@ -118,8 +116,8 @@ class AsyncTCPGateway(BaseAsyncGateway, BaseTCPGateway):
         """Set up TCP gateway."""
         self.cancel_check_conn = None
         protocol = AsyncTCPMySensorsProtocol
-        transport = TCPAsyncTransport(
-            self, loop=loop, protocol=protocol, **kwargs)
+        transport = AsyncTransport(
+            self, async_connect, loop=loop, protocol=protocol, **kwargs)
         super().__init__(transport, *args, loop=loop, **kwargs)
 
     def check_connection(self):
@@ -144,48 +142,46 @@ class AsyncTCPGateway(BaseAsyncGateway, BaseTCPGateway):
         return mac
 
 
-class TCPAsyncTransport(AsyncTransport):
-    """TCP async version of transport class."""
-
-    @asyncio.coroutine
-    def connect(self):
-        """Connect to the socket."""
-        try:
-            while True:
+@asyncio.coroutine
+def async_connect(transport):
+    """Connect to the socket."""
+    try:
+        while True:
+            _LOGGER.info(
+                'Trying to connect to %s', transport.gateway.server_address)
+            try:
+                yield from asyncio.wait_for(
+                    transport.loop.create_connection(
+                        lambda: transport.protocol,
+                        *transport.gateway.server_address),
+                    transport.reconnect_timeout, loop=transport.loop)
+                transport.gateway.tcp_check_timer = time.time()
+                transport.gateway.tcp_disconnect_timer = time.time()
+                transport.gateway.check_connection()
+                return
+            except asyncio.TimeoutError:
+                _LOGGER.error(
+                    'Connecting to socket timed out for %s',
+                    transport.gateway.server_address)
                 _LOGGER.info(
-                    'Trying to connect to %s', self.gateway.server_address)
-                try:
-                    yield from asyncio.wait_for(
-                        self.loop.create_connection(
-                            lambda: self.protocol,
-                            *self.gateway.server_address),
-                        self.reconnect_timeout, loop=self.loop)
-                    self.gateway.tcp_check_timer = time.time()
-                    self.gateway.tcp_disconnect_timer = time.time()
-                    self.gateway.check_connection()
-                    return
-                except asyncio.TimeoutError:
-                    _LOGGER.error(
-                        'Connecting to socket timed out for %s',
-                        self.gateway.server_address)
-                    _LOGGER.info(
-                        'Waiting %s secs before trying to connect again',
-                        self.reconnect_timeout)
-                    yield from asyncio.sleep(
-                        self.reconnect_timeout, loop=self.loop)
-                except OSError:
-                    _LOGGER.error(
-                        'Failed to connect to socket at %s',
-                        self.gateway.server_address)
-                    _LOGGER.info(
-                        'Waiting %s secs before trying to connect again',
-                        self.reconnect_timeout)
-                    yield from asyncio.sleep(
-                        self.reconnect_timeout,
-                        loop=self.loop)
-        except asyncio.CancelledError:
-            _LOGGER.debug(
-                'Connect attempt to %s cancelled', self.gateway.server_address)
+                    'Waiting %s secs before trying to connect again',
+                    transport.reconnect_timeout)
+                yield from asyncio.sleep(
+                    transport.reconnect_timeout, loop=transport.loop)
+            except OSError:
+                _LOGGER.error(
+                    'Failed to connect to socket at %s',
+                    transport.gateway.server_address)
+                _LOGGER.info(
+                    'Waiting %s secs before trying to connect again',
+                    transport.reconnect_timeout)
+                yield from asyncio.sleep(
+                    transport.reconnect_timeout,
+                    loop=transport.loop)
+    except asyncio.CancelledError:
+        _LOGGER.debug(
+            'Connect attempt to %s cancelled',
+            transport.gateway.server_address)
 
 
 class AsyncTCPMySensorsProtocol(BaseMySensorsProtocol, asyncio.Protocol):
