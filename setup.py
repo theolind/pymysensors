@@ -6,9 +6,11 @@ exec(open('mysensors/version.py').read())
 README = open('README.md').read()
 
 REQUIRES = [
-    'crcmod>=1.7', 'getmac', 'IntelHex>=2.2.1', 'pyserial>=3.4',
+    'click', 'crcmod>=1.7', 'getmac', 'IntelHex>=2.2.1', 'pyserial>=3.4',
     'pyserial-asyncio>=0.4', 'voluptuous>=0.11.1',
 ]
+EXTRAS = {'mqtt-client': ['paho-mqtt']}
+
 
 setup(
     name='pymysensors',
@@ -21,7 +23,10 @@ setup(
     author_email='theodor.lindquist@gmail.com',
     license='MIT License',
     install_requires=REQUIRES,
+    extras_require=EXTRAS,
     packages=find_packages(exclude=['tests', 'tests.*']),
+    entry_points={
+        'console_scripts': ['pymysensors = mysensors.cli:cli']},
     keywords=['sensor', 'actuator', 'IoT', 'DYI'],
     zip_safe=True,
     classifiers=[
