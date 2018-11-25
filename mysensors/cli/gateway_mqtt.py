@@ -57,8 +57,9 @@ def async_mqtt_gateway(broker, port, **kwargs):
 @contextmanager
 def run_mqtt_client(broker, port):
     """Run mqtt client."""
+    mqttc = MQTTClient(broker, port)
     try:
-        mqttc = MQTTClient(broker, port)
+        mqttc.connect()
     except OSError as exc:
         print(
             'Connecting to broker {}:{} failed, exiting: {}'.format(
@@ -81,9 +82,15 @@ class MQTTClient:
         except ImportError:
             print('paho.mqtt.client is missing. Make sure to install extras')
             sys.exit()
+        self.broker = broker
+        self.port = port
+        self.keepalive = keepalive
         self.topics = {}
         self._mqttc = mqtt.Client()
-        self._mqttc.connect(broker, port, keepalive)
+
+    def connect(self):
+        """Connect to broker."""
+        self._mqttc.connect(self.broker, self.port, self.keepalive)
 
     def publish(self, topic, payload, qos, retain):
         """Publish an MQTT message."""
