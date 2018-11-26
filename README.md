@@ -149,7 +149,9 @@ prefix (in_prefix) for mqtt gateways.
 It's possible to register two optional callbacks on the gateway that are called
 when the connection is made and when the connection is lost to the gateway
 device. Both callbacks should accept a gateway parameter, which is the gateway
-instance.
+instance. The connection lost callback should also accept a second parameter
+for possible connection error exception argument. If connection was lost
+without error, eg when disconnecting, the error argument will be `None`.
 
 ```py
 def conn_made(gateway):
@@ -158,7 +160,7 @@ def conn_made(gateway):
 
 GATEWAY.on_conn_made = conn_made
 
-def conn_lost(gateway):
+def conn_lost(gateway, error):
   """React when the connection is lost to the gateway device."""
   pass
 
