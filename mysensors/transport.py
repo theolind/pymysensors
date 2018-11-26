@@ -122,6 +122,7 @@ class BaseMySensorsProtocol(serial.threaded.LineReader):
             _LOGGER.info('Connected to %s', self.transport.serial)
         else:
             _LOGGER.info('Connected to %s', self.transport)
+        self._connection_made()
 
     def handle_line(self, line):
         """Handle incoming string data one line at a time."""
@@ -135,8 +136,19 @@ class BaseMySensorsProtocol(serial.threaded.LineReader):
         if exc:
             _LOGGER.error(exc)
             self.transport.serial.close()
+            self._connection_lost()
             self.conn_lost_callback()
         self.transport = None
+
+    def _connection_made(self):
+        """Call connection made callbacks."""
+        if self.gateway.on_conn_made is not None:
+            self.gateway.on_conn_made(self.gateway)
+
+    def _connection_lost(self):
+        """Call connection lost callbacks."""
+        if self.gateway.on_conn_lost is not None:
+            self.gateway.on_conn_lost(self.gateway)
 
 
 class AsyncMySensorsProtocol(BaseMySensorsProtocol, asyncio.Protocol):
@@ -147,5 +159,6 @@ class AsyncMySensorsProtocol(BaseMySensorsProtocol, asyncio.Protocol):
         _LOGGER.debug('Connection lost with %s', self.transport)
         if exc:
             _LOGGER.error(exc)
+            self._connection_lost()
             self.conn_lost_callback()
         self.transport = None
