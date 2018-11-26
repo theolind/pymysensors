@@ -109,3 +109,54 @@ def test_connection_lost_callback(
     assert conn_lost.call_args == mock.call(gateway, 'error')
     assert reconnect_callback.call_count == 1
     assert gateway.tasks.transport.protocol.transport is None
+
+
+def test_send(gateway, connection_transport):
+    """Test send."""
+    assert gateway.tasks.transport.protocol.transport is None
+    gateway.tasks.transport.connect()
+    assert gateway.tasks.transport.protocol.transport is connection_transport
+    msg_string = '1;255;3;0;1;123456789\n'
+    gateway.tasks.transport.send(msg_string)
+    assert connection_transport.write.call_count == 1
+    assert connection_transport.write.call_args == mock.call(
+        msg_string.encode())
+
+
+def test_send_no_message(gateway, connection_transport):
+    """Test send with falsy message."""
+    assert gateway.tasks.transport.protocol.transport is None
+    gateway.tasks.transport.connect()
+    assert gateway.tasks.transport.protocol.transport is connection_transport
+    msg_string = ''
+    gateway.tasks.transport.send(msg_string)
+    assert connection_transport.write.call_count == 0
+
+
+def test_send_no_protocol(gateway, connection_transport):
+    """Test send with no protocol."""
+    gateway.tasks.transport.protocol = None
+    msg_string = '1;255;3;0;1;123456789\n'
+    gateway.tasks.transport.send(msg_string)
+    assert connection_transport.write.call_count == 0
+
+
+def test_send_no_transport(gateway, connection_transport):
+    """Test send with no transport."""
+    assert gateway.tasks.transport.protocol.transport is None
+    msg_string = '1;255;3;0;1;123456789\n'
+    gateway.tasks.transport.send(msg_string)
+    assert connection_transport.write.call_count == 0
+
+
+def test_send_error(gateway, connection_transport, reconnect_callback):
+    """Test send raises OSError."""
+    assert gateway.tasks.transport.protocol.transport is None
+    gateway.tasks.transport.connect()
+    assert gateway.tasks.transport.protocol.transport is connection_transport
+    msg_string = '1;255;3;0;1;123456789\n'
+    connection_transport.write = mock.MagicMock(side_effect=OSError())
+    gateway.tasks.transport.send(msg_string)
+    assert connection_transport.write.call_count == 1
+    assert connection_transport.close.call_count == 1
+    assert reconnect_callback.call_count == 1
