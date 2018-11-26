@@ -145,6 +145,26 @@ gateway. This will be the serial number of the usb device for serial gateways,
 the mac address of the connected gateway for tcp gateways or the publish topic
 prefix (in_prefix) for mqtt gateways.
 
+## Connection callbacks
+It's possible to register two optional callbacks on the gateway that are called
+when the connection is made and when the connection is lost to the gateway
+device. Both callbacks should accept a gateway parameter, which is the gateway
+instance.
+
+```py
+def conn_made(gateway):
+  """React when the connection is made to the gateway device."""
+  pass
+
+GATEWAY.on_conn_made = conn_made
+
+def conn_lost(gateway):
+  """React when the connection is lost to the gateway device."""
+  pass
+
+GATEWAY.on_conn_lost = conn_lost
+```
+
 ## Async gateway
 The serial, TCP and MQTT gateways now also have versions that support asyncio. Use the
 `AsyncSerialGateway` class, `AsyncTCPGateway` class or `AsyncMQTTGateway` class to make a gateway that
