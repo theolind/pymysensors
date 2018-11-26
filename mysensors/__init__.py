@@ -33,6 +33,8 @@ class Gateway:
         # Copy to allow safe modification.
         self.handlers = dict(handlers)
         self.can_log = False
+        self.on_conn_made = None
+        self.on_conn_lost = None
         self.protocol_version = protocol_version
         self.sensors = {}
         self.tasks = None
