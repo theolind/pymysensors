@@ -134,21 +134,22 @@ class BaseMySensorsProtocol(serial.threaded.LineReader):
         """Handle lost connection."""
         _LOGGER.debug('Connection lost with %s', self.transport.serial)
         if exc:
-            _LOGGER.error(exc)
             self.transport.serial.close()
-            self._connection_lost()
-            self.conn_lost_callback()
-        self.transport = None
+        self._connection_lost(exc)
 
     def _connection_made(self):
         """Call connection made callbacks."""
         if self.gateway.on_conn_made is not None:
             self.gateway.on_conn_made(self.gateway)
 
-    def _connection_lost(self):
+    def _connection_lost(self, exc):
         """Call connection lost callbacks."""
         if self.gateway.on_conn_lost is not None:
-            self.gateway.on_conn_lost(self.gateway)
+            self.gateway.on_conn_lost(self.gateway, exc)
+        if exc:
+            _LOGGER.error(exc)
+            self.conn_lost_callback()
+        self.transport = None
 
 
 class AsyncMySensorsProtocol(BaseMySensorsProtocol, asyncio.Protocol):
@@ -157,8 +158,4 @@ class AsyncMySensorsProtocol(BaseMySensorsProtocol, asyncio.Protocol):
     def connection_lost(self, exc):
         """Handle lost connection."""
         _LOGGER.debug('Connection lost with %s', self.transport)
-        if exc:
-            _LOGGER.error(exc)
-            self._connection_lost()
-            self.conn_lost_callback()
-        self.transport = None
+        self._connection_lost(exc)
