@@ -97,7 +97,7 @@ def test_connection_lost(gateway, connection_transport, reconnect_callback):
 
 def test_connection_lost_callback(
         gateway, connection_transport, reconnect_callback):
-    """Test connection is lost."""
+    """Test connection is lost and that callbacks are called."""
     conn_lost = mock.MagicMock()
     gateway.on_conn_lost = conn_lost
     assert gateway.tasks.transport.protocol.transport is None
