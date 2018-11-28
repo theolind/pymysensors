@@ -21,7 +21,7 @@ GATEWAY = mysensors.SerialGateway('/dev/ttyACM0', event)
 GATEWAY.start()
 ```
 
-In the above example PyMysensors will call "event" whenever a node in the Mysensors network has been updated. The message passed to the callback handler has the following data:
+In the above example pymysensors will call "event" whenever a node in the Mysensors network has been updated. The message passed to the callback handler has the following data:
 
 ```
 Message
@@ -153,6 +153,10 @@ instance. The connection lost callback should also accept a second parameter
 for possible connection error exception argument. If connection was lost
 without error, eg when disconnecting, the error argument will be `None`.
 
+**NOTE:**
+The MQTT gateway doesn't support these callbacks since the connection to the
+MQTT broker is handled outside of pymysensors.
+
 ```py
 def conn_made(gateway):
   """React when the connection is made to the gateway device."""
@@ -166,6 +170,8 @@ def conn_lost(gateway, error):
 
 GATEWAY.on_conn_lost = conn_lost
 ```
+
+
 
 ## Async gateway
 The serial, TCP and MQTT gateways now also have versions that support asyncio. Use the
