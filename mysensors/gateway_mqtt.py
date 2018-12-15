@@ -164,7 +164,6 @@ class MQTTTransport(Transport):
 
         The MQTT gateway doesn't need to disconnect.
         """
-        pass
 
     def handle_subscription(self, topics):
         """Handle subscription of topics."""
