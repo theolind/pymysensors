@@ -1,5 +1,5 @@
 flake8==3.7.7
-pylint==2.2.2
+pylint==2.3.0
 pytest==4.0.2
 pytest-cov==2.6.0
 pytest-sugar==0.9.2
