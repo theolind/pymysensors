@@ -50,12 +50,13 @@ class Gateway:
         data as a mysensors command string.
         """
         try:
-            msg = Message(data, self)
+            msg = Message(data)
             msg.validate(self.protocol_version)
         except (ValueError, vol.Invalid) as exc:
-            _LOGGER.warning('Not a valid message: %s', exc)
+            _LOGGER.warning('Not a valid message: %s: %s', msg, exc)
             return None
 
+        msg.gateway = self
         message_type = self.const.MessageType(msg.type)
         handler = message_type.get_handler(self.handlers)
         msg = handler(msg)

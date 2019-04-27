@@ -13,14 +13,14 @@ BROADCAST_ID = 255
 class Message:
     """Represent a message from the gateway."""
 
-    def __init__(self, data=None, gateway=None):
+    def __init__(self, data=None, gateway=None, **kwargs):
         """Set up message."""
-        self.node_id = 0
-        self.child_id = 0
-        self.type = 0
-        self.ack = 0
-        self.sub_type = 0
-        self.payload = ''  # All data except payload are integers
+        self.node_id = kwargs.get('node_id', 0)
+        self.child_id = kwargs.get('child_id', 0)
+        self.type = kwargs.get('type', 0)
+        self.ack = kwargs.get('ack', 0)
+        self.sub_type = kwargs.get('sub_type', 0)
+        self.payload = kwargs.get('payload', '')
         self.gateway = gateway
         if data is not None:
             self.decode(data)
@@ -111,9 +111,9 @@ class Message:
             msg='Not valid message sub-type: {}'.format(self.sub_type))
         valid_payload = const.VALID_PAYLOADS.get(
             self.type, {}).get(self.sub_type, '')
-        schema = vol.Schema({
+        attrs = {
             'node_id': valid_node_ids, 'child_id': valid_child_ids,
             'type': valid_types, 'ack': valid_ack, 'sub_type': valid_sub_types,
-            'payload': valid_payload})
-        to_validate = {attr: getattr(self, attr) for attr in schema.schema}
-        return schema(to_validate)
+            'payload': valid_payload, 'gateway': None}
+        schema = vol.Schema(vol.Object(attrs, cls=Message))
+        return schema(self)
