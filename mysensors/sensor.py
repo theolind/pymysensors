@@ -3,6 +3,7 @@ import logging
 from collections import deque
 
 import voluptuous as vol
+from voluptuous.humanize import humanize_error
 
 from .const import get_const
 from .message import Message
@@ -121,8 +122,12 @@ class Sensor:
         msg = Message(msg_string)
         try:
             msg.validate(self.protocol_version)
-        except (AttributeError, vol.Invalid) as exc:
-            _LOGGER.error('Not a valid message: %s: %s', msg, exc)
+        except AttributeError as exc:
+            _LOGGER.error('Invalid: %s: %s', msg, exc)
+            return None
+        except vol.Invalid as exc:
+            _LOGGER.error(
+                'Invalid: %s: %s', msg, humanize_error(msg.__dict__, exc))
             return None
         child = children[msg.child_id]
         child.values[msg.sub_type] = msg.payload

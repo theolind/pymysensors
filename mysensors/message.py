@@ -2,6 +2,7 @@
 import logging
 
 import voluptuous as vol
+from voluptuous.humanize import validate_with_humanized_errors
 
 from .const import SYSTEM_CHILD_ID, get_const
 
