@@ -7,6 +7,7 @@ from distutils.version import LooseVersion as parse_ver
 from functools import partial
 
 import voluptuous as vol
+from voluptuous.humanize import humanize_error
 
 from .const import SYSTEM_CHILD_ID, get_const
 from .message import Message
@@ -50,12 +51,18 @@ class Gateway:
         data as a mysensors command string.
         """
         try:
-            msg = Message(data, self)
-            msg.validate(self.protocol_version)
-        except (ValueError, vol.Invalid) as exc:
+            msg = Message(data)
+        except ValueError as exc:
             _LOGGER.warning('Not a valid message: %s', exc)
             return None
+        try:
+            msg.validate(self.protocol_version)
+        except vol.Invalid as exc:
+            _LOGGER.warning(
+                'Invalid %s: %s', msg, humanize_error(msg.__dict__, exc))
+            return None
 
+        msg.gateway = self
         message_type = self.const.MessageType(msg.type)
         handler = message_type.get_handler(self.handlers)
         msg = handler(msg)

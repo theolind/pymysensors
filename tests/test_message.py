@@ -258,11 +258,10 @@ def test_validate_pres(protocol_version, name, payload):
     gateway = get_gateway(protocol_version=protocol_version)
     const = get_const(protocol_version)
     sub_type = const.Presentation[name]
-    msg = get_message('1;0;0;0;{};{}\n'.format(sub_type, payload))
+    msg_string = '1;0;0;0;{};{}\n'.format(sub_type, payload)
+    msg = get_message(msg_string)
     valid = msg.validate(protocol_version)
-    assert valid == {
-        'node_id': 1, 'child_id': 0, 'type': 0, 'ack': 0,
-        'sub_type': sub_type, 'payload': payload}
+    assert str(valid) == str(msg)
     ret = gateway.logic('1;0;0;0;{};{}\n'.format(sub_type, payload))
     assert ret is None
 
@@ -302,12 +301,11 @@ def test_validate_set(protocol_version, name, payload):
     gateway = get_gateway(protocol_version=protocol_version)
     const = get_const(protocol_version)
     sub_type = const.SetReq[name]
-    msg = get_message('1;0;1;0;{};{}\n'.format(sub_type, payload))
+    msg_string = '1;0;1;0;{};{}\n'.format(sub_type, payload)
+    msg = get_message(msg_string)
     valid = msg.validate(protocol_version)
-    assert valid == {
-        'node_id': 1, 'child_id': 0, 'type': 1, 'ack': 0,
-        'sub_type': sub_type, 'payload': payload}
-    ret = gateway.logic('1;0;1;0;{};{}\n'.format(sub_type, payload))
+    assert str(valid) == str(msg)
+    ret = gateway.logic(msg_string)
     assert ret is None
 
 
@@ -336,12 +334,11 @@ def test_validate_internal(protocol_version, name, payload):
         _payload = payload
         return_value = None
     sub_type = const.Internal[name]
-    msg = get_message('1;255;3;0;{};{}\n'.format(sub_type, _payload))
+    msg_string = '1;255;3;0;{};{}\n'.format(sub_type, _payload)
+    msg = get_message(msg_string)
     valid = msg.validate(protocol_version)
-    assert valid == {
-        'node_id': 1, 'child_id': 255, 'type': 3, 'ack': 0,
-        'sub_type': sub_type, 'payload': _payload}
-    ret = gateway.logic('1;255;3;0;{};{}\n'.format(sub_type, _payload))
+    assert str(valid) == str(msg)
+    ret = gateway.logic(msg_string)
     if return_value is None:
         assert ret is None, 'Version: {} Message: {}'.format(
             protocol_version, msg)
