@@ -59,7 +59,7 @@ class Gateway:
             msg.validate(self.protocol_version)
         except vol.Invalid as exc:
             _LOGGER.warning(
-                'Invalid: %s: %s', msg, humanize_error(msg.__dict__, exc))
+                'Invalid %s: %s', msg, humanize_error(msg.__dict__, exc))
             return None
 
         msg.gateway = self
