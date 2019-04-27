@@ -63,10 +63,10 @@ class Message:
         """Encode a command string from message."""
         try:
             return delimiter.join([str(f) for f in [
-                self.node_id,
-                self.child_id,
+                int(self.node_id),
+                int(self.child_id),
                 int(self.type),
-                self.ack,
+                int(self.ack),
                 int(self.sub_type),
                 self.payload,
             ]]) + '\n'
@@ -75,6 +75,10 @@ class Message:
 
     def validate(self, protocol_version):
         """Validate message."""
+        if self.gateway is not None:
+            _LOGGER.warning(
+                'Can not validate message if Message.gateway is set')
+            return None
         const = get_const(protocol_version)
         valid_node_ids = vol.All(vol.Coerce(int), vol.Range(
             min=0, max=BROADCAST_ID, msg='Not valid node_id: {}'.format(
@@ -115,5 +119,5 @@ class Message:
             'node_id': valid_node_ids, 'child_id': valid_child_ids,
             'type': valid_types, 'ack': valid_ack, 'sub_type': valid_sub_types,
             'payload': valid_payload, 'gateway': None}
-        schema = vol.Schema(vol.Object(attrs, cls=Message))
+        schema = vol.Schema(vol.Object(attrs, cls=self.__class__))
         return schema(self)

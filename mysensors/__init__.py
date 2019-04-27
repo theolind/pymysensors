@@ -51,8 +51,12 @@ class Gateway:
         """
         try:
             msg = Message(data)
+        except ValueError as exc:
+            _LOGGER.warning('Not a valid message: %s', exc)
+            return None
+        try:
             msg.validate(self.protocol_version)
-        except (ValueError, vol.Invalid) as exc:
+        except vol.Invalid as exc:
             _LOGGER.warning('Not a valid message: %s: %s', msg, exc)
             return None
 

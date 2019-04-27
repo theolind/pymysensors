@@ -118,10 +118,10 @@ class Sensor:
                 'sub_type %s, payload %s',
                 self.sensor_id, child_id, msg_type, ack, value_type, value)
             return None
+        msg = Message(msg_string)
         try:
-            msg = Message(msg_string)
             msg.validate(self.protocol_version)
-        except (ValueError, AttributeError, vol.Invalid) as exc:
+        except (AttributeError, vol.Invalid) as exc:
             _LOGGER.error('Not a valid message: %s: %s', msg, exc)
             return None
         child = children[msg.child_id]
