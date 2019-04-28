@@ -77,7 +77,6 @@ Similarly, printing all the sketch names of the found nodes could look like this
 ```
 for node in GATEWAY.sensors.values():
     print(node.sketch_name)
-    print(str(GATEWAY.sensors[nodeIndex].sketch_name))
 ```
 
 Getting a child object inside the event function could be:
