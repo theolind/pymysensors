@@ -86,7 +86,6 @@ Getting a child object inside the event function could be:
         child = GATEWAY.sensors[message.node_id].children[message.child_id]
     else:
         print("Child not available yet.")
-    print(str(childObject))
 ```
 
 To update a node child sensor value and send it to the node, use the set_child_value method in the Gateway class:
