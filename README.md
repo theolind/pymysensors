@@ -8,7 +8,7 @@ Python API for talking to a MySensors gateway (http://www.mysensors.org/). Curre
 - As an alternative to running the gateway in its own thread, there are experimental implementations of all gateways using asyncio.
 
 # Installation
-You can easily install it via PIP:
+You can easily install it from PyPI:
 
 ```pip3 install pymysensors```
 
