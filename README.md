@@ -89,7 +89,6 @@ try:
     else:
         print("Child not available yet.")
     print(str(childObject))
-except Exception as ex:
 ```
 
 To update a node child sensor value and send it to the node, use the set_child_value method in the Gateway class:
