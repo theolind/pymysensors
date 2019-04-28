@@ -75,7 +75,8 @@ values = GATEWAY.sensors[23].children[4].values
 Similarly, printing all the sketch names of the found nodes could look like this:
 
 ```
-for nodeIndex in GATEWAY.sensors:
+for node in GATEWAY.sensors.values():
+    print(node.sketch_name)
     print(str(GATEWAY.sensors[nodeIndex].sketch_name))
 ```
 
