@@ -111,7 +111,7 @@ GATEWAY.start_persistence()
 ```
 
 ## Protocol version
-Set the keyword argument `protocol_version` to set which version of the MySensors serial API to use. The default value is `'1.4'` so you probably want to change this to the latest version.
+Set the keyword argument `protocol_version` to set which version of the MySensors serial API to use. The default value is `'1.4'`. Set the `protocol_version` to the version you're using.
 
 ## Serial gateway
 The serial gateway also supports setting the baudrate, read timeout and reconnect timeout.
