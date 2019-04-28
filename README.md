@@ -82,7 +82,6 @@ for node in GATEWAY.sensors.values():
 Getting a child object inside the event function could be:
 
 ```
-try:
     if GATEWAY.is_sensor(message.node_id, message.child_id):
         child = GATEWAY.sensors[message.node_id].children[message.child_id]
     else:
