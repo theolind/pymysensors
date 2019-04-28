@@ -84,7 +84,10 @@ Getting a child object inside the event function could be:
 
 ```
 try:
-    childObject = GATEWAY.sensors[message.node_id].children[message.child_id]
+    if GATEWAY.is_sensor(message.node_id, message.child_id):
+        child = GATEWAY.sensors[message.node_id].children[message.child_id]
+    else:
+        print("Child not available yet.")
     print(str(childObject))
 except Exception as ex:
     print("Child not available yet. Error: " + str(ex))
