@@ -1,6 +1,6 @@
 click==7.0
 crcmod==1.7
-getmac==0.7.0
+getmac==0.8.0
 IntelHex==2.2.1
 paho-mqtt==1.4.0
 pyserial==3.4
