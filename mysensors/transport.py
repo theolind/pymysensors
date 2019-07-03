@@ -94,10 +94,9 @@ class AsyncTransport(Transport):
             protocol = AsyncMySensorsProtocol
         self.protocol = protocol(self.gateway, conn_lost)
 
-    @asyncio.coroutine
-    def connect(self):
+    async def connect(self):
         """Connect to the transport."""
-        yield from self._connect(self)
+        await self._connect(self)
 
 
 class BaseMySensorsProtocol(serial.threaded.LineReader):

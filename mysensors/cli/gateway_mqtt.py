@@ -77,12 +77,11 @@ def run_mqtt_client(broker, port):
         mqttc.stop()
 
 
-@asyncio.coroutine
-def async_start_mqtt_client(loop, broker, port):
+async def async_start_mqtt_client(loop, broker, port):
     """Start async mqtt client."""
     mqttc = AsyncMQTTClient(loop, broker, port)
     try:
-        yield from mqttc.start()
+        await mqttc.start()
     except OSError as exc:
         _LOGGER.error(
             'Connecting to broker %s:%s failed, exiting: %s',
@@ -169,18 +168,16 @@ class AsyncMQTTClient(MQTTClient):
         self._client.socket().setsockopt(
             socket.SOL_SOCKET, socket.SO_SNDBUF, 2048)
 
-    @asyncio.coroutine
-    def start(self):
+    async def start(self):
         """Run the MQTT client."""
         _LOGGER.info('Start MQTT client')
         self._connect()
 
-    @asyncio.coroutine
-    def stop(self):
+    async def stop(self):
         """Stop the MQTT client."""
         _LOGGER.info('Stop MQTT client')
         self._client.disconnect()
-        yield from self.disconnected
+        await self.disconnected
 
 
 class AsyncioHelper:
@@ -225,12 +222,11 @@ class AsyncioHelper:
         """Unregister write callback."""
         self.loop.remove_writer(sock)
 
-    @asyncio.coroutine
-    def run_misc_loop(self):
+    async def run_misc_loop(self):
         """Provide loop for paho mqtt."""
         import paho.mqtt.client as mqtt  # pylint: disable=import-error
         while self._client.loop_misc() == mqtt.MQTT_ERR_SUCCESS:
             try:
-                yield from asyncio.sleep(1)
+                await asyncio.sleep(1)
             except asyncio.CancelledError:
                 break

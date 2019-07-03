@@ -1,5 +1,4 @@
 """Python implementation of MySensors API."""
-import asyncio
 import logging
 
 # pylint: disable=no-name-in-module, import-error
@@ -197,22 +196,18 @@ class BaseAsyncGateway(Gateway):
             self.const, persistence, persistence_file, self.sensors,
             transport, loop=loop)
 
-    @asyncio.coroutine
-    def start(self):
+    async def start(self):
         """Start the gateway and task allow tasks to be scheduled."""
-        yield from self.tasks.start()
+        await self.tasks.start()
 
-    @asyncio.coroutine
-    def stop(self):
+    async def stop(self):
         """Stop the gateway and stop allowing tasks for the scheduler."""
-        yield from self.tasks.stop()
+        await self.tasks.stop()
 
-    @asyncio.coroutine
-    def start_persistence(self):
+    async def start_persistence(self):
         """Load persistence file and schedule saving of persistence file."""
-        yield from self.tasks.start_persistence()
+        await self.tasks.start_persistence()
 
-    @asyncio.coroutine
-    def update_fw(self, nids, fw_type, fw_ver, fw_path=None):
+    async def update_fw(self, nids, fw_type, fw_ver, fw_path=None):
         """Update firwmare of all node_ids in nids."""
-        yield from self.tasks.update_fw(nids, fw_type, fw_ver, fw_path=fw_path)
+        await self.tasks.update_fw(nids, fw_type, fw_ver, fw_path=fw_path)

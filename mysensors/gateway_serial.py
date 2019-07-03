@@ -73,23 +73,21 @@ class AsyncSerialGateway(BaseAsyncGateway, BaseSerialGateway):
         transport = AsyncTransport(self, async_connect, loop=loop, **kwargs)
         super().__init__(transport, *args, loop=loop, **kwargs)
 
-    @asyncio.coroutine
-    def get_gateway_id(self):
+    async def get_gateway_id(self):
         """Return a unique id for the gateway."""
-        serial_number = yield from self.tasks.loop.run_in_executor(
+        serial_number = await self.tasks.loop.run_in_executor(
             None, super().get_gateway_id)
         return serial_number
 
 
-@asyncio.coroutine
-def async_connect(transport):
+async def async_connect(transport):
     """Connect to the serial port."""
     try:
         while True:
             _LOGGER.info(
                 'Trying to connect to %s', transport.gateway.port)
             try:
-                yield from serial_asyncio.create_serial_connection(
+                await serial_asyncio.create_serial_connection(
                     transport.loop, lambda: transport.protocol,
                     transport.gateway.port, transport.gateway.baud)
                 return
@@ -99,7 +97,7 @@ def async_connect(transport):
                 _LOGGER.info(
                     'Waiting %s secs before trying to connect again',
                     transport.reconnect_timeout)
-                yield from asyncio.sleep(
+                await asyncio.sleep(
                     transport.reconnect_timeout, loop=transport.loop)
     except asyncio.CancelledError:
         _LOGGER.debug(

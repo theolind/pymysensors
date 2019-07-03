@@ -7,6 +7,9 @@ Python API for talking to a MySensors gateway (http://www.mysensors.org/). Curre
 - All gateway instances, serial, tcp (ethernet) or mqtt will run in separate threads.
 - As an alternative to running the gateway in its own thread, there are experimental implementations of all gateways using asyncio.
 
+# Requirements
+pymysensors requires Python 3.5.3+.
+
 # Installation
 You can easily install it from PyPI:
 

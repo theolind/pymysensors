@@ -1,16 +1,10 @@
-sudo: required
+dist: xenial
 language: python
 cache: pip
 python:
-  - "3.4"
   - "3.5"
-# Run some envs on xenial, without globally enabling dist: xenial
-matrix:
-  include:
-    - python: 3.6
-      dist: xenial
-    - python: 3.7
-      dist: xenial
+  - "3.6"
+  - "3.7"
 # command to install dependencies
 install: pip install -U tox-travis
 # command to run tests
