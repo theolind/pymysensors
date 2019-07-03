@@ -166,13 +166,11 @@ class AsyncTasks(Tasks):
         self.loop = loop or asyncio.get_event_loop()
         self._cancel_save = None
 
-    @asyncio.coroutine
-    def start(self):
+    async def start(self):
         """Start the connection to a transport."""
-        yield from self.transport.connect()
+        await self.transport.connect()
 
-    @asyncio.coroutine
-    def stop(self):
+    async def stop(self):
         """Stop the gateway."""
         _LOGGER.info('Stopping gateway')
         self.transport.disconnect()
@@ -185,7 +183,7 @@ class AsyncTasks(Tasks):
         if self._cancel_save is not None:
             self._cancel_save()
             self._cancel_save = None
-        yield from self.loop.run_in_executor(
+        await self.loop.run_in_executor(
             None, self.persistence.save_sensors)
 
     def add_job(self, func, *args):
@@ -203,30 +201,27 @@ class AsyncTasks(Tasks):
 
     def _schedule_factory(self, save_sensors):
         """Return function to schedule saving sensors."""
-        @asyncio.coroutine
-        def schedule_save():
+        async def schedule_save():
             """Save sensors and schedule a new save."""
-            yield from self.loop.run_in_executor(None, save_sensors)
+            await self.loop.run_in_executor(None, save_sensors)
             callback = partial(self.loop.create_task, schedule_save())
             task = self.loop.call_later(10.0, callback)
             self._cancel_save = task.cancel
         return schedule_save
 
-    @asyncio.coroutine
-    def start_persistence(self):
+    async def start_persistence(self):
         """Load persistence file and schedule saving of persistence file."""
         if not self.persistence:
             return
-        yield from self.loop.run_in_executor(
+        await self.loop.run_in_executor(
             None, self.persistence.safe_load_sensors)
-        yield from self.persistence.schedule_save_sensors()
+        await self.persistence.schedule_save_sensors()
 
-    @asyncio.coroutine
-    def update_fw(self, nids, fw_type, fw_ver, fw_path=None):
+    async def update_fw(self, nids, fw_type, fw_ver, fw_path=None):
         """Start update firwmare of all node_ids in nids in executor."""
         fw_bin = None
         if fw_path:
-            fw_bin = yield from self.loop.run_in_executor(
+            fw_bin = await self.loop.run_in_executor(
                 None, load_fw, fw_path)
             if not fw_bin:
                 return

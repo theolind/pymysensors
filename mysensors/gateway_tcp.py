@@ -134,23 +134,21 @@ class AsyncTCPGateway(BaseAsyncGateway, BaseTCPGateway):
             self.check_connection)
         self.cancel_check_conn = task.cancel
 
-    @asyncio.coroutine
-    def get_gateway_id(self):
+    async def get_gateway_id(self):
         """Return a unique id for the gateway."""
-        mac = yield from self.tasks.loop.run_in_executor(
+        mac = await self.tasks.loop.run_in_executor(
             None, super().get_gateway_id)
         return mac
 
 
-@asyncio.coroutine
-def async_connect(transport):
+async def async_connect(transport):
     """Connect to the socket."""
     try:
         while True:
             _LOGGER.info(
                 'Trying to connect to %s', transport.gateway.server_address)
             try:
-                yield from asyncio.wait_for(
+                await asyncio.wait_for(
                     transport.loop.create_connection(
                         lambda: transport.protocol,
                         *transport.gateway.server_address),
@@ -166,7 +164,7 @@ def async_connect(transport):
                 _LOGGER.info(
                     'Waiting %s secs before trying to connect again',
                     transport.reconnect_timeout)
-                yield from asyncio.sleep(
+                await asyncio.sleep(
                     transport.reconnect_timeout, loop=transport.loop)
             except OSError:
                 _LOGGER.error(
@@ -175,7 +173,7 @@ def async_connect(transport):
                 _LOGGER.info(
                     'Waiting %s secs before trying to connect again',
                     transport.reconnect_timeout)
-                yield from asyncio.sleep(
+                await asyncio.sleep(
                     transport.reconnect_timeout,
                     loop=transport.loop)
     except asyncio.CancelledError:

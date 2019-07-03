@@ -1,5 +1,4 @@
 """Implement an MQTT gateway."""
-import asyncio
 import logging
 
 from mysensors import BaseAsyncGateway, BaseSyncGateway, Gateway, Message
@@ -117,7 +116,7 @@ class MQTTGateway(BaseSyncGateway, BaseMQTTGateway):
 class AsyncMQTTGateway(BaseAsyncGateway, BaseMQTTGateway):
     """MySensors async MQTT client gateway."""
 
-    # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-arguments, useless-super-delegation
 
     def __init__(
             self, pub_callback, sub_callback, loop=None, in_prefix='',
@@ -128,8 +127,7 @@ class AsyncMQTTGateway(BaseAsyncGateway, BaseMQTTGateway):
             out_prefix=out_prefix, retain=retain)
         super().__init__(transport, loop=loop, **kwargs)
 
-    @asyncio.coroutine
-    def get_gateway_id(self):
+    async def get_gateway_id(self):
         """Return a unique id for the gateway."""
         return super().get_gateway_id()
 
@@ -218,7 +216,6 @@ class MQTTSyncTransport(MQTTTransport):
 class MQTTAsyncTransport(MQTTTransport):
     """TCP async version of transport class."""
 
-    @asyncio.coroutine
-    def connect(self):
+    async def connect(self):
         """Connect to the transport."""
         self.gateway.init_topics()
