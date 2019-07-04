@@ -1,6 +1,0 @@
-#!/bin/sh
-if command -v pandoc >/dev/null ; then
-  pandoc --from=markdown --to=rst README.md -o README.rst
-else
-  echo "Install pandoc to generate README.rst"
-fi
