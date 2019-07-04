@@ -133,7 +133,7 @@ class SyncTasks(Tasks):
         if not self.persistence:
             return
         self.persistence.safe_load_sensors()
-        self._cancel_save = self.persistence.schedule_save_sensors()
+        self.persistence.schedule_save_sensors()
 
     def stop(self):
         """Stop the background thread."""
