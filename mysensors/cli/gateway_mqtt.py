@@ -96,7 +96,8 @@ class MQTTClient:
     def __init__(self, broker, port=1883, keepalive=60):
         """Set up MQTT client."""
         try:
-            import paho.mqtt.client as mqtt  # pylint: disable=import-error
+            # pylint: disable=import-error, import-outside-toplevel
+            import paho.mqtt.client as mqtt
         except ImportError:
             _LOGGER.error(
                 'paho.mqtt.client is missing. '
@@ -224,7 +225,8 @@ class AsyncioHelper:
 
     async def run_misc_loop(self):
         """Provide loop for paho mqtt."""
-        import paho.mqtt.client as mqtt  # pylint: disable=import-error
+        # pylint: disable=import-error, import-outside-toplevel
+        import paho.mqtt.client as mqtt
         while self._client.loop_misc() == mqtt.MQTT_ERR_SUCCESS:
             try:
                 await asyncio.sleep(1)
