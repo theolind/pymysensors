@@ -1,4 +1,4 @@
 pygcgen==0.2.4
-setuptools==41.6.0
+setuptools==45.1.0
 twine==2.0.0
 wheel==0.33.6
