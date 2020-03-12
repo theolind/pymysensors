@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.20.0](https://github.com/theolind/pymysensors/tree/0.20.0) (2020-03-12)
+
+[Full Changelog](https://github.com/theolind/pymysensors/compare/0.19.1...0.20.0)
+
+**Merged pull requests:**
+
+- Bump version to 0.20.0 [\#238](https://github.com/theolind/pymysensors/pull/238) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Test Python 3.8 [\#237](https://github.com/theolind/pymysensors/pull/237) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Clean up readme [\#236](https://github.com/theolind/pymysensors/pull/236) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Add black code formatter [\#235](https://github.com/theolind/pymysensors/pull/235) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Update changelog [\#234](https://github.com/theolind/pymysensors/pull/234) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [0.19.1](https://github.com/theolind/pymysensors/tree/0.19.1) (2020-03-12)
 
 [Full Changelog](https://github.com/theolind/pymysensors/compare/0.19.0...0.19.1)
