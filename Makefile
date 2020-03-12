@@ -1,6 +1,8 @@
-.PHONY: help build clean clean-build clean-pyc coverage lint release test-release test test-all
+.PHONY: help black black-format build clean clean-build clean-pyc coverage lint release test-release test test-all
 
 help:
+	@echo "black - run black code formatter check"
+	@echo "black-format - run black code formatter format"
 	@echo "build - build a distribution"
 	@echo "clean - run all clean operations"
 	@echo "clean-build - remove build artifacts"
@@ -11,6 +13,12 @@ help:
 	@echo "test-release - package and upload a release to test PyPI"
 	@echo "test - run tests quickly with the default Python"
 	@echo "test-all - run tests on every Python version with tox"
+
+black:
+	black --check ./
+
+black-format:
+	black ./
 
 build:
 	python setup.py sdist bdist_wheel
