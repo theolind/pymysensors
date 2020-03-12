@@ -19,7 +19,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           release_branch: master
           base: HISTORY.md
-          since_tag: "0.13.0"
+          since_tag: "0.13"
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v2
