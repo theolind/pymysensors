@@ -5,7 +5,7 @@ update: all
 
 # set the default branch
 # default: empty, the default branch on GitHub
-branch: dev
+branch: master
 
 # update schedule
 # default: empty
