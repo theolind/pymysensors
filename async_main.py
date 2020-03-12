@@ -10,7 +10,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 def event(message):
     """Handle mysensors updates."""
-    print('sensor_update ' + str(message.node_id))
+    print("sensor_update " + str(message.node_id))
 
 
 LOOP = asyncio.get_event_loop()
@@ -19,8 +19,8 @@ LOOP.set_debug(True)
 try:
     # To create a serial gateway.
     GATEWAY = mysensors.AsyncSerialGateway(
-        '/dev/ttyACM0', loop=LOOP, event_callback=event,
-        protocol_version='2.1')
+        "/dev/ttyACM0", loop=LOOP, event_callback=event, protocol_version="2.1"
+    )
     LOOP.run_until_complete(GATEWAY.start())
     LOOP.run_forever()
 except KeyboardInterrupt:

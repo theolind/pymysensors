@@ -13,7 +13,8 @@ def event(message):
 
 # To create a serial gateway.
 GATEWAY = mysensors.SerialGateway(
-    '/dev/ttyACM0', event_callback=event, protocol_version='2.0')
+    "/dev/ttyACM0", event_callback=event, protocol_version="2.0"
+)
 
 # To create a TCP gateway.
 # GATEWAY = mysensors.TCPGateway('127.0.0.1', event_callback=event)

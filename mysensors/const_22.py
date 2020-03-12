@@ -3,9 +3,18 @@ import voluptuous as vol
 
 # pylint: disable=unused-import
 from mysensors.const_21 import (  # noqa: F401
-    MAX_NODE_ID, VALID_INTERNAL, VALID_PRESENTATION, VALID_SETREQ,
-    VALID_STREAM, VALID_TYPES, BaseConst, MessageType, Presentation, SetReq,
-    Stream)
+    MAX_NODE_ID,
+    VALID_INTERNAL,
+    VALID_PRESENTATION,
+    VALID_SETREQ,
+    VALID_STREAM,
+    VALID_TYPES,
+    BaseConst,
+    MessageType,
+    Presentation,
+    SetReq,
+    Stream,
+)
 
 from .handler import HANDLERS_22
 
@@ -96,22 +105,20 @@ VALID_MESSAGE_TYPES = {
 
 
 VALID_INTERNAL = dict(VALID_INTERNAL)
-VALID_INTERNAL.update({
-    Internal.I_SIGNAL_REPORT_REQUEST: str,
-    Internal.I_SIGNAL_REPORT_REVERSE: vol.All(
-        vol.Coerce(int), vol.Coerce(str)),
-    Internal.I_SIGNAL_REPORT_RESPONSE: vol.All(
-        vol.Coerce(int), vol.Coerce(str)),
-    Internal.I_PRE_SLEEP_NOTIFICATION: vol.All(
-        vol.Coerce(int), vol.Coerce(str)),
-    Internal.I_POST_SLEEP_NOTIFICATION: vol.All(
-        vol.Coerce(int), vol.Coerce(str)),
-})
+VALID_INTERNAL.update(
+    {
+        Internal.I_SIGNAL_REPORT_REQUEST: str,
+        Internal.I_SIGNAL_REPORT_REVERSE: vol.All(vol.Coerce(int), vol.Coerce(str)),
+        Internal.I_SIGNAL_REPORT_RESPONSE: vol.All(vol.Coerce(int), vol.Coerce(str)),
+        Internal.I_PRE_SLEEP_NOTIFICATION: vol.All(vol.Coerce(int), vol.Coerce(str)),
+        Internal.I_POST_SLEEP_NOTIFICATION: vol.All(vol.Coerce(int), vol.Coerce(str)),
+    }
+)
 
 VALID_PAYLOADS = {
     MessageType.presentation: VALID_PRESENTATION,
     MessageType.set: VALID_SETREQ,
-    MessageType.req: {member: '' for member in list(SetReq)},
+    MessageType.req: {member: "" for member in list(SetReq)},
     MessageType.internal: VALID_INTERNAL,
     MessageType.stream: VALID_STREAM,
 }

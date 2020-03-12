@@ -1,9 +1,19 @@
 """MySensors constants for version 2.1 of MySensors."""
 # pylint: disable=unused-import
 from mysensors.const_20 import (  # noqa: F401
-    MAX_NODE_ID, VALID_INTERNAL, VALID_PRESENTATION, VALID_SETREQ,
-    VALID_STREAM, VALID_TYPES, BaseConst, MessageType, Presentation, SetReq,
-    Stream, get_handler_registry)
+    MAX_NODE_ID,
+    VALID_INTERNAL,
+    VALID_PRESENTATION,
+    VALID_SETREQ,
+    VALID_STREAM,
+    VALID_TYPES,
+    BaseConst,
+    MessageType,
+    Presentation,
+    SetReq,
+    Stream,
+    get_handler_registry,
+)
 
 
 class Internal(BaseConst):
@@ -82,16 +92,18 @@ VALID_MESSAGE_TYPES = {
 
 
 VALID_INTERNAL = dict(VALID_INTERNAL)
-VALID_INTERNAL.update({
-    Internal.I_FIND_PARENT_REQUEST: '',
-    Internal.I_HEARTBEAT_REQUEST: '',
-    Internal.I_DISCOVER_REQUEST: '',
-})
+VALID_INTERNAL.update(
+    {
+        Internal.I_FIND_PARENT_REQUEST: "",
+        Internal.I_HEARTBEAT_REQUEST: "",
+        Internal.I_DISCOVER_REQUEST: "",
+    }
+)
 
 VALID_PAYLOADS = {
     MessageType.presentation: VALID_PRESENTATION,
     MessageType.set: VALID_SETREQ,
-    MessageType.req: {member: '' for member in list(SetReq)},
+    MessageType.req: {member: "" for member in list(SetReq)},
     MessageType.internal: VALID_INTERNAL,
     MessageType.stream: VALID_STREAM,
 }

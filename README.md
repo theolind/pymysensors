@@ -228,6 +228,15 @@ Use the Makefile to run common development tasks.
 make
 ```
 
+### Code formatting
+
+We use black code formatter to automatically format the code.
+This requires Python 3.6 for development.
+
+```sh
+black ./
+```
+
 ### Release
 
 See the [release instructions](RELEASE.md).

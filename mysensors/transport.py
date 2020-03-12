@@ -17,9 +17,7 @@ class Transport:
 
     # pylint: disable=unused-argument
 
-    def __init__(
-            self, gateway, connect, timeout=1.0, reconnect_timeout=10.0,
-            **kwargs):
+    def __init__(self, gateway, connect, timeout=1.0, reconnect_timeout=10.0, **kwargs):
         """Set up transport."""
         self._connect = connect
         self.can_log = False
@@ -38,7 +36,7 @@ class Transport:
         if not self.protocol or not self.protocol.transport:
             self.protocol = None  # Make sure protocol is None
             return
-        _LOGGER.info('Disconnecting from gateway')
+        _LOGGER.info("Disconnecting from gateway")
         self.protocol.transport.close()
         self.protocol = None
 
@@ -47,13 +45,13 @@ class Transport:
         if not message or not self.protocol or not self.protocol.transport:
             return
         if not self.can_log:
-            _LOGGER.debug('Sending %s', message.strip())
+            _LOGGER.debug("Sending %s", message.strip())
         try:
             self.protocol.transport.write(message.encode())
         except OSError as exc:
             _LOGGER.error(
-                'Failed writing to transport %s: %s',
-                self.protocol.transport, exc)
+                "Failed writing to transport %s: %s", self.protocol.transport, exc
+            )
             self.protocol.transport.close()
             self.protocol.conn_lost_callback()
 
@@ -69,7 +67,7 @@ class SyncTransport(Transport):
 
     def connect(self):
         """Connect to the transport."""
-        connect_thread = threading.Thread(target=self._connect, args=(self, ))
+        connect_thread = threading.Thread(target=self._connect, args=(self,))
         connect_thread.start()
 
     def send(self, message):
@@ -102,7 +100,7 @@ class AsyncTransport(Transport):
 class BaseMySensorsProtocol(serial.threaded.LineReader):
     """MySensors base protocol class."""
 
-    TERMINATOR = b'\n'
+    TERMINATOR = b"\n"
 
     def __init__(self, gateway, conn_lost_callback):
         """Set up base protocol."""
@@ -112,26 +110,26 @@ class BaseMySensorsProtocol(serial.threaded.LineReader):
 
     def __repr__(self):
         """Return the representation."""
-        return '<{}>'.format(self.__class__.__name__)
+        return "<{}>".format(self.__class__.__name__)
 
     def connection_made(self, transport):
         """Handle created connection."""
         super().connection_made(transport)
-        if hasattr(self.transport, 'serial'):
-            _LOGGER.info('Connected to %s', self.transport.serial)
+        if hasattr(self.transport, "serial"):
+            _LOGGER.info("Connected to %s", self.transport.serial)
         else:
-            _LOGGER.info('Connected to %s', self.transport)
+            _LOGGER.info("Connected to %s", self.transport)
         self._connection_made()
 
     def handle_line(self, line):
         """Handle incoming string data one line at a time."""
         if not self.gateway.tasks.transport.can_log:
-            _LOGGER.debug('Receiving %s', line)
+            _LOGGER.debug("Receiving %s", line)
         self.gateway.tasks.add_job(self.gateway.logic, line)
 
     def connection_lost(self, exc):
         """Handle lost connection."""
-        _LOGGER.debug('Connection lost with %s', self.transport.serial)
+        _LOGGER.debug("Connection lost with %s", self.transport.serial)
         if exc:
             self.transport.serial.close()
         self._connection_lost(exc)
@@ -156,5 +154,5 @@ class AsyncMySensorsProtocol(BaseMySensorsProtocol, asyncio.Protocol):
 
     def connection_lost(self, exc):
         """Handle lost connection."""
-        _LOGGER.debug('Connection lost with %s', self.transport)
+        _LOGGER.debug("Connection lost with %s", self.transport)
         self._connection_lost(exc)

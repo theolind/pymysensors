@@ -1,9 +1,9 @@
 [MASTER]
 reports=no
 
-# Reasons disabled:
-# locally-disabled - it spams too much
-# duplicate-code - unavoidable
+# Black needs to disable wrong-hanging-indent.
+
 disable=
-  locally-disabled,
+  bad-continuation,
   duplicate-code,
+  locally-disabled,

@@ -24,7 +24,7 @@ class Gateway:
 
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self, event_callback=None, protocol_version='1.4'):
+    def __init__(self, event_callback=None, protocol_version="1.4"):
         """Set up Gateway."""
         protocol_version = safe_is_version(protocol_version)
         self.const = get_const(protocol_version)
@@ -42,7 +42,7 @@ class Gateway:
 
     def __repr__(self):
         """Return the representation."""
-        return '<{}>'.format(self.__class__.__name__)
+        return "<{}>".format(self.__class__.__name__)
 
     def logic(self, data):
         """Parse the data and respond to it appropriately.
@@ -53,13 +53,12 @@ class Gateway:
         try:
             msg = Message(data)
         except ValueError as exc:
-            _LOGGER.warning('Not a valid message: %s', exc)
+            _LOGGER.warning("Not a valid message: %s", exc)
             return None
         try:
             msg.validate(self.protocol_version)
         except vol.Invalid as exc:
-            _LOGGER.warning(
-                'Invalid %s: %s', msg, humanize_error(msg.__dict__, exc))
+            _LOGGER.warning("Invalid %s: %s", msg, humanize_error(msg.__dict__, exc))
             return None
 
         msg.gateway = self
@@ -102,35 +101,39 @@ class Gateway:
         """Return True if a sensor and its child exist."""
         ret = sensorid in self.sensors
         if not ret:
-            _LOGGER.warning('Node %s is unknown', sensorid)
+            _LOGGER.warning("Node %s is unknown", sensorid)
         if ret and child_id is not None:
             ret = child_id in self.sensors[sensorid].children
             if not ret:
-                _LOGGER.warning('Child %s is unknown', child_id)
-        if not ret and parse_ver(self.protocol_version) >= parse_ver('2.0'):
-            _LOGGER.info('Requesting new presentation for node %s',
-                         sensorid)
+                _LOGGER.warning("Child %s is unknown", child_id)
+        if not ret and parse_ver(self.protocol_version) >= parse_ver("2.0"):
+            _LOGGER.info("Requesting new presentation for node %s", sensorid)
             msg = Message(gateway=self).modify(
-                node_id=sensorid, child_id=SYSTEM_CHILD_ID,
+                node_id=sensorid,
+                child_id=SYSTEM_CHILD_ID,
                 type=self.const.MessageType.internal,
-                sub_type=self.const.Internal.I_PRESENTATION)
+                sub_type=self.const.Internal.I_PRESENTATION,
+            )
             if self._route_message(msg):
                 self.tasks.add_job(msg.encode)
         return ret
 
     def _route_message(self, msg):
-        if not isinstance(msg, Message) or \
-                msg.type == self.const.MessageType.presentation:
+        if (
+            not isinstance(msg, Message)
+            or msg.type == self.const.MessageType.presentation
+        ):
             return None
-        if (msg.node_id not in self.sensors
-                or msg.type == self.const.MessageType.stream
-                or not self.sensors[msg.node_id].new_state):
+        if (
+            msg.node_id not in self.sensors
+            or msg.type == self.const.MessageType.stream
+            or not self.sensors[msg.node_id].new_state
+        ):
             return msg
         self.sensors[msg.node_id].queue.append(msg.encode())
         return None
 
-    def set_child_value(
-            self, sensor_id, child_id, value_type, value, **kwargs):
+    def set_child_value(self, sensor_id, child_id, value_type, value, **kwargs):
         """Add a command to set a sensor value, to the queue.
 
         A queued command will be sent to the sensor when the gateway
@@ -145,12 +148,18 @@ class Gateway:
             return
         if self.sensors[sensor_id].new_state:
             self.sensors[sensor_id].set_child_value(
-                child_id, value_type, value,
-                children=self.sensors[sensor_id].new_state)
+                child_id, value_type, value, children=self.sensors[sensor_id].new_state
+            )
         else:
-            self.tasks.add_job(partial(
-                self.sensors[sensor_id].set_child_value, child_id, value_type,
-                value, **kwargs))
+            self.tasks.add_job(
+                partial(
+                    self.sensors[sensor_id].set_child_value,
+                    child_id,
+                    value_type,
+                    value,
+                    **kwargs
+                )
+            )
 
     def send(self, message):
         """Write a message to the arduino gateway."""
@@ -177,25 +186,42 @@ class BaseSyncGateway(Gateway):
     """MySensors base sync gateway."""
 
     def __init__(
-            self, transport, *args, persistence=False,
-            persistence_file='mysensors.pickle', **kwargs):
+        self,
+        transport,
+        *args,
+        persistence=False,
+        persistence_file="mysensors.pickle",
+        **kwargs
+    ):
         """Set up gateway."""
         super().__init__(*args, **kwargs)
         self.tasks = SyncTasks(
-            self.const, persistence, persistence_file, self.sensors, transport)
+            self.const, persistence, persistence_file, self.sensors, transport
+        )
 
 
 class BaseAsyncGateway(Gateway):
     """MySensors base async gateway."""
 
     def __init__(
-            self, transport, *args, loop=None, persistence=False,
-            persistence_file='mysensors.pickle', **kwargs):
+        self,
+        transport,
+        *args,
+        loop=None,
+        persistence=False,
+        persistence_file="mysensors.pickle",
+        **kwargs
+    ):
         """Set up gateway."""
         super().__init__(*args, **kwargs)
         self.tasks = AsyncTasks(
-            self.const, persistence, persistence_file, self.sensors,
-            transport, loop=loop)
+            self.const,
+            persistence,
+            persistence_file,
+            self.sensors,
+            transport,
+            loop=loop,
+        )
 
     async def start(self):
         """Start the gateway and task allow tasks to be scheduled."""
