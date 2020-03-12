@@ -3,46 +3,47 @@
 Bug reports in the issue tracker and pull requests are welcome.
 
 ## Pull request
+
 1. Fork the repository at github.
 2. Clone your fork.
 
-  ```
-  $ git clone https://github.com/YOUR_GIT_USERNAME/pymysensors.git
-  $ cd pymysensors
-  ```
+    ```sh
+    git clone https://github.com/YOUR_GIT_USERNAME/pymysensors.git
+    cd pymysensors
+    ```
+
 3. Add the main repository as upstream.
 
-  ```
-  $ git remote add upstream https://github.com/theolind/pymysensors.git
-  ```
-4. Fetch dev branch from upstream and checkout to a local branch.
+    ```sh
+    git remote add upstream https://github.com/theolind/pymysensors.git
+    ```
 
-  ```
-  $ git fetch upstream dev
-  $ git checkout dev
-  ```
-5. Create a topic branch based off dev branch.
+4. Create a feature branch based off master branch.
 
-  ```
-  $ git checkout -b cool_new_feature dev
-  ```
-6. Make your changes in the new topic branch. New features should preferably be accompanied with new tests. PEP8 and PEP257 style should be followed. We use pylint and flake8 as code linters.
-7. Test with tox and make sure existing tests don't fail. Linting will also be checked when tox is run.
+    ```sh
+    git checkout -b cool_new_feature master
+    ```
 
-  ```
-  $ pip3 install tox
-  $ tox
-  ```
-8. Add and commit your work and describe the additions and or changes in the commit message. Use an editor for the commit message, not the command line. Try to keep the header of the commit message within 50 characters and the body within 72 characters per line. A blank line should separate the header from the body of the commit message. Markdown is cool.
+5. Make your changes in the new topic branch. New features should preferably be accompanied with new tests. PEP8 and PEP257 style should be followed. We use pylint and flake8 as code linters.
+6. Test with tox and make sure existing tests don't fail. Linting will also be checked when tox is run.
 
-  ```
-  $ git add -A
-  $ git commit
-  ```
-9. Push you local changes to your fork.
+    ```sh
+    pip3 install -r requirements_dev.txt
+    tox
+    ```
 
-  ```
-  $ git push origin HEAD
-  ```
-10. Create a pull request at github to the main pymysensors repository and target the dev branch with your changes. The master branch should only be targeted when a new version of pymysensors is ready. Changes in the dev branch is then merged with the master branch.
-11. Watch build checks turn green :white_check_mark:, and get the :thumbsup: in the code review.
+7. Add and commit your work and describe the additions and or changes in the commit message. Use an editor for the commit message, not the command line. Try to keep the header of the commit message within 50 characters and the body within 72 characters per line. A blank line should separate the header from the body of the commit message. Markdown is cool.
+
+    ```sh
+    git add -A
+    git commit
+    ```
+
+8. Push you local changes to your fork.
+
+    ```sh
+    git push origin HEAD
+    ```
+
+9. Create a pull request at github to the main pymysensors repository and target the master branch with your changes.
+10. Watch build checks turn green :white_check_mark:, and get the :thumbsup: in the code review.
