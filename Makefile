@@ -1,4 +1,3 @@
-# Inspired by https://github.com/arve0/leicacam/blob/master/Makefile
 .PHONY: help build clean clean-build clean-pyc coverage lint release test-release test test-all
 
 help:
