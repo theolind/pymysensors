@@ -1,6 +1,8 @@
+click==7.0
 crcmod==1.7
-get-mac==0.5.0
+getmac==0.8.1
 IntelHex==2.2.1
+paho-mqtt==1.5.0
 pyserial==3.4
 pyserial-asyncio==0.4
-voluptuous==0.11.5
+voluptuous==0.11.7

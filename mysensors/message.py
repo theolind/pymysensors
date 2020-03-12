@@ -13,14 +13,14 @@ BROADCAST_ID = 255
 class Message:
     """Represent a message from the gateway."""
 
-    def __init__(self, data=None, gateway=None):
+    def __init__(self, data=None, gateway=None, **kwargs):
         """Set up message."""
-        self.node_id = 0
-        self.child_id = 0
-        self.type = 0
-        self.ack = 0
-        self.sub_type = 0
-        self.payload = ''  # All data except payload are integers
+        self.node_id = kwargs.get('node_id', 0)
+        self.child_id = kwargs.get('child_id', 0)
+        self.type = kwargs.get('type', 0)
+        self.ack = kwargs.get('ack', 0)
+        self.sub_type = kwargs.get('sub_type', 0)
+        self.payload = kwargs.get('payload', '')
         self.gateway = gateway
         if data is not None:
             self.decode(data)
@@ -63,10 +63,10 @@ class Message:
         """Encode a command string from message."""
         try:
             return delimiter.join([str(f) for f in [
-                self.node_id,
-                self.child_id,
+                int(self.node_id),
+                int(self.child_id),
                 int(self.type),
-                self.ack,
+                int(self.ack),
                 int(self.sub_type),
                 self.payload,
             ]]) + '\n'
@@ -75,6 +75,10 @@ class Message:
 
     def validate(self, protocol_version):
         """Validate message."""
+        if self.gateway is not None:
+            _LOGGER.warning(
+                'Can not validate message if Message.gateway is set')
+            return None
         const = get_const(protocol_version)
         valid_node_ids = vol.All(vol.Coerce(int), vol.Range(
             min=0, max=BROADCAST_ID, msg='Not valid node_id: {}'.format(
@@ -87,8 +91,8 @@ class Message:
                 [SYSTEM_CHILD_ID],
                 msg='When message type is {}, child_id must be {}'.format(
                     self.type, SYSTEM_CHILD_ID)))
-        if (self.type == const.MessageType.internal and
-                self.sub_type in [
+        if (self.type == const.MessageType.internal
+                and self.sub_type in [
                     const.Internal.I_ID_REQUEST,
                     const.Internal.I_ID_RESPONSE]):
             valid_child_ids = vol.Coerce(int)
@@ -111,9 +115,9 @@ class Message:
             msg='Not valid message sub-type: {}'.format(self.sub_type))
         valid_payload = const.VALID_PAYLOADS.get(
             self.type, {}).get(self.sub_type, '')
-        schema = vol.Schema({
+        attrs = {
             'node_id': valid_node_ids, 'child_id': valid_child_ids,
             'type': valid_types, 'ack': valid_ack, 'sub_type': valid_sub_types,
-            'payload': valid_payload})
-        to_validate = {attr: getattr(self, attr) for attr in schema.schema}
-        return schema(to_validate)
+            'payload': valid_payload, 'gateway': None}
+        schema = vol.Schema(vol.Object(attrs, cls=self.__class__))
+        return schema(self)

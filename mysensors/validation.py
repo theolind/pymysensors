@@ -16,7 +16,7 @@ def is_version(value):
     """Validate that value is a valid version string."""
     try:
         value = str(value)
-        if not parse_ver('1.4') <= parse_ver(value):
+        if parse_ver('1.4') > parse_ver(value):
             raise ValueError()
         return value
     except (AttributeError, TypeError, ValueError):

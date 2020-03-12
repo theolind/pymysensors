@@ -6,7 +6,6 @@ from unittest import mock
 import pytest
 
 from mysensors.gateway_mqtt import MQTTGateway
-from mysensors.persistence import Persistence
 from mysensors.sensor import Sensor
 
 # pylint: disable=redefined-outer-name, too-many-arguments
@@ -29,7 +28,7 @@ def gateway(mock_pub, mock_sub):
     """Yield gateway instance."""
     _gateway = MQTTGateway(mock_pub, mock_sub)
     yield _gateway
-    _gateway.stop()
+    _gateway.tasks.stop()
 
 
 def get_gateway(*args, **kwargs):
@@ -84,11 +83,11 @@ def test_recv(gateway, add_sensor):
     sensor = add_sensor(1)
     sensor.add_child_sensor(1, gateway.const.Presentation.S_HUM)
     sensor.children[1].values[gateway.const.SetReq.V_HUM] = '20'
-    gateway.recv('/1/1/2/0/1', '', 0)
-    ret = gateway.run_job()
+    gateway.tasks.transport.recv('/1/1/2/0/1', '', 0)
+    ret = gateway.tasks.run_job()
     assert ret == '1;1;1;0;1;20\n'
-    gateway.recv('/1/1/2/0/1', '', 1)
-    ret = gateway.run_job()
+    gateway.tasks.transport.recv('/1/1/2/0/1', '', 1)
+    ret = gateway.tasks.run_job()
     assert ret == '1;1;1;1;1;20\n'
 
 
@@ -97,8 +96,8 @@ def test_recv_wrong_prefix(gateway, add_sensor):
     sensor = add_sensor(1)
     sensor.add_child_sensor(1, gateway.const.Presentation.S_HUM)
     sensor.children[1].values[gateway.const.SetReq.V_HUM] = '20'
-    gateway.recv('wrong/1/1/2/0/1', '', 0)
-    ret = gateway.run_job()
+    gateway.tasks.transport.recv('wrong/1/1/2/0/1', '', 0)
+    ret = gateway.tasks.run_job()
     assert ret is None
 
 
@@ -107,9 +106,9 @@ def test_presentation(gateway, add_sensor, mock_sub):
     add_sensor(1)
     gateway.logic('1;1;0;0;7;Humidity Sensor\n')
     calls = [
-        mock.call('/1/1/1/+/+', gateway.recv, 0),
-        mock.call('/1/1/2/+/+', gateway.recv, 0),
-        mock.call('/1/+/4/+/+', gateway.recv, 0)]
+        mock.call('/1/1/1/+/+', gateway.tasks.transport.recv, 0),
+        mock.call('/1/1/2/+/+', gateway.tasks.transport.recv, 0),
+        mock.call('/1/+/4/+/+', gateway.tasks.transport.recv, 0)]
     assert mock_sub.call_count == 3
     assert mock_sub.mock_calls == calls
 
@@ -128,9 +127,9 @@ def test_subscribe_error(gateway, add_sensor, mock_sub, caplog):
     caplog.set_level(logging.ERROR)
     gateway.logic('1;1;0;0;7;Humidity Sensor\n')
     calls = [
-        mock.call('/1/1/1/+/+', gateway.recv, 0),
-        mock.call('/1/1/2/+/+', gateway.recv, 0),
-        mock.call('/1/+/4/+/+', gateway.recv, 0)]
+        mock.call('/1/1/1/+/+', gateway.tasks.transport.recv, 0),
+        mock.call('/1/1/2/+/+', gateway.tasks.transport.recv, 0),
+        mock.call('/1/+/4/+/+', gateway.tasks.transport.recv, 0)]
     assert mock_sub.call_count == 3
     assert mock_sub.mock_calls == calls
     assert (
@@ -141,29 +140,30 @@ def test_subscribe_error(gateway, add_sensor, mock_sub, caplog):
 @mock.patch('mysensors.persistence.Persistence.safe_load_sensors')
 @mock.patch('mysensors.persistence.Persistence.save_sensors')
 def test_start_stop_gateway(
-        mock_save, mock_load, gateway, add_sensor, mock_pub, mock_sub):
+        mock_save, mock_load, mock_pub, mock_sub):
     """Test start and stop of MQTT gateway."""
-    mock_schedule_factory = mock.MagicMock()
+    gateway = get_gateway(mock_pub, mock_sub, persistence=True)
     mock_schedule_save = mock.MagicMock()
-    mock_schedule_factory.return_value = mock_schedule_save
-    gateway.persistence = Persistence(gateway.sensors, mock_schedule_factory)
-    sensor = add_sensor(1)
+    gateway.tasks.persistence.schedule_save_sensors = mock_schedule_save
+    sensor = get_sensor(1, gateway)
     sensor.add_child_sensor(1, gateway.const.Presentation.S_HUM)
     sensor.children[1].values[gateway.const.SetReq.V_HUM] = '20'
-    gateway.recv('/1/1/2/0/1', '', 0)  # should generate a publish of 20
-    gateway.recv('/1/1/1/0/1', '30', 0)
-    gateway.recv('/1/1/2/0/1', '', 0)  # should generate a publish of 30
+    # should generate a publish of 20
+    gateway.tasks.transport.recv('/1/1/2/0/1', '', 0)
+    gateway.tasks.transport.recv('/1/1/1/0/1', '30', 0)
+    # should generate a publish of 30
+    gateway.tasks.transport.recv('/1/1/2/0/1', '', 0)
     gateway.start_persistence()
     assert mock_load.call_count == 1
     assert mock_schedule_save.call_count == 1
     gateway.start()
     time.sleep(0.05)
     calls = [
-        mock.call('/+/+/0/+/+', gateway.recv, 0),
-        mock.call('/+/+/3/+/+', gateway.recv, 0),
-        mock.call('/1/1/1/+/+', gateway.recv, 0),
-        mock.call('/1/1/2/+/+', gateway.recv, 0),
-        mock.call('/1/+/4/+/+', gateway.recv, 0)]
+        mock.call('/+/+/0/+/+', gateway.tasks.transport.recv, 0),
+        mock.call('/+/+/3/+/+', gateway.tasks.transport.recv, 0),
+        mock.call('/1/1/1/+/+', gateway.tasks.transport.recv, 0),
+        mock.call('/1/1/2/+/+', gateway.tasks.transport.recv, 0),
+        mock.call('/1/+/4/+/+', gateway.tasks.transport.recv, 0)]
     assert mock_sub.call_count == 5
     assert mock_sub.mock_calls == calls
     calls = [
@@ -175,30 +175,30 @@ def test_start_stop_gateway(
     assert mock_save.call_count == 1
 
 
-def test_mqtt_load_persistence(gateway, add_sensor, mock_sub, tmpdir):
+def test_mqtt_load_persistence(mock_pub, mock_sub, tmpdir):
     """Test load persistence file for MQTTGateway."""
-    sensor = add_sensor(1)
+    gateway = get_gateway(mock_pub, mock_sub, persistence=True)
+    sensor = get_sensor(1, gateway)
     sensor.add_child_sensor(1, gateway.const.Presentation.S_HUM)
     sensor.children[1].values[gateway.const.SetReq.V_HUM] = '20'
 
     persistence_file = tmpdir.join('file.json')
-    gateway.persistence = Persistence(
-        gateway.sensors, mock.MagicMock(), persistence_file.strpath)
-    gateway.persistence.save_sensors()
+    gateway.tasks.persistence.persistence_file = persistence_file.strpath
+    gateway.tasks.persistence.save_sensors()
     del gateway.sensors[1]
     assert 1 not in gateway.sensors
-    gateway.persistence.safe_load_sensors()
+    gateway.tasks.persistence.safe_load_sensors()
     # pylint: disable=protected-access
-    gateway._init_topics()
+    gateway.init_topics()
     assert gateway.sensors[1].children[1].id == sensor.children[1].id
     assert gateway.sensors[1].children[1].type == sensor.children[1].type
     assert gateway.sensors[1].children[1].values == sensor.children[1].values
     calls = [
-        mock.call('/+/+/0/+/+', gateway.recv, 0),
-        mock.call('/+/+/3/+/+', gateway.recv, 0),
-        mock.call('/1/1/1/+/+', gateway.recv, 0),
-        mock.call('/1/1/2/+/+', gateway.recv, 0),
-        mock.call('/1/+/4/+/+', gateway.recv, 0)]
+        mock.call('/+/+/0/+/+', gateway.tasks.transport.recv, 0),
+        mock.call('/+/+/3/+/+', gateway.tasks.transport.recv, 0),
+        mock.call('/1/1/1/+/+', gateway.tasks.transport.recv, 0),
+        mock.call('/1/1/2/+/+', gateway.tasks.transport.recv, 0),
+        mock.call('/1/+/4/+/+', gateway.tasks.transport.recv, 0)]
     assert mock_sub.call_count == 5
     assert mock_sub.mock_calls == calls
 
@@ -211,16 +211,16 @@ def test_nested_prefix(mock_pub, mock_sub):
     sensor = get_sensor(1, gateway)
     sensor.add_child_sensor(1, gateway.const.Presentation.S_HUM)
     sensor.children[1].values[gateway.const.SetReq.V_HUM] = '20'
-    gateway.recv('test/test-in/1/1/2/0/1', '', 0)
-    ret = gateway.run_job()
+    gateway.tasks.transport.recv('test/test-in/1/1/2/0/1', '', 0)
+    ret = gateway.tasks.run_job()
     assert ret == '1;1;1;0;1;20\n'
-    gateway.send(ret)
+    gateway.tasks.transport.send(ret)
     assert mock_pub.call_args == mock.call(
         'test/test-out/1/1/1/0/1', '20', 0, True)
-    gateway.recv('test/test-in/1/1/2/0/1', '', 1)
-    ret = gateway.run_job()
+    gateway.tasks.transport.recv('test/test-in/1/1/2/0/1', '', 1)
+    ret = gateway.tasks.run_job()
     assert ret == '1;1;1;1;1;20\n'
-    gateway.send(ret)
+    gateway.tasks.transport.send(ret)
     assert mock_pub.call_args == mock.call(
         'test/test-out/1/1/1/1/1', '20', 1, True)
 

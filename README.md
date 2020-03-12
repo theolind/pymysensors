@@ -7,6 +7,14 @@ Python API for talking to a MySensors gateway (http://www.mysensors.org/). Curre
 - All gateway instances, serial, tcp (ethernet) or mqtt will run in separate threads.
 - As an alternative to running the gateway in its own thread, there are experimental implementations of all gateways using asyncio.
 
+# Requirements
+pymysensors requires Python 3.5.3+.
+
+# Installation
+You can easily install it from PyPI:
+
+```pip3 install pymysensors```
+
 # Usage
 Currently the API is best used by implementing a callback handler
 
@@ -21,18 +29,19 @@ GATEWAY = mysensors.SerialGateway('/dev/ttyACM0', event)
 GATEWAY.start()
 ```
 
-In the above example PyMysensors will call "event" whenever a node in the Mysensors network has been updated. The message passed to the callback handler has the following data:
+In the above example pymysensors will call "event" whenever a node in the Mysensors network has been updated. The message passed to the callback handler has the following data:
 
 ```
 Message
     gateway - the gateway instance
     node_id - the sensor node identifier
     child_id - the child sensor id
-    type - the message type (int)
-    ack - True is message was an ACK, false otherwise
+    type - the message type, for example "set" or "presentation" (int)
+    ack - True is message was an ACK, false otherwise (0 or 1)
     sub_type - the message sub_type (int)
     payload - the payload of the message (string)
 ```
+_Note: The content of the sub_type differs according to the context. In presentation messages, the sub_type denotes S_TYPE data (such as S_INFO). In 'set' and 'req' messages the sub_type denotes V_TYPE data (such as V_TEXT)._
 
 Symbolic names for the Message types and sub_types are defined in the protocol version-specific const_X.py files.
 
@@ -58,16 +67,34 @@ ChildSensor - a child sensor
     values - a dictionary of values (V_HUM, V_TEMP, etc.)
 ```
 
+
 Getting the type and values of node 23, child sensor 4 would be performed as follows:
 
 ```python
 s_type = GATEWAY.sensors[23].children[4].type
 values = GATEWAY.sensors[23].children[4].values
 ```
+
+Similarly, printing all the sketch names of the found nodes could look like this:
+
+```
+for node in GATEWAY.sensors.values():
+    print(node.sketch_name)
+```
+
+Getting a child object inside the event function could be:
+
+```
+    if GATEWAY.is_sensor(message.node_id, message.child_id):
+        child = GATEWAY.sensors[message.node_id].children[message.child_id]
+    else:
+        print("Child not available yet.")
+```
+
 To update a node child sensor value and send it to the node, use the set_child_value method in the Gateway class:
 
 ```python
-# To set sensor 1, child 1, sub-type V_LIGHT (= 2), with value 1.
+# To set sensor 1 (int), child 1 (int), sub-type V_LIGHT (= 2) (int), with value 1.
 GATEWAY.set_child_value(1, 1, 2, 1)
 ```
 
@@ -82,7 +109,7 @@ GATEWAY.start_persistence()
 ```
 
 ## Protocol version
-Set the keyword argument `protocol_version` to set which version of the MySensors serial API to use. The default value is `'1.4'`.
+Set the keyword argument `protocol_version` to set which version of the MySensors serial API to use. The default value is `'1.4'`. Set the `protocol_version` to the version you're using.
 
 ## Serial gateway
 The serial gateway also supports setting the baudrate, read timeout and reconnect timeout.
@@ -97,7 +124,8 @@ def event(message):
 GATEWAY = mysensors.SerialGateway(
   '/dev/ttyACM0', baud=115200, timeout=1.0, reconnect_timeout=10.0,
   event_callback=event, persistence=True,
-  persistence_file='somefolder/mysensors.pickle', protocol_version='1.4')
+  persistence_file='somefolder/mysensors.pickle', protocol_version='2.2')
+GATEWAY.start_persistence() # optional, remove this line if you don't need persistence.
 GATEWAY.start()
 ```
 
@@ -145,6 +173,34 @@ gateway. This will be the serial number of the usb device for serial gateways,
 the mac address of the connected gateway for tcp gateways or the publish topic
 prefix (in_prefix) for mqtt gateways.
 
+## Connection callbacks
+It's possible to register two optional callbacks on the gateway that are called
+when the connection is made and when the connection is lost to the gateway
+device. Both callbacks should accept a gateway parameter, which is the gateway
+instance. The connection lost callback should also accept a second parameter
+for possible connection error exception argument. If connection was lost
+without error, eg when disconnecting, the error argument will be `None`.
+
+**NOTE:**
+The MQTT gateway doesn't support these callbacks since the connection to the
+MQTT broker is handled outside of pymysensors.
+
+```py
+def conn_made(gateway):
+  """React when the connection is made to the gateway device."""
+  pass
+
+GATEWAY.on_conn_made = conn_made
+
+def conn_lost(gateway, error):
+  """React when the connection is lost to the gateway device."""
+  pass
+
+GATEWAY.on_conn_lost = conn_lost
+```
+
+
+
 ## Async gateway
 The serial, TCP and MQTT gateways now also have versions that support asyncio. Use the
 `AsyncSerialGateway` class, `AsyncTCPGateway` class or `AsyncMQTTGateway` class to make a gateway that
@@ -158,5 +214,23 @@ uses asyncio. The following public methods are coroutines in the async gateway:
 
 See [async_main.py](https://github.com/theolind/pymysensors/blob/master/async_main.py) for an example of how to use this gateway.
 
-[build-badge]: https://travis-ci.org/theolind/pymysensors.svg?branch=master
-[build]: https://travis-ci.org/theolind/pymysensors
+## Development
+
+Install the packages needed for development.
+
+```sh
+pip install -r requirements_dev.txt
+```
+
+Use the Makefile to run common development tasks.
+
+```sh
+make
+```
+
+### Release
+
+See the [release instructions](RELEASE.md).
+
+[build-badge]: https://github.com/theolind/pymysensors/workflows/Test/badge.svg
+[build]: https://github.com/theolind/pymysensors/actions

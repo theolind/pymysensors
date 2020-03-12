@@ -16,11 +16,11 @@ class Persistence:
             self, sensors, schedule_factory,
             persistence_file='mysensors.pickle'):
         """Set up Persistence instance."""
+        self._sensors = sensors
+        self.need_save = True
         self.persistence_file = persistence_file
         self.persistence_bak = '{}.bak'.format(self.persistence_file)
         self.schedule_save_sensors = schedule_factory(self.save_sensors)
-        self._sensors = sensors
-        self.need_save = True
 
     def _save_pickle(self, filename):
         """Save sensors to pickle file."""
@@ -55,8 +55,8 @@ class Persistence:
         fname = os.path.realpath(self.persistence_file)
         exists = os.path.isfile(fname)
         dirname = os.path.dirname(fname)
-        if (not os.access(dirname, os.W_OK) or exists and
-                not os.access(fname, os.W_OK)):
+        if (not os.access(dirname, os.W_OK) or exists
+                and not os.access(fname, os.W_OK)):
             _LOGGER.error('Permission denied when writing to %s', fname)
             return
         split_fname = os.path.splitext(fname)

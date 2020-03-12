@@ -45,4 +45,4 @@ Bug reports in the issue tracker and pull requests are welcome.
   $ git push origin HEAD
   ```
 10. Create a pull request at github to the main pymysensors repository and target the dev branch with your changes. The master branch should only be targeted when a new version of pymysensors is ready. Changes in the dev branch is then merged with the master branch.
-11. Watch Travis builds turn green :white_check_mark:, and get the :thumbsup: in the code review.
+11. Watch build checks turn green :white_check_mark:, and get the :thumbsup: in the code review.

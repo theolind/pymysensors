@@ -1,27 +1,36 @@
 """Setup file for mysensors package."""
+from pathlib import Path
+
 from setuptools import setup, find_packages
 
-exec(open('mysensors/version.py').read())
+PROJECT_DIR = Path(__file__).parent.resolve()
+VERSION = (PROJECT_DIR / "mysensors" / "VERSION").read_text().strip()
 
-README = open('README.md').read()
+README_FILE = PROJECT_DIR / "README.md"
+LONG_DESCR = README_FILE.read_text(encoding="utf-8")
 
 REQUIRES = [
-    'crcmod>=1.7', 'get-mac>=0.2.1', 'IntelHex>=2.2.1', 'pyserial>=3.4',
+    'click', 'crcmod>=1.7', 'getmac', 'IntelHex>=2.2.1', 'pyserial>=3.4',
     'pyserial-asyncio>=0.4', 'voluptuous>=0.11.1',
 ]
+EXTRAS = {'mqtt-client': ['paho-mqtt']}
+
 
 setup(
     name='pymysensors',
-    version=__version__,
+    version=VERSION,
     description='Python API for talking to a MySensors gateway',
-    long_description=README,
+    long_description=LONG_DESCR,
     long_description_content_type='text/markdown',
     url='https://github.com/theolind/pymysensors',
     author='Theodor Lindquist',
     author_email='theodor.lindquist@gmail.com',
     license='MIT License',
     install_requires=REQUIRES,
+    extras_require=EXTRAS,
     packages=find_packages(exclude=['tests', 'tests.*']),
+    entry_points={
+        'console_scripts': ['pymysensors = mysensors.cli:cli']},
     keywords=['sensor', 'actuator', 'IoT', 'DYI'],
     zip_safe=True,
     classifiers=[
@@ -30,8 +39,8 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
         'Operating System :: OS Independent',
-        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
         'Topic :: Home Automation',
     ])

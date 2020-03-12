@@ -60,11 +60,11 @@ def test_persistence(gateway, add_sensor, filename, tmpdir):
     assert gateway.sensors[1].children[0].id == sensor.children[0].id
     assert gateway.sensors[1].children[0].type == sensor.children[0].type
     assert (
-        gateway.sensors[1].children[0].description ==
-        sensor.children[0].description)
+        gateway.sensors[1].children[0].description
+        == sensor.children[0].description)
     assert (
-        gateway.sensors[1].children[0].values ==
-        sensor.children[0].values)
+        gateway.sensors[1].children[0].values
+        == sensor.children[0].values)
     gateway.persistence.save_sensors()
     del gateway.sensors[1]
     assert 1 not in gateway.sensors
@@ -179,23 +179,6 @@ def test_persistence_upgrade(
     assert gateway.sensors[1].children[0].description == ''
     assert gateway.sensors[1].children[0].id == sensor.children[0].id
     assert gateway.sensors[1].children[0].type == sensor.children[0].type
-
-
-@mock.patch('mysensors.persistence.Persistence.save_sensors')
-def test_schedule_save_sensors(mock_save, gateway):
-    """Test schedule save sensors."""
-    mock_schedule_save = mock.MagicMock()
-    mock_schedule_factory = mock.MagicMock()
-    mock_schedule_factory.return_value = mock_schedule_save
-
-    gateway.persistence = Persistence(gateway.sensors, mock_schedule_factory)
-
-    assert mock_schedule_factory.call_count == 1
-    assert mock_schedule_factory.call_args == mock.call(mock_save)
-
-    gateway.persistence.schedule_save_sensors()
-
-    assert mock_schedule_save.call_count == 1
 
 
 class MySensorsJSONEncoderTestUpgrade(MySensorsJSONEncoder):

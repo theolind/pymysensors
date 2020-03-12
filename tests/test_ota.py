@@ -6,6 +6,7 @@ from unittest import TestCase, main
 
 from mysensors import Gateway, Sensor
 from mysensors.ota import FIRMWARE_BLOCK_SIZE, load_fw
+from mysensors.task import SyncTasks
 
 FW_TYPE = 1
 FW_VER = 1
@@ -26,6 +27,8 @@ class TestOTA(TestCase):
     def setUp(self):
         """Set up gateway."""
         self.gateway = Gateway()
+        self.gateway.tasks = SyncTasks(
+            self.gateway.const, False, None, self.gateway.sensors, None)
 
     def _add_sensor(self, sensorid):
         """Add sensor node. Return sensor node instance."""
@@ -42,7 +45,7 @@ class TestOTA(TestCase):
                 hex_file_str.encode('utf-8'))
             file_handle.flush()
             fw_bin = load_fw(file_handle.name)
-            self.gateway.ota.make_update(
+            self.gateway.tasks.ota.make_update(
                 [sensor.sensor_id for sensor in sensors], FW_TYPE, FW_VER,
                 fw_bin)
 
@@ -55,7 +58,7 @@ class TestOTA(TestCase):
     def test_no_fw(self):
         """Test firmware update with no firmware loaded."""
         sensor = self._add_sensor(1)
-        self.gateway.ota.make_update(
+        self.gateway.tasks.ota.make_update(
             sensor.sensor_id, FW_TYPE, FW_VER)
         ret = self.gateway.logic('1;255;4;0;0;01000200B00626E80300\n')
         self.assertEqual(ret, None)
@@ -63,7 +66,7 @@ class TestOTA(TestCase):
     def test_bad_fw_type_or_version(self):
         """Test firmware update with bad firmware type or version."""
         sensor = self._add_sensor(1)
-        self.gateway.ota.make_update(
+        self.gateway.tasks.ota.make_update(
             sensor.sensor_id, 'a', 'b')
         ret = self.gateway.logic('1;255;4;0;0;01000200B00626E80300\n')
         self.assertEqual(ret, None)
@@ -75,7 +78,7 @@ class TestOTA(TestCase):
                 HEX_FILE_STR.encode('utf-8'))
             file_handle.flush()
             fw_bin = load_fw(file_handle.name)
-            self.gateway.ota.make_update(1, FW_TYPE, FW_VER, fw_bin)
+            self.gateway.tasks.ota.make_update(1, FW_TYPE, FW_VER, fw_bin)
         ret = self.gateway.logic('1;255;4;0;0;01000200B00626E80300\n')
         self.assertEqual(ret, None)
 
@@ -132,7 +135,7 @@ class TestOTA(TestCase):
                 HEX_FILE_STR.encode('utf-8'))
             file_handle.flush()
             fw_bin = load_fw(file_handle.name)
-            self.gateway.ota.make_update(1, FW_TYPE, FW_VER, fw_bin)
+            self.gateway.tasks.ota.make_update(1, FW_TYPE, FW_VER, fw_bin)
         payload = binascii.hexlify(
             struct.pack('<3H', FW_TYPE, FW_VER, block - 1)).decode('utf-8')
         ret = self.gateway.logic('1;255;4;0;2;{}\n'.format(payload))
