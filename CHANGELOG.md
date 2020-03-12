@@ -1,4 +1,70 @@
-# Change Log
+# Changelog
+
+## [0.19.1](https://github.com/theolind/pymysensors/tree/0.19.1) (2020-03-12)
+
+[Full Changelog](https://github.com/theolind/pymysensors/compare/0.19.0...0.19.1)
+
+**Merged pull requests:**
+
+- Bump version to 0.19.1 [\#233](https://github.com/theolind/pymysensors/pull/233) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Clean up dev branch leftovers [\#232](https://github.com/theolind/pymysensors/pull/232) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Update contributing instructions [\#231](https://github.com/theolind/pymysensors/pull/231) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Fix changelog action since tag [\#230](https://github.com/theolind/pymysensors/pull/230) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Use master as default branch [\#229](https://github.com/theolind/pymysensors/pull/229) ([MartinHjelmare](https://github.com/MartinHjelmare))
+
+## [0.19.0](https://github.com/theolind/pymysensors/tree/0.19.0) (2020-03-12)
+
+[Full Changelog](https://github.com/theolind/pymysensors/compare/0.18.0...0.19.0)
+
+**Closed issues:**
+
+- Sometimes error handling "Gateway startup complete." message [\#221](https://github.com/theolind/pymysensors/issues/221)
+- Asynchio: how to enable persistence [\#209](https://github.com/theolind/pymysensors/issues/209)
+- Two nodes sharing the same ID [\#207](https://github.com/theolind/pymysensors/issues/207)
+- re-request presentation? [\#205](https://github.com/theolind/pymysensors/issues/205)
+- Anticipate messages from presentation only? [\#202](https://github.com/theolind/pymysensors/issues/202)
+- Node is unknown [\#201](https://github.com/theolind/pymysensors/issues/201)
+- Child values have random keys? [\#200](https://github.com/theolind/pymysensors/issues/200)
+- Getting some strange concatenation of node ID's? [\#199](https://github.com/theolind/pymysensors/issues/199)
+- Child\_id instead of "id" [\#198](https://github.com/theolind/pymysensors/issues/198)
+- Callback when a node is added? [\#197](https://github.com/theolind/pymysensors/issues/197)
+- Questions about running on Raspberry Pi [\#195](https://github.com/theolind/pymysensors/issues/195)
+- Documentation addition [\#194](https://github.com/theolind/pymysensors/issues/194)
+
+**Merged pull requests:**
+
+- 0.19.0 [\#228](https://github.com/theolind/pymysensors/pull/228) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Update release procedure [\#227](https://github.com/theolind/pymysensors/pull/227) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Add release drafter [\#226](https://github.com/theolind/pymysensors/pull/226) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Add changelog action [\#225](https://github.com/theolind/pymysensors/pull/225) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Add github actions CI [\#224](https://github.com/theolind/pymysensors/pull/224) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Scheduled monthly dependency update for March [\#223](https://github.com/theolind/pymysensors/pull/223) ([pyup-bot](https://github.com/pyup-bot))
+- Scheduled monthly dependency update for February [\#222](https://github.com/theolind/pymysensors/pull/222) ([pyup-bot](https://github.com/pyup-bot))
+- Scheduled monthly dependency update for November [\#220](https://github.com/theolind/pymysensors/pull/220) ([pyup-bot](https://github.com/pyup-bot))
+- Scheduled monthly dependency update for October [\#219](https://github.com/theolind/pymysensors/pull/219) ([pyup-bot](https://github.com/pyup-bot))
+- Scheduled monthly dependency update for September [\#218](https://github.com/theolind/pymysensors/pull/218) ([pyup-bot](https://github.com/pyup-bot))
+- Scheduled monthly dependency update for August [\#217](https://github.com/theolind/pymysensors/pull/217) ([pyup-bot](https://github.com/pyup-bot))
+- Clean up start persistence [\#215](https://github.com/theolind/pymysensors/pull/215) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Remove gen\_rst script [\#214](https://github.com/theolind/pymysensors/pull/214) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Remove Python 3.4 support [\#213](https://github.com/theolind/pymysensors/pull/213) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Scheduled monthly dependency update for July [\#212](https://github.com/theolind/pymysensors/pull/212) ([pyup-bot](https://github.com/pyup-bot))
+- Scheduled monthly dependency update for June [\#211](https://github.com/theolind/pymysensors/pull/211) ([pyup-bot](https://github.com/pyup-bot))
+- Scheduled monthly dependency update for May [\#208](https://github.com/theolind/pymysensors/pull/208) ([pyup-bot](https://github.com/pyup-bot))
+- Improve message validation [\#206](https://github.com/theolind/pymysensors/pull/206) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Add some more examples to readme [\#204](https://github.com/theolind/pymysensors/pull/204) ([flatsiedatsie](https://github.com/flatsiedatsie))
+- Scheduled monthly dependency update for April [\#192](https://github.com/theolind/pymysensors/pull/192) ([pyup-bot](https://github.com/pyup-bot))
+- Scheduled monthly dependency update for March [\#191](https://github.com/theolind/pymysensors/pull/191) ([pyup-bot](https://github.com/pyup-bot))
+- Scheduled monthly dependency update for January [\#189](https://github.com/theolind/pymysensors/pull/189) ([pyup-bot](https://github.com/pyup-bot))
+- Scheduled monthly dependency update for December [\#188](https://github.com/theolind/pymysensors/pull/188) ([pyup-bot](https://github.com/pyup-bot))
+- Clarify readme about connection callbacks [\#187](https://github.com/theolind/pymysensors/pull/187) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Add optional connection callbacks [\#186](https://github.com/theolind/pymysensors/pull/186) ([MartinHjelmare](https://github.com/MartinHjelmare))
+-  Refactor gateway into task and transport classes [\#185](https://github.com/theolind/pymysensors/pull/185) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Add CLI [\#184](https://github.com/theolind/pymysensors/pull/184) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Update travis build settings [\#183](https://github.com/theolind/pymysensors/pull/183) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Add pytest sugar [\#182](https://github.com/theolind/pymysensors/pull/182) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Upgrade getmac library to 0.6.0 [\#181](https://github.com/theolind/pymysensors/pull/181) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Fix binary operator linting [\#180](https://github.com/theolind/pymysensors/pull/180) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Scheduled monthly dependency update for November [\#179](https://github.com/theolind/pymysensors/pull/179) ([pyup-bot](https://github.com/pyup-bot))
 
 ## [0.18.0](https://github.com/theolind/pymysensors/tree/0.18.0) (2018-10-21)
 
@@ -10,6 +76,7 @@
 
 **Merged pull requests:**
 
+- 0.18.0 [\#178](https://github.com/theolind/pymysensors/pull/178) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Fix modify existing message [\#177](https://github.com/theolind/pymysensors/pull/177) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Scheduled monthly dependency update for October [\#175](https://github.com/theolind/pymysensors/pull/175) ([pyup-bot](https://github.com/pyup-bot))
 - Scheduled monthly dependency update for September [\#174](https://github.com/theolind/pymysensors/pull/174) ([pyup-bot](https://github.com/pyup-bot))
@@ -347,3 +414,6 @@
 - Add setup.py [\#4](https://github.com/theolind/pymysensors/pull/4) ([balloob](https://github.com/balloob))
 - Fix ValueError issue when decoding a message. [\#2](https://github.com/theolind/pymysensors/pull/2) ([andythigpen](https://github.com/andythigpen))
 - Improvements [\#1](https://github.com/theolind/pymysensors/pull/1) ([andythigpen](https://github.com/andythigpen))
+
+
+\* *This Changelog was automatically generated by [github_changelog_generator](https://github.com/github-changelog-generator/github-changelog-generator)*
