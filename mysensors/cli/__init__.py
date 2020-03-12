@@ -8,13 +8,13 @@ from mysensors.cli.gateway_mqtt import async_mqtt_gateway, mqtt_gateway
 from mysensors.cli.gateway_serial import async_serial_gateway, serial_gateway
 from mysensors.cli.gateway_tcp import async_tcp_gateway, tcp_gateway
 
-SETTINGS = dict(help_option_names=['-h', '--help'])
+SETTINGS = dict(help_option_names=["-h", "--help"])
 
 
 @click.group(
-    options_metavar='', subcommand_metavar='<command>',
-    context_settings=SETTINGS)
-@click.option('--debug', is_flag=True, help='Start pymysensors in debug mode.')
+    options_metavar="", subcommand_metavar="<command>", context_settings=SETTINGS
+)
+@click.option("--debug", is_flag=True, help="Start pymysensors in debug mode.")
 @click.version_option(__version__)
 def cli(debug):
     """Run pymysensors as an app for testing purposes."""

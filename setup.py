@@ -10,37 +10,42 @@ README_FILE = PROJECT_DIR / "README.md"
 LONG_DESCR = README_FILE.read_text(encoding="utf-8")
 
 REQUIRES = [
-    'click', 'crcmod>=1.7', 'getmac', 'IntelHex>=2.2.1', 'pyserial>=3.4',
-    'pyserial-asyncio>=0.4', 'voluptuous>=0.11.1',
+    "click",
+    "crcmod>=1.7",
+    "getmac",
+    "IntelHex>=2.2.1",
+    "pyserial>=3.4",
+    "pyserial-asyncio>=0.4",
+    "voluptuous>=0.11.1",
 ]
-EXTRAS = {'mqtt-client': ['paho-mqtt']}
+EXTRAS = {"mqtt-client": ["paho-mqtt"]}
 
 
 setup(
-    name='pymysensors',
+    name="pymysensors",
     version=VERSION,
-    description='Python API for talking to a MySensors gateway',
+    description="Python API for talking to a MySensors gateway",
     long_description=LONG_DESCR,
-    long_description_content_type='text/markdown',
-    url='https://github.com/theolind/pymysensors',
-    author='Theodor Lindquist',
-    author_email='theodor.lindquist@gmail.com',
-    license='MIT License',
+    long_description_content_type="text/markdown",
+    url="https://github.com/theolind/pymysensors",
+    author="Theodor Lindquist",
+    author_email="theodor.lindquist@gmail.com",
+    license="MIT License",
     install_requires=REQUIRES,
     extras_require=EXTRAS,
-    packages=find_packages(exclude=['tests', 'tests.*']),
-    entry_points={
-        'console_scripts': ['pymysensors = mysensors.cli:cli']},
-    keywords=['sensor', 'actuator', 'IoT', 'DYI'],
+    packages=find_packages(exclude=["tests", "tests.*"]),
+    entry_points={"console_scripts": ["pymysensors = mysensors.cli:cli"]},
+    keywords=["sensor", "actuator", "IoT", "DYI"],
     zip_safe=True,
     classifiers=[
-        'Intended Audience :: Developers',
-        'Intended Audience :: End Users/Desktop',
-        'License :: OSI Approved :: MIT License',
-        'Natural Language :: English',
-        'Operating System :: OS Independent',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
-        'Topic :: Home Automation',
-    ])
+        "Intended Audience :: Developers",
+        "Intended Audience :: End Users/Desktop",
+        "License :: OSI Approved :: MIT License",
+        "Natural Language :: English",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Topic :: Home Automation",
+    ],
+)

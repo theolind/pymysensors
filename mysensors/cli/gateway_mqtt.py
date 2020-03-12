@@ -8,7 +8,11 @@ import sys
 import click
 
 from mysensors.cli.helper import (
-    common_gateway_options, handle_msg, run_async_gateway, run_gateway)
+    common_gateway_options,
+    handle_msg,
+    run_async_gateway,
+    run_gateway,
+)
 from mysensors.gateway_mqtt import AsyncMQTTGateway, MQTTGateway
 
 _LOGGER = logging.getLogger(__name__)
@@ -17,46 +21,60 @@ _LOGGER = logging.getLogger(__name__)
 def common_mqtt_options(func):
     """Supply common mqtt gateway options."""
     func = click.option(
-        '-r', '--retain', is_flag=True, default=False,
-        help='Turn on retain on published messages at broker.')(func)
+        "-r",
+        "--retain",
+        is_flag=True,
+        default=False,
+        help="Turn on retain on published messages at broker.",
+    )(func)
     func = click.option(
-        '--out-prefix', default='mygateway1-in', show_default=True,
-        help='Topic prefix for outgoing messages.')(func)
+        "--out-prefix",
+        default="mygateway1-in",
+        show_default=True,
+        help="Topic prefix for outgoing messages.",
+    )(func)
     func = click.option(
-        '--in-prefix', default='mygateway1-out', show_default=True,
-        help='Topic prefix for incoming messages.')(func)
+        "--in-prefix",
+        default="mygateway1-out",
+        show_default=True,
+        help="Topic prefix for incoming messages.",
+    )(func)
     func = click.option(
-        '-p', '--port', default=1883, show_default=True, type=int,
-        help='MQTT port of the connection.')(func)
-    func = click.option(
-        '-b', '--broker', required=True,
-        help='MQTT broker address.')(func)
+        "-p",
+        "--port",
+        default=1883,
+        show_default=True,
+        type=int,
+        help="MQTT port of the connection.",
+    )(func)
+    func = click.option("-b", "--broker", required=True, help="MQTT broker address.")(
+        func
+    )
     return func
 
 
-@click.command(options_metavar='<options>')
+@click.command(options_metavar="<options>")
 @common_mqtt_options
 @common_gateway_options
 def mqtt_gateway(broker, port, **kwargs):
     """Start an mqtt gateway."""
     with run_mqtt_client(broker, port) as mqttc:
         gateway = MQTTGateway(
-            mqttc.publish, mqttc.subscribe, event_callback=handle_msg,
-            **kwargs)
+            mqttc.publish, mqttc.subscribe, event_callback=handle_msg, **kwargs
+        )
         run_gateway(gateway)
 
 
-@click.command(options_metavar='<options>')
+@click.command(options_metavar="<options>")
 @common_mqtt_options
 @common_gateway_options
 def async_mqtt_gateway(broker, port, **kwargs):
     """Start an async mqtt gateway."""
     loop = asyncio.get_event_loop()
-    mqttc = loop.run_until_complete(
-        async_start_mqtt_client(loop, broker, port))
+    mqttc = loop.run_until_complete(async_start_mqtt_client(loop, broker, port))
     gateway = AsyncMQTTGateway(
-        mqttc.publish, mqttc.subscribe, event_callback=handle_msg, loop=loop,
-        **kwargs)
+        mqttc.publish, mqttc.subscribe, event_callback=handle_msg, loop=loop, **kwargs
+    )
     run_async_gateway(gateway, mqttc.stop())
 
 
@@ -68,8 +86,8 @@ def run_mqtt_client(broker, port):
         mqttc.start()
     except OSError as exc:
         _LOGGER.error(
-            'Connecting to broker %s:%s failed, exiting: %s',
-            broker, port, exc)
+            "Connecting to broker %s:%s failed, exiting: %s", broker, port, exc
+        )
         sys.exit()
     try:
         yield mqttc
@@ -84,8 +102,8 @@ async def async_start_mqtt_client(loop, broker, port):
         await mqttc.start()
     except OSError as exc:
         _LOGGER.error(
-            'Connecting to broker %s:%s failed, exiting: %s',
-            broker, port, exc)
+            "Connecting to broker %s:%s failed, exiting: %s", broker, port, exc
+        )
         sys.exit()
     return mqttc
 
@@ -100,9 +118,10 @@ class MQTTClient:
             import paho.mqtt.client as mqtt
         except ImportError:
             _LOGGER.error(
-                'paho.mqtt.client is missing. '
-                'Make sure to install extras:\n'
-                'pip3 install pymysensors[mqtt-client]')
+                "paho.mqtt.client is missing. "
+                "Make sure to install extras:\n"
+                "pip3 install pymysensors[mqtt-client]"
+            )
             sys.exit()
         self.broker = broker
         self.port = port
@@ -126,7 +145,7 @@ class MQTTClient:
         def message_callback(mqttc, userdata, msg):
             """Handle received message."""
             # pylint: disable=unused-argument
-            callback(msg.topic, msg.payload.decode('utf-8'), msg.qos)
+            callback(msg.topic, msg.payload.decode("utf-8"), msg.qos)
 
         self._client.subscribe(topic, qos)
         self._client.message_callback_add(topic, message_callback)
@@ -134,13 +153,13 @@ class MQTTClient:
 
     def start(self):
         """Run the MQTT client."""
-        _LOGGER.info('Start MQTT client')
+        _LOGGER.info("Start MQTT client")
         self._connect()
         self._client.loop_start()
 
     def stop(self):
         """Stop the MQTT client."""
-        _LOGGER.info('Stop MQTT client')
+        _LOGGER.info("Stop MQTT client")
         self._client.disconnect()
         self._client.loop_stop()
 
@@ -166,17 +185,16 @@ class AsyncMQTTClient(MQTTClient):
         self._client.on_disconnect = self.on_disconnect
         self._aio_helper = AsyncioHelper(self.loop, self._client)
         super()._connect()
-        self._client.socket().setsockopt(
-            socket.SOL_SOCKET, socket.SO_SNDBUF, 2048)
+        self._client.socket().setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 2048)
 
     async def start(self):
         """Run the MQTT client."""
-        _LOGGER.info('Start MQTT client')
+        _LOGGER.info("Start MQTT client")
         self._connect()
 
     async def stop(self):
         """Stop the MQTT client."""
-        _LOGGER.info('Stop MQTT client')
+        _LOGGER.info("Stop MQTT client")
         self._client.disconnect()
         await self.disconnected
 
@@ -201,6 +219,7 @@ class AsyncioHelper:
 
     def on_socket_open(self, client, userdata, sock):
         """Handle socket open."""
+
         def callback():
             client.loop_read()
 
@@ -214,6 +233,7 @@ class AsyncioHelper:
 
     def register_write(self, client, userdata, sock):
         """Register write callback."""
+
         def callback():
             client.loop_write()
 
@@ -227,6 +247,7 @@ class AsyncioHelper:
         """Provide loop for paho mqtt."""
         # pylint: disable=import-error, import-outside-toplevel
         import paho.mqtt.client as mqtt
+
         while self._client.loop_misc() == mqtt.MQTT_ERR_SUCCESS:
             try:
                 await asyncio.sleep(1)

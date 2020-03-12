@@ -26,7 +26,7 @@ class MQTT(object):
 
         def _message_callback(mqttc, userdata, msg):
             """Callback added to callback list for received message."""
-            callback(msg.topic, msg.payload.decode('utf-8'), msg.qos)
+            callback(msg.topic, msg.payload.decode("utf-8"), msg.qos)
 
         self._mqttc.subscribe(topic, qos)
         self._mqttc.message_callback_add(topic, _message_callback)
@@ -34,27 +34,32 @@ class MQTT(object):
 
     def start(self):
         """Run the MQTT client."""
-        print('Start MQTT client')
+        print("Start MQTT client")
         self._mqttc.loop_start()
 
     def stop(self):
         """Stop the MQTT client."""
-        print('Stop MQTT client')
+        print("Stop MQTT client")
         self._mqttc.disconnect()
         self._mqttc.loop_stop()
 
 
 def event(message):
     """Callback for mysensors updates."""
-    print('sensor_update ' + str(message.node_id))
+    print("sensor_update " + str(message.node_id))
 
 
-MQTTC = MQTT('localhost', 1883, 60)
+MQTTC = MQTT("localhost", 1883, 60)
 MQTTC.start()
 
 GATEWAY = mysensors.MQTTGateway(
-    MQTTC.publish, MQTTC.subscribe, in_prefix='mygateway1-out',
-    out_prefix='mygateway1-in', retain=True, event_callback=event,
-    protocol_version='2.0')
+    MQTTC.publish,
+    MQTTC.subscribe,
+    in_prefix="mygateway1-out",
+    out_prefix="mygateway1-in",
+    retain=True,
+    event_callback=event,
+    protocol_version="2.0",
+)
 
 GATEWAY.start()

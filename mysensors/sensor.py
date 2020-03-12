@@ -25,7 +25,7 @@ class Sensor:
         self.sketch_name = None
         self.sketch_version = None
         self._battery_level = 0
-        self._protocol_version = '1.4'
+        self._protocol_version = "1.4"
         self._heartbeat = 0
         self.new_state = {}
         self.queue = deque()
@@ -34,10 +34,10 @@ class Sensor:
     def __getstate__(self):
         """Get state to save as pickle."""
         state = self.__dict__.copy()
-        for attr in ('_battery_level', '_heartbeat', '_protocol_version'):
+        for attr in ("_battery_level", "_heartbeat", "_protocol_version"):
             value = state.pop(attr, None)
             prop = attr
-            if prop.startswith('_'):
+            if prop.startswith("_"):
                 prop = prop[1:]
             if value is not None:
                 state[prop] = value
@@ -53,13 +53,14 @@ class Sensor:
         self.new_state = {}
         self.queue = deque()
         self.reboot = False
-        if '_heartbeat' not in self.__dict__:
+        if "_heartbeat" not in self.__dict__:
             self.heartbeat = 0
 
     def __repr__(self):
         """Return the representation."""
-        return '<Sensor sensor_id={}, children: {}>'.format(
-            self.sensor_id, self.children)
+        return "<Sensor sensor_id={}, children: {}>".format(
+            self.sensor_id, self.children
+        )
 
     @property
     def battery_level(self):
@@ -91,43 +92,55 @@ class Sensor:
         """Set valid protocol version."""
         self._protocol_version = safe_is_version(value)
 
-    def add_child_sensor(self, child_id, child_type, description=''):
+    def add_child_sensor(self, child_id, child_type, description=""):
         """Create and add a child sensor."""
         if child_id in self.children:
             _LOGGER.warning(
-                'child_id %s already exists in children of node %s, '
-                'cannot add child', child_id, self.sensor_id)
+                "child_id %s already exists in children of node %s, "
+                "cannot add child",
+                child_id,
+                self.sensor_id,
+            )
             return None
-        self.children[child_id] = ChildSensor(
-            child_id, child_type, description)
+        self.children[child_id] = ChildSensor(child_id, child_type, description)
         return child_id
 
     def set_child_value(self, child_id, value_type, value, **kwargs):
         """Set a child sensor's value."""
-        children = kwargs.get('children', self.children)
+        children = kwargs.get("children", self.children)
         if not isinstance(children, dict) or child_id not in children:
             return None
-        msg_type = kwargs.get('msg_type', 1)
-        ack = kwargs.get('ack', 0)
+        msg_type = kwargs.get("msg_type", 1)
+        ack = kwargs.get("ack", 0)
         msg = Message().modify(
-            node_id=self.sensor_id, child_id=child_id, type=msg_type, ack=ack,
-            sub_type=value_type, payload=value)
+            node_id=self.sensor_id,
+            child_id=child_id,
+            type=msg_type,
+            ack=ack,
+            sub_type=value_type,
+            payload=value,
+        )
         msg_string = msg.encode()
         if msg_string is None:
             _LOGGER.error(
-                'Not a valid message: node %s, child %s, type %s, ack %s, '
-                'sub_type %s, payload %s',
-                self.sensor_id, child_id, msg_type, ack, value_type, value)
+                "Not a valid message: node %s, child %s, type %s, ack %s, "
+                "sub_type %s, payload %s",
+                self.sensor_id,
+                child_id,
+                msg_type,
+                ack,
+                value_type,
+                value,
+            )
             return None
         msg = Message(msg_string)
         try:
             msg.validate(self.protocol_version)
         except AttributeError as exc:
-            _LOGGER.error('Invalid %s: %s', msg, exc)
+            _LOGGER.error("Invalid %s: %s", msg, exc)
             return None
         except vol.Invalid as exc:
-            _LOGGER.error(
-                'Invalid %s: %s', msg, humanize_error(msg.__dict__, exc))
+            _LOGGER.error("Invalid %s: %s", msg, humanize_error(msg.__dict__, exc))
             return None
         child = children[msg.child_id]
         child.values[msg.sub_type] = msg.payload
@@ -137,7 +150,7 @@ class Sensor:
 class ChildSensor:
     """Represent a child sensor."""
 
-    def __init__(self, child_id, child_type, description=''):
+    def __init__(self, child_id, child_type, description=""):
         """Set up child sensor."""
         # pylint: disable=invalid-name
         self.id = child_id
@@ -150,24 +163,29 @@ class ChildSensor:
         # Restore instance attributes
         self.__dict__.update(state)
         # Make sure all attributes exist
-        if 'description' not in self.__dict__:
-            self.description = ''
+        if "description" not in self.__dict__:
+            self.description = ""
 
     def __repr__(self):
         """Return the representation."""
-        ret = ('<ChildSensor child_id={0!s}, child_type={1!s}, '
-               'description={2!s}, values: {3!s}>')
+        ret = (
+            "<ChildSensor child_id={0!s}, child_type={1!s}, "
+            "description={2!s}, values: {3!s}>"
+        )
         return ret.format(self.id, self.type, self.description, self.values)
 
     def get_schema(self, protocol_version):
         """Return the child schema for the correct const version."""
         const = get_const(protocol_version)
-        custom_schema = vol.Schema({
-            typ.value: const.VALID_SETREQ[typ]
-            for typ in const.VALID_TYPES[const.Presentation.S_CUSTOM]})
-        return custom_schema.extend({
-            typ.value: const.VALID_SETREQ[typ]
-            for typ in const.VALID_TYPES[self.type]})
+        custom_schema = vol.Schema(
+            {
+                typ.value: const.VALID_SETREQ[typ]
+                for typ in const.VALID_TYPES[const.Presentation.S_CUSTOM]
+            }
+        )
+        return custom_schema.extend(
+            {typ.value: const.VALID_SETREQ[typ] for typ in const.VALID_TYPES[self.type]}
+        )
 
     def validate(self, protocol_version, values=None):
         """Validate child value types and values against protocol_version."""

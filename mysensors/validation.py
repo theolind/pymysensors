@@ -16,12 +16,11 @@ def is_version(value):
     """Validate that value is a valid version string."""
     try:
         value = str(value)
-        if parse_ver('1.4') > parse_ver(value):
+        if parse_ver("1.4") > parse_ver(value):
             raise ValueError()
         return value
     except (AttributeError, TypeError, ValueError):
-        raise vol.Invalid(
-            '{} is not a valid version specifier'.format(value))
+        raise vol.Invalid("{} is not a valid version specifier".format(value))
 
 
 def safe_is_version(value):
@@ -30,9 +29,9 @@ def safe_is_version(value):
         return is_version(value)
     except vol.Invalid:
         _LOGGER.warning(
-            '%s is not a valid version specifier, '
-            'falling back to version 1.4', value)
-        return '1.4'
+            "%s is not a valid version specifier, " "falling back to version 1.4", value
+        )
+        return "1.4"
 
 
 def is_battery_level(value):
@@ -42,8 +41,8 @@ def is_battery_level(value):
         return value
     except vol.Invalid:
         _LOGGER.warning(
-            '%s is not a valid battery level, falling back to battery level 0',
-            value)
+            "%s is not a valid battery level, falling back to battery level 0", value
+        )
         return 0
 
 
@@ -54,6 +53,6 @@ def is_heartbeat(value):
         return value
     except vol.Invalid:
         _LOGGER.warning(
-            '%s is not a valid heartbeat value, falling back to heartbeat 0',
-            value)
+            "%s is not a valid heartbeat value, falling back to heartbeat 0", value
+        )
         return 0

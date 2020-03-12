@@ -9,13 +9,13 @@ def get_gateway(**kwargs):
     """Return a gateway instance."""
     _gateway = Gateway(**kwargs)
     _gateway.tasks = SyncTasks(
-        _gateway.const, True, 'mysensors.pickle', _gateway.sensors,
-        mock.MagicMock())
+        _gateway.const, True, "mysensors.pickle", _gateway.sensors, mock.MagicMock()
+    )
     return _gateway
 
 
-@mock.patch('mysensors.persistence.Persistence.save_sensors')
-@mock.patch('mysensors.task.threading.Timer')
+@mock.patch("mysensors.persistence.Persistence.save_sensors")
+@mock.patch("mysensors.task.threading.Timer")
 def test_threading_persistence(mock_timer_class, mock_save_sensors):
     """Test schedule persistence on threading gateway."""
     mock_timer_1 = mock.MagicMock()

@@ -25,15 +25,14 @@ class Tasks:
 
     # pylint: disable=too-many-arguments
 
-    def __init__(
-            self, const, persistence, persistence_file, sensors, transport):
+    def __init__(self, const, persistence, persistence_file, sensors, transport):
         """Set up Tasks."""
         self.queue = deque()
         self.ota = OTAFirmware(sensors, const)
         if persistence:
             self.persistence = Persistence(
-                sensors, self._schedule_factory,
-                persistence_file=persistence_file)
+                sensors, self._schedule_factory, persistence_file=persistence_file
+            )
         else:
             self.persistence = None
         self.transport = transport
@@ -64,8 +63,11 @@ class Tasks:
         end = timer()
         if end - start > 0.1:
             _LOGGER.debug(
-                'Handle queue with call %s(%s) took %.3f seconds',
-                func, args, end - start)
+                "Handle queue with call %s(%s) took %.3f seconds",
+                func,
+                args,
+                end - start,
+            )
         return reply
 
     def start(self):
@@ -120,12 +122,14 @@ class SyncTasks(Tasks):
 
     def _schedule_factory(self, save_sensors):
         """Return function to schedule saving sensors."""
+
         def schedule_save():
             """Save sensors and schedule a new save."""
             save_sensors()
             scheduler = threading.Timer(10.0, schedule_save)
             scheduler.start()
             self._cancel_save = scheduler.cancel
+
         return schedule_save
 
     def start_persistence(self):
@@ -137,7 +141,7 @@ class SyncTasks(Tasks):
 
     def stop(self):
         """Stop the background thread."""
-        _LOGGER.info('Stopping gateway')
+        _LOGGER.info("Stopping gateway")
         self.transport.disconnect()
         self._stop_event.set()
         if not self.persistence:
@@ -172,10 +176,9 @@ class AsyncTasks(Tasks):
 
     async def stop(self):
         """Stop the gateway."""
-        _LOGGER.info('Stopping gateway')
+        _LOGGER.info("Stopping gateway")
         self.transport.disconnect()
-        if self.transport.connect_task and \
-                not self.transport.connect_task.cancelled():
+        if self.transport.connect_task and not self.transport.connect_task.cancelled():
             self.transport.connect_task.cancel()
             self.transport.connect_task = None
         if not self.persistence:
@@ -183,8 +186,7 @@ class AsyncTasks(Tasks):
         if self._cancel_save is not None:
             self._cancel_save()
             self._cancel_save = None
-        await self.loop.run_in_executor(
-            None, self.persistence.save_sensors)
+        await self.loop.run_in_executor(None, self.persistence.save_sensors)
 
     def add_job(self, func, *args):
         """Add a job that should return a reply to be sent.
@@ -201,28 +203,28 @@ class AsyncTasks(Tasks):
 
     def _schedule_factory(self, save_sensors):
         """Return function to schedule saving sensors."""
+
         async def schedule_save():
             """Save sensors and schedule a new save."""
             await self.loop.run_in_executor(None, save_sensors)
             callback = partial(self.loop.create_task, schedule_save())
             task = self.loop.call_later(10.0, callback)
             self._cancel_save = task.cancel
+
         return schedule_save
 
     async def start_persistence(self):
         """Load persistence file and schedule saving of persistence file."""
         if not self.persistence:
             return
-        await self.loop.run_in_executor(
-            None, self.persistence.safe_load_sensors)
+        await self.loop.run_in_executor(None, self.persistence.safe_load_sensors)
         await self.persistence.schedule_save_sensors()
 
     async def update_fw(self, nids, fw_type, fw_ver, fw_path=None):
         """Start update firwmare of all node_ids in nids in executor."""
         fw_bin = None
         if fw_path:
-            fw_bin = await self.loop.run_in_executor(
-                None, load_fw, fw_path)
+            fw_bin = await self.loop.run_in_executor(None, load_fw, fw_path)
             if not fw_bin:
                 return
         self.ota.make_update(nids, fw_type, fw_ver, fw_bin)

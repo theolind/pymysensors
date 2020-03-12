@@ -35,8 +35,7 @@ def gateway(connection_transport, reconnect_callback):
     transport = Transport(gateway, connect)
     transport.connect = connect
     transport.protocol = protocol
-    _gateway.tasks = SyncTasks(
-        _gateway.const, False, None, _gateway.sensors, transport)
+    _gateway.tasks = SyncTasks(_gateway.const, False, None, _gateway.sensors, transport)
     return _gateway
 
 
@@ -59,7 +58,7 @@ def test_connection_made_callback(gateway, connection_transport):
 
 def test_handle_line(gateway):
     """Test handle line."""
-    line = '1;255;0;0;17;1.4.1\n'
+    line = "1;255;0;0;17;1.4.1\n"
     gateway.tasks.transport.protocol.handle_line(line)
     gateway.tasks.run_job()
     assert 1 in gateway.sensors
@@ -89,24 +88,23 @@ def test_connection_lost(gateway, connection_transport, reconnect_callback):
     assert gateway.tasks.transport.protocol.transport is None
     gateway.tasks.transport.connect()
     assert gateway.tasks.transport.protocol.transport is connection_transport
-    gateway.tasks.transport.protocol.connection_lost('error')
+    gateway.tasks.transport.protocol.connection_lost("error")
     assert connection_transport.serial.close.call_count == 1
     assert reconnect_callback.call_count == 1
     assert gateway.tasks.transport.protocol.transport is None
 
 
-def test_connection_lost_callback(
-        gateway, connection_transport, reconnect_callback):
+def test_connection_lost_callback(gateway, connection_transport, reconnect_callback):
     """Test connection is lost and that callbacks are called."""
     conn_lost = mock.MagicMock()
     gateway.on_conn_lost = conn_lost
     assert gateway.tasks.transport.protocol.transport is None
     gateway.tasks.transport.connect()
     assert gateway.tasks.transport.protocol.transport is connection_transport
-    gateway.tasks.transport.protocol.connection_lost('error')
+    gateway.tasks.transport.protocol.connection_lost("error")
     assert connection_transport.serial.close.call_count == 1
     assert conn_lost.call_count == 1
-    assert conn_lost.call_args == mock.call(gateway, 'error')
+    assert conn_lost.call_args == mock.call(gateway, "error")
     assert reconnect_callback.call_count == 1
     assert gateway.tasks.transport.protocol.transport is None
 
@@ -116,11 +114,10 @@ def test_send(gateway, connection_transport):
     assert gateway.tasks.transport.protocol.transport is None
     gateway.tasks.transport.connect()
     assert gateway.tasks.transport.protocol.transport is connection_transport
-    msg_string = '1;255;3;0;1;123456789\n'
+    msg_string = "1;255;3;0;1;123456789\n"
     gateway.tasks.transport.send(msg_string)
     assert connection_transport.write.call_count == 1
-    assert connection_transport.write.call_args == mock.call(
-        msg_string.encode())
+    assert connection_transport.write.call_args == mock.call(msg_string.encode())
 
 
 def test_send_no_message(gateway, connection_transport):
@@ -128,7 +125,7 @@ def test_send_no_message(gateway, connection_transport):
     assert gateway.tasks.transport.protocol.transport is None
     gateway.tasks.transport.connect()
     assert gateway.tasks.transport.protocol.transport is connection_transport
-    msg_string = ''
+    msg_string = ""
     gateway.tasks.transport.send(msg_string)
     assert connection_transport.write.call_count == 0
 
@@ -136,7 +133,7 @@ def test_send_no_message(gateway, connection_transport):
 def test_send_no_protocol(gateway, connection_transport):
     """Test send with no protocol."""
     gateway.tasks.transport.protocol = None
-    msg_string = '1;255;3;0;1;123456789\n'
+    msg_string = "1;255;3;0;1;123456789\n"
     gateway.tasks.transport.send(msg_string)
     assert connection_transport.write.call_count == 0
 
@@ -144,7 +141,7 @@ def test_send_no_protocol(gateway, connection_transport):
 def test_send_no_transport(gateway, connection_transport):
     """Test send with no transport."""
     assert gateway.tasks.transport.protocol.transport is None
-    msg_string = '1;255;3;0;1;123456789\n'
+    msg_string = "1;255;3;0;1;123456789\n"
     gateway.tasks.transport.send(msg_string)
     assert connection_transport.write.call_count == 0
 
@@ -154,7 +151,7 @@ def test_send_error(gateway, connection_transport, reconnect_callback):
     assert gateway.tasks.transport.protocol.transport is None
     gateway.tasks.transport.connect()
     assert gateway.tasks.transport.protocol.transport is connection_transport
-    msg_string = '1;255;3;0;1;123456789\n'
+    msg_string = "1;255;3;0;1;123456789\n"
     connection_transport.write = mock.MagicMock(side_effect=OSError())
     gateway.tasks.transport.send(msg_string)
     assert connection_transport.write.call_count == 1
