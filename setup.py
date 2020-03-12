@@ -34,6 +34,7 @@ setup(
     install_requires=REQUIRES,
     extras_require=EXTRAS,
     packages=find_packages(exclude=["tests", "tests.*"]),
+    python_requires=">=3.5.3",
     entry_points={"console_scripts": ["pymysensors = mysensors.cli:cli"]},
     keywords=["sensor", "actuator", "IoT", "DYI"],
     zip_safe=True,
@@ -46,6 +47,7 @@ setup(
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
         "Topic :: Home Automation",
     ],
 )
