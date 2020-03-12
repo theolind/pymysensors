@@ -1,9 +1,13 @@
 """Setup file for mysensors package."""
+from pathlib import Path
+
 from setuptools import setup, find_packages
 
-exec(open('mysensors/version.py').read())
+PROJECT_DIR = Path(__file__).parent.resolve()
+VERSION = (PROJECT_DIR / "mysensors" / "VERSION").read_text().strip()
 
-README = open('README.md').read()
+README_FILE = PROJECT_DIR / "README.md"
+LONG_DESCR = README_FILE.read_text(encoding="utf-8")
 
 REQUIRES = [
     'click', 'crcmod>=1.7', 'getmac', 'IntelHex>=2.2.1', 'pyserial>=3.4',
@@ -14,9 +18,9 @@ EXTRAS = {'mqtt-client': ['paho-mqtt']}
 
 setup(
     name='pymysensors',
-    version=__version__,
+    version=VERSION,
     description='Python API for talking to a MySensors gateway',
-    long_description=README,
+    long_description=LONG_DESCR,
     long_description_content_type='text/markdown',
     url='https://github.com/theolind/pymysensors',
     author='Theodor Lindquist',

@@ -214,5 +214,23 @@ uses asyncio. The following public methods are coroutines in the async gateway:
 
 See [async_main.py](https://github.com/theolind/pymysensors/blob/master/async_main.py) for an example of how to use this gateway.
 
+## Development
+
+Install the packages needed for development.
+
+```sh
+pip install -r requirements_dev.txt
+```
+
+Use the Makefile to run common development tasks.
+
+```sh
+make
+```
+
+### Release
+
+See the [release instructions](RELEASE.md).
+
 [build-badge]: https://github.com/theolind/pymysensors/workflows/Test/badge.svg
 [build]: https://github.com/theolind/pymysensors/actions

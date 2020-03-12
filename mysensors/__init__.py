@@ -4,6 +4,7 @@ import logging
 # pylint: disable=no-name-in-module, import-error
 from distutils.version import LooseVersion as parse_ver
 from functools import partial
+from pathlib import Path
 
 import voluptuous as vol
 from voluptuous.humanize import humanize_error
@@ -13,9 +14,9 @@ from .message import Message
 from .sensor import Sensor
 from .task import AsyncTasks, SyncTasks
 from .validation import safe_is_version
-from .version import __version__  # noqa: F401
 
 _LOGGER = logging.getLogger(__name__)
+__version__ = (Path(__file__).parent / "VERSION").read_text().strip()
 
 
 class Gateway:
