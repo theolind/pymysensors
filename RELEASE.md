@@ -8,11 +8,12 @@
 
 - Create a release branch from dev.
 - Merge master into the release branch to make the PR mergeable.
-- Update version in `mysensors/version.py` to the new version number, eg `'0.2.0'`.
+- Update version in `mysensors/VERSION` to the new version number, eg `'0.2.0'`.
 - Commit with commit message `Bump version to 0.2.0` and push the release branch to origin.
 - Create a pull request from release branch to `master` with the commit message as title.
 - Merge the pull request into master, do not squash.
-- Go to github releases and tag a new release on the master branch. Put the PR message as the description for the release.
+- Wait for all GitHub actions to have run successfully.
+- Go to github releases and tag a new release on the master branch.
 - Fetch and checkout the master branch.
 - Stage release:
 
