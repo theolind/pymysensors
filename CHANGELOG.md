@@ -123,7 +123,6 @@
 - Fix pylint issues [\#166](https://github.com/theolind/pymysensors/pull/166) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Fix instance specific handler [\#165](https://github.com/theolind/pymysensors/pull/165) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Scheduled monthly dependency update for August [\#164](https://github.com/theolind/pymysensors/pull/164) ([pyup-bot](https://github.com/pyup-bot))
-- Cancel check connection when closing transport [\#161](https://github.com/theolind/pymysensors/pull/161) ([MartinHjelmare](https://github.com/MartinHjelmare))
 
 ## [0.16.0](https://github.com/theolind/pymysensors/tree/0.16.0) (2018-07-19)
 
@@ -133,6 +132,7 @@
 
 - 0.16.0 [\#163](https://github.com/theolind/pymysensors/pull/163) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Scheduled monthly dependency update for July [\#162](https://github.com/theolind/pymysensors/pull/162) ([pyup-bot](https://github.com/pyup-bot))
+- Cancel check connection when closing transport [\#161](https://github.com/theolind/pymysensors/pull/161) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Refactor message type handler selection [\#159](https://github.com/theolind/pymysensors/pull/159) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Scheduled monthly dependency update for June [\#158](https://github.com/theolind/pymysensors/pull/158) ([pyup-bot](https://github.com/pyup-bot))
 - Add heartbeat as node sensor instance attribute [\#157](https://github.com/theolind/pymysensors/pull/157) ([MartinHjelmare](https://github.com/MartinHjelmare))
