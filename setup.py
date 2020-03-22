@@ -34,6 +34,7 @@ setup(
     install_requires=REQUIRES,
     extras_require=EXTRAS,
     packages=find_packages(exclude=["tests", "tests.*"]),
+    include_package_data=True,
     python_requires=">=3.5.3",
     entry_points={"console_scripts": ["pymysensors = mysensors.cli:cli"]},
     keywords=["sensor", "actuator", "IoT", "DYI"],
