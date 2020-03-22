@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.20.1](https://github.com/theolind/pymysensors/tree/0.20.1) (2020-03-22)
+
+[Full Changelog](https://github.com/theolind/pymysensors/compare/0.20.0...0.20.1)
+
+**Closed issues:**
+
+- Version file not found [\#240](https://github.com/theolind/pymysensors/issues/240)
+
+**Merged pull requests:**
+
+- Bump version to 0.20.1 [\#242](https://github.com/theolind/pymysensors/pull/242) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Fix package data for wheels [\#241](https://github.com/theolind/pymysensors/pull/241) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Update changelog [\#239](https://github.com/theolind/pymysensors/pull/239) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [0.20.0](https://github.com/theolind/pymysensors/tree/0.20.0) (2020-03-12)
 
 [Full Changelog](https://github.com/theolind/pymysensors/compare/0.19.1...0.20.0)
