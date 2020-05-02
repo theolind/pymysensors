@@ -6,9 +6,8 @@ from unittest import mock
 import pytest
 import voluptuous as vol
 
-from mysensors import Gateway
+from mysensors import BaseSyncGateway
 from mysensors.sensor import Sensor
-from mysensors.task import SyncTasks
 
 # pylint: disable=redefined-outer-name
 
@@ -16,15 +15,15 @@ from mysensors.task import SyncTasks
 @pytest.fixture(params=["1.4", "1.5", "2.0", "2.1", "2.2"])
 def gateway(request):
     """Return gateway instance."""
-    _gateway = Gateway(protocol_version=request.param)
-    _gateway.tasks = SyncTasks(_gateway.const, False, None, _gateway.sensors, None)
+    _gateway = BaseSyncGateway(
+        None, persistence=False, persistence_file=None, protocol_version=request.param
+    )
     return _gateway
 
 
 def get_gateway(**kwargs):
     """Return a gateway instance."""
-    _gateway = Gateway(**kwargs)
-    _gateway.tasks = SyncTasks(_gateway.const, False, None, _gateway.sensors, None)
+    _gateway = BaseSyncGateway(None, persistence=False, persistence_file=None, **kwargs)
     return _gateway
 
 

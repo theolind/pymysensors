@@ -4,9 +4,8 @@ import struct
 import tempfile
 from unittest import TestCase, main
 
-from mysensors import Gateway, Sensor
+from mysensors import BaseSyncGateway, Sensor
 from mysensors.ota import FIRMWARE_BLOCK_SIZE, load_fw
-from mysensors.task import SyncTasks
 
 FW_TYPE = 1
 FW_VER = 1
@@ -27,10 +26,7 @@ class TestOTA(TestCase):
 
     def setUp(self):
         """Set up gateway."""
-        self.gateway = Gateway()
-        self.gateway.tasks = SyncTasks(
-            self.gateway.const, False, None, self.gateway.sensors, None
-        )
+        self.gateway = BaseSyncGateway(None, persistence=False, persistence_file=None)
 
     def _add_sensor(self, sensorid):
         """Add sensor node. Return sensor node instance."""
