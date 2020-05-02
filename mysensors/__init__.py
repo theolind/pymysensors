@@ -165,22 +165,6 @@ class Gateway:
         """Write a message to the arduino gateway."""
         self.tasks.transport.send(message)
 
-    def start(self):
-        """Start the gateway and task allow tasks to be scheduled."""
-        self.tasks.start()
-
-    def stop(self):
-        """Stop the gateway and stop allowing tasks for the scheduler."""
-        self.tasks.stop()
-
-    def start_persistence(self):
-        """Load persistence file and schedule saving of persistence file."""
-        self.tasks.start_persistence()
-
-    def update_fw(self, nids, fw_type, fw_ver, fw_path=None):
-        """Update firwmare of all node_ids in nids."""
-        self.tasks.update_fw(nids, fw_type, fw_ver, fw_path=fw_path)
-
 
 class BaseSyncGateway(Gateway):
     """MySensors base sync gateway."""
@@ -198,6 +182,22 @@ class BaseSyncGateway(Gateway):
         self.tasks = SyncTasks(
             self.const, persistence, persistence_file, self.sensors, transport
         )
+
+    def start(self):
+        """Start the gateway and task allow tasks to be scheduled."""
+        self.tasks.start()
+
+    def stop(self):
+        """Stop the gateway and stop allowing tasks for the scheduler."""
+        self.tasks.stop()
+
+    def start_persistence(self):
+        """Load persistence file and schedule saving of persistence file."""
+        self.tasks.start_persistence()
+
+    def update_fw(self, nids, fw_type, fw_ver, fw_path=None):
+        """Update firwmare of all node_ids in nids."""
+        self.tasks.update_fw(nids, fw_type, fw_ver, fw_path=fw_path)
 
 
 class BaseAsyncGateway(Gateway):
