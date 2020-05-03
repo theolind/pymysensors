@@ -23,7 +23,7 @@ class BaseSerialGateway(Gateway):
         self.port = port
         self.baud = baud
 
-    def get_gateway_id(self):
+    def _get_gateway_id(self):
         """Return a unique id for the gateway."""
         info = next(serial.tools.list_ports.grep(self.port), None)
         return info.serial_number if info is not None else None
@@ -36,6 +36,10 @@ class SerialGateway(BaseSyncGateway, BaseSerialGateway):
         """Set up serial gateway."""
         transport = SyncTransport(self, sync_connect, **kwargs)
         super().__init__(transport, *args, **kwargs)
+
+    def get_gateway_id(self):
+        """Return a unique id for the gateway."""
+        return self._get_gateway_id()
 
 
 def sync_connect(transport):
@@ -79,7 +83,7 @@ class AsyncSerialGateway(BaseAsyncGateway, BaseSerialGateway):
     async def get_gateway_id(self):
         """Return a unique id for the gateway."""
         serial_number = await self.tasks.loop.run_in_executor(
-            None, super().get_gateway_id
+            None, self._get_gateway_id
         )
         return serial_number
 

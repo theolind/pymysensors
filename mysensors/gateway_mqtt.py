@@ -96,7 +96,7 @@ class BaseMQTTGateway(Gateway):
         # prefix/node/child/type/ack/subtype : payload
         return "/{}".format(msg.encode("/"))[:-2], payload, msg.ack
 
-    def get_gateway_id(self):
+    def _get_gateway_id(self):
         """Return a unique id for the gateway."""
         return (
             self.tasks.transport.in_prefix if self.tasks.transport.in_prefix else None
@@ -128,6 +128,10 @@ class MQTTGateway(BaseSyncGateway, BaseMQTTGateway):
         )
         super().__init__(transport, **kwargs)
 
+    def get_gateway_id(self):
+        """Return a unique id for the gateway."""
+        return self._get_gateway_id()
+
 
 class AsyncMQTTGateway(BaseAsyncGateway, BaseMQTTGateway):
     """MySensors async MQTT client gateway."""
@@ -157,7 +161,7 @@ class AsyncMQTTGateway(BaseAsyncGateway, BaseMQTTGateway):
 
     async def get_gateway_id(self):
         """Return a unique id for the gateway."""
-        return super().get_gateway_id()
+        return self._get_gateway_id()
 
 
 class MQTTTransport(Transport):
@@ -186,10 +190,6 @@ class MQTTTransport(Transport):
         # topic structure:
         # prefix/node/child/type/ack/subtype : payload
         self.gateway = gateway
-
-    def connect(self):
-        """Connect to the transport."""
-        raise NotImplementedError
 
     def disconnect(self):
         """Disconnect from the transport.

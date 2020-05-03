@@ -27,10 +27,6 @@ class Transport:
         self.reconnect_timeout = reconnect_timeout
         self.timeout = timeout
 
-    def connect(self):
-        """Connect to the transport."""
-        raise NotImplementedError
-
     def disconnect(self):
         """Disconnect from the transport."""
         if not self.protocol or not self.protocol.transport:
