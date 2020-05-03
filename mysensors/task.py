@@ -70,22 +70,6 @@ class Tasks:
             )
         return reply
 
-    def start(self):
-        """Start the gateway and task allow tasks to be scheduled."""
-        raise NotImplementedError
-
-    def stop(self):
-        """Stop the gateway and stop allowing tasks for the scheduler."""
-        raise NotImplementedError
-
-    def start_persistence(self):
-        """Start persistence."""
-        raise NotImplementedError
-
-    def update_fw(self, nids, fw_type, fw_ver, fw_path=None):
-        """Update firwmare."""
-        raise NotImplementedError
-
 
 class SyncTasks(Tasks):
     """Sync version of tasks class."""

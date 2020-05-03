@@ -108,7 +108,7 @@ async def async_start_mqtt_client(loop, broker, port):
     return mqttc
 
 
-class MQTTClient:
+class BaseMQTTClient:
     """MQTT client."""
 
     def __init__(self, broker, port=1883, keepalive=60):
@@ -151,6 +151,10 @@ class MQTTClient:
         self._client.message_callback_add(topic, message_callback)
         self.topics[topic] = callback
 
+
+class MQTTClient(BaseMQTTClient):
+    """MQTT client."""
+
     def start(self):
         """Run the MQTT client."""
         _LOGGER.info("Start MQTT client")
@@ -164,7 +168,7 @@ class MQTTClient:
         self._client.loop_stop()
 
 
-class AsyncMQTTClient(MQTTClient):
+class AsyncMQTTClient(BaseMQTTClient):
     """Async MQTT client."""
 
     def __init__(self, loop, *args):

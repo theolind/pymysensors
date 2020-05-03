@@ -52,7 +52,7 @@ class BaseTCPGateway(Gateway):
         self.tcp_disconnect_timer = time.time()
         return None
 
-    def get_gateway_id(self):
+    def _get_gateway_id(self):
         """Return a unique id for the gateway."""
         host, _ = self.server_address
         try:
@@ -74,6 +74,10 @@ class TCPGateway(BaseSyncGateway, BaseTCPGateway):
         """Set up TCP gateway."""
         transport = SyncTransport(self, sync_connect, **kwargs)
         super().__init__(transport, *args, **kwargs)
+
+    def get_gateway_id(self):
+        """Return a unique id for the gateway."""
+        return self._get_gateway_id()
 
 
 def sync_connect(transport):
@@ -142,7 +146,7 @@ class AsyncTCPGateway(BaseAsyncGateway, BaseTCPGateway):
 
     async def get_gateway_id(self):
         """Return a unique id for the gateway."""
-        mac = await self.tasks.loop.run_in_executor(None, super().get_gateway_id)
+        mac = await self.tasks.loop.run_in_executor(None, self._get_gateway_id)
         return mac
 
 
