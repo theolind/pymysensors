@@ -2,6 +2,6 @@
 -r requirements_black.txt
 -r requirements_pypi.txt
 -r requirements_test.txt
-tox==3.16.0
+tox==3.16.1
 
 -e .
