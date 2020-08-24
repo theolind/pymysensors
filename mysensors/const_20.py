@@ -309,8 +309,10 @@ def validate_gps(value):
         vol.Coerce(float)(latitude)
         vol.Coerce(float)(longitude)
         vol.Coerce(float)(altitude)
-    except (TypeError, ValueError, vol.Invalid):
-        raise vol.Invalid('GPS value should be of format "latitude,longitude,altitude"')
+    except (TypeError, ValueError, vol.Invalid) as exc:
+        raise vol.Invalid(
+            'GPS value should be of format "latitude,longitude,altitude"'
+        ) from exc
     return value
 
 
