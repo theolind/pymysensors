@@ -303,8 +303,8 @@ def validate_hex(value):
     """Validate that value has hex format."""
     try:
         binascii.unhexlify(value)
-    except Exception:
-        raise vol.Invalid("{} is not of hex format".format(value))
+    except Exception as exc:
+        raise vol.Invalid("{} is not of hex format".format(value)) from exc
     return value
 
 

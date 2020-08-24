@@ -19,8 +19,8 @@ def is_version(value):
         if parse_ver("1.4") > parse_ver(value):
             raise ValueError()
         return value
-    except (AttributeError, TypeError, ValueError):
-        raise vol.Invalid("{} is not a valid version specifier".format(value))
+    except (AttributeError, TypeError, ValueError) as exc:
+        raise vol.Invalid("{} is not a valid version specifier".format(value)) from exc
 
 
 def safe_is_version(value):

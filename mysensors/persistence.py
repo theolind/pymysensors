@@ -108,8 +108,8 @@ class Persistence:
         ext = os.path.splitext(filename)[1]
         try:
             func = getattr(self, "_{}_{}".format(action, ext[1:]))
-        except AttributeError:
-            raise Exception("Unsupported file type {}".format(ext[1:]))
+        except AttributeError as exc:
+            raise Exception("Unsupported file type {}".format(ext[1:])) from exc
         func(filename)
 
 
