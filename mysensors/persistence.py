@@ -17,7 +17,7 @@ class Persistence:
         self._sensors = sensors
         self.need_save = True
         self.persistence_file = persistence_file
-        self.persistence_bak = "{}.bak".format(self.persistence_file)
+        self.persistence_bak = f"{self.persistence_file}.bak"
         self.schedule_save_sensors = schedule_factory(self.save_sensors)
 
     def _save_pickle(self, filename):
@@ -55,7 +55,7 @@ class Persistence:
             _LOGGER.error("Permission denied when writing to %s", fname)
             return
         split_fname = os.path.splitext(fname)
-        tmp_fname = "{}.tmp{}".format(split_fname[0], split_fname[1])
+        tmp_fname = f"{split_fname[0]}.tmp{split_fname[1]}"
         _LOGGER.debug("Saving sensors to persistence file %s", fname)
         self._perform_file_action(tmp_fname, "save")
         if exists:
@@ -107,9 +107,9 @@ class Persistence:
         """
         ext = os.path.splitext(filename)[1]
         try:
-            func = getattr(self, "_{}_{}".format(action, ext[1:]))
+            func = getattr(self, f"_{action}_{ext[1:]}")
         except AttributeError as exc:
-            raise Exception("Unsupported file type {}".format(ext[1:])) from exc
+            raise Exception(f"Unsupported file type {ext[1:]}") from exc
         func(filename)
 
 
