@@ -20,7 +20,7 @@ def is_version(value):
             raise ValueError()
         return value
     except (AttributeError, TypeError, ValueError) as exc:
-        raise vol.Invalid("{} is not a valid version specifier".format(value)) from exc
+        raise vol.Invalid(f"{value} is not a valid version specifier") from exc
 
 
 def safe_is_version(value):
