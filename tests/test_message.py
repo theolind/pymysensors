@@ -272,11 +272,11 @@ def test_validate_pres(protocol_version, name, payload):
     gateway = get_gateway(protocol_version=protocol_version)
     const = get_const(protocol_version)
     sub_type = const.Presentation[name]
-    msg_string = "1;0;0;0;{};{}\n".format(sub_type, payload)
+    msg_string = f"1;0;0;0;{sub_type};{payload}\n"
     msg = get_message(msg_string)
     valid = msg.validate(protocol_version)
     assert str(valid) == str(msg)
-    ret = gateway.logic("1;0;0;0;{};{}\n".format(sub_type, payload))
+    ret = gateway.logic(f"1;0;0;0;{sub_type};{payload}\n")
     assert ret is None
 
 
@@ -292,7 +292,7 @@ def test_validate_bad_pres(protocol_version, name, payload):
     """Test bad Presentation messages."""
     const = get_const(protocol_version)
     sub_type = const.Presentation[name]
-    msg = get_message("1;0;0;0;{};{}\n".format(sub_type, payload))
+    msg = get_message(f"1;0;0;0;{sub_type};{payload}\n")
     with pytest.raises(vol.Invalid):
         msg.validate(protocol_version)
 
@@ -310,7 +310,7 @@ def test_validate_set(protocol_version, name, payload):
     gateway = get_gateway(protocol_version=protocol_version)
     const = get_const(protocol_version)
     sub_type = const.SetReq[name]
-    msg_string = "1;0;1;0;{};{}\n".format(sub_type, payload)
+    msg_string = f"1;0;1;0;{sub_type};{payload}\n"
     msg = get_message(msg_string)
     valid = msg.validate(protocol_version)
     assert str(valid) == str(msg)
@@ -338,12 +338,12 @@ def test_validate_internal(protocol_version, name, payload):
         _payload = payload
         return_value = None
     sub_type = const.Internal[name]
-    msg_string = "1;255;3;0;{};{}\n".format(sub_type, _payload)
+    msg_string = f"1;255;3;0;{sub_type};{_payload}\n"
     msg = get_message(msg_string)
     valid = msg.validate(protocol_version)
     assert str(valid) == str(msg)
     ret = gateway.logic(msg_string)
     if return_value is None:
-        assert ret is None, "Version: {} Message: {}".format(protocol_version, msg)
+        assert ret is None, f"Version: {protocol_version} Message: {msg}"
     else:
-        assert ret, "Version: {} Message: {}".format(protocol_version, msg)
+        assert ret, f"Version: {protocol_version} Message: {msg}"
