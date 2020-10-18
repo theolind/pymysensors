@@ -106,7 +106,7 @@ class BaseMySensorsProtocol(serial.threaded.LineReader):
 
     def __repr__(self):
         """Return the representation."""
-        return "<{}>".format(self.__class__.__name__)
+        return f"<{self.__class__.__name__}>"
 
     def connection_made(self, transport):
         """Handle created connection."""
