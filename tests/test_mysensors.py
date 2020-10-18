@@ -209,10 +209,10 @@ def test_internal_log_message(gateway, caplog):
     mock_transport.can_log = False
     gateway.tasks.transport = mock_transport
     payload = "read: 1-1-0 s=0,c=1,t=1,pt=7,l=5,sg=0:22.0\n"
-    data = "0;255;3;0;9;{}".format(payload)
+    data = f"0;255;3;0;9;{payload}"
     caplog.set_level(logging.DEBUG)
     gateway.logic(data)
-    assert "n:0 c:255 t:3 s:9 p:{}".format(payload[:-1]) in caplog.text
+    assert f"n:0 c:255 t:3 s:9 p:{payload[:-1]}" in caplog.text
 
 
 @pytest.mark.parametrize(
@@ -228,12 +228,12 @@ def test_internal_log_message(gateway, caplog):
 def test_internal_gateway_ready(protocol_version, return_value, caplog):
     """Test internal receive gateway ready and send discover request."""
     payload = "Gateway startup complete.\n"
-    data = "0;255;3;0;14;{}".format(payload)
+    data = f"0;255;3;0;14;{payload}"
     caplog.set_level(logging.INFO)
     gateway = get_gateway(protocol_version=protocol_version)
     ret = gateway.logic(data)
     assert ret == return_value
-    assert "n:0 c:255 t:3 s:14 p:{}".format(payload[:-1]) in caplog.text
+    assert f"n:0 c:255 t:3 s:14 p:{payload[:-1]}" in caplog.text
 
 
 def test_present_light_level_sensor(gateway, add_sensor):
@@ -721,6 +721,6 @@ def test_update_fw_bad_path(caplog):
     gateway.tasks.ota.make_update = mock_update
     bad_path = "/bad/path"
     gateway.update_fw(1, 1, 1, bad_path)
-    log_msg = "Firmware path {} does not exist or is not readable".format(bad_path)
+    log_msg = f"Firmware path {bad_path} does not exist or is not readable"
     assert mock_update.call_count == 0
     assert log_msg in caplog.text

@@ -304,21 +304,21 @@ def validate_hex(value):
     try:
         binascii.unhexlify(value)
     except Exception as exc:
-        raise vol.Invalid("{} is not of hex format".format(value)) from exc
+        raise vol.Invalid(f"{value} is not of hex format") from exc
     return value
 
 
 def validate_v_rgb(value):
     """Validate a V_RGB value."""
     if len(value) != 6:
-        raise vol.Invalid("{} is not six characters long".format(value))
+        raise vol.Invalid(f"{value} is not six characters long")
     return validate_hex(value)
 
 
 def validate_v_rgbw(value):
     """Validate a V_RGBW value."""
     if len(value) != 8:
-        raise vol.Invalid("{} is not eight characters long".format(value))
+        raise vol.Invalid(f"{value} is not eight characters long")
     return validate_hex(value)
 
 
@@ -333,19 +333,19 @@ VALID_SETREQ = {
     SetReq.V_HUM: str,
     SetReq.V_STATUS: vol.In(
         [LOGICAL_ZERO, LOGICAL_ONE],
-        msg="value must be either {} or {}".format(LOGICAL_ZERO, LOGICAL_ONE),
+        msg=f"value must be either {LOGICAL_ZERO} or {LOGICAL_ONE}",
     ),
     SetReq.V_PERCENTAGE: vol.All(
         percent_int,
         vol.Coerce(str),
-        msg="value must be integer between {} and {}".format(0, 100),
+        msg=f"value must be integer between {0} and {100}",
     ),
     SetReq.V_PRESSURE: str,
     SetReq.V_FORECAST: vol.Any(
         str,
         vol.In(
             FORECASTS,
-            msg="forecast must be one of: {}, {}, {}, {}, {}, {}".format(*FORECASTS),
+            msg=f"forecast must be one of: {', '.join(FORECASTS)}",
         ),
     ),
     SetReq.V_RAIN: str,
@@ -359,11 +359,11 @@ VALID_SETREQ = {
     SetReq.V_IMPEDANCE: str,
     SetReq.V_ARMED: vol.In(
         [LOGICAL_ZERO, LOGICAL_ONE],
-        msg="value must be either {} or {}".format(LOGICAL_ZERO, LOGICAL_ONE),
+        msg=f"value must be either {LOGICAL_ZERO} or {LOGICAL_ONE}",
     ),
     SetReq.V_TRIPPED: vol.In(
         [LOGICAL_ZERO, LOGICAL_ONE],
-        msg="value must be either {} or {}".format(LOGICAL_ZERO, LOGICAL_ONE),
+        msg=f"value must be either {LOGICAL_ZERO} or {LOGICAL_ONE}",
     ),
     SetReq.V_WATT: str,
     SetReq.V_KWH: str,
@@ -371,19 +371,17 @@ VALID_SETREQ = {
     SetReq.V_SCENE_OFF: str,
     SetReq.V_HVAC_FLOW_STATE: vol.In(
         [OFF, HEAT_ON, COOL_ON, AUTO_CHANGE_OVER],
-        msg="value must be one of: {}, {}, {} or {}".format(
-            OFF, HEAT_ON, COOL_ON, AUTO_CHANGE_OVER
-        ),
+        msg=f"value must be one of: {OFF}, {HEAT_ON}, {COOL_ON} or {AUTO_CHANGE_OVER}",
     ),
     SetReq.V_HVAC_SPEED: vol.In(
         [MIN, NORMAL, MAX, AUTO],
-        msg="value must be one of: {}, {}, {} or {}".format(MIN, NORMAL, MAX, AUTO),
+        msg=f"value must be one of: {MIN}, {NORMAL}, {MAX} or {AUTO}",
     ),
     SetReq.V_LIGHT_LEVEL: vol.All(
         vol.Coerce(float),
         vol.Range(min=0.0, max=100.0),
         vol.Coerce(str),
-        msg="value must be float between {} and {}".format(0.0, 100.0),
+        msg=f"value must be float between {0.0} and {100.0}",
     ),
     SetReq.V_VAR1: str,
     SetReq.V_VAR2: str,
@@ -399,7 +397,7 @@ VALID_SETREQ = {
     SetReq.V_VOLUME: str,
     SetReq.V_LOCK_STATUS: vol.In(
         [LOGICAL_ZERO, LOGICAL_ONE],
-        msg="value must be either {} or {}".format(LOGICAL_ZERO, LOGICAL_ONE),
+        msg=f"value must be either {LOGICAL_ZERO} or {LOGICAL_ONE}",
     ),
     SetReq.V_LEVEL: str,
     SetReq.V_VOLTAGE: str,
@@ -412,13 +410,13 @@ VALID_SETREQ = {
         vol.Coerce(float),
         vol.Range(min=0.0, max=100.0),
         vol.Coerce(str),
-        msg="value must be between {} and {}".format(0.0, 100.0),
+        msg=f"value must be between {0.0} and {100.0}",
     ),
     SetReq.V_HVAC_SETPOINT_HEAT: vol.All(
         vol.Coerce(float),
         vol.Range(min=0.0, max=100.0),
         vol.Coerce(str),
-        msg="value must be between {} and {}".format(0.0, 100.0),
+        msg=f"value must be between {0.0} and {100.0}",
     ),
     SetReq.V_HVAC_FLOW_MODE: str,
 }

@@ -42,7 +42,7 @@ class Gateway:
 
     def __repr__(self):
         """Return the representation."""
-        return "<{}>".format(self.__class__.__name__)
+        return f"<{self.__class__.__name__}>"
 
     def logic(self, data):
         """Parse the data and respond to it appropriately.
@@ -157,7 +157,7 @@ class Gateway:
                     child_id,
                     value_type,
                     value,
-                    **kwargs
+                    **kwargs,
                 )
             )
 
@@ -175,7 +175,7 @@ class BaseSyncGateway(Gateway):
         *args,
         persistence=False,
         persistence_file="mysensors.pickle",
-        **kwargs
+        **kwargs,
     ):
         """Set up gateway."""
         super().__init__(*args, **kwargs)
@@ -210,7 +210,7 @@ class BaseAsyncGateway(Gateway):
         loop=None,
         persistence=False,
         persistence_file="mysensors.pickle",
-        **kwargs
+        **kwargs,
     ):
         """Set up gateway."""
         super().__init__(*args, **kwargs)

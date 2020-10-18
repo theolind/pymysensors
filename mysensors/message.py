@@ -27,13 +27,9 @@ class Message:
 
     def __repr__(self):
         """Return the representation."""
-        return '<Message data="{};{};{};{};{};{}">'.format(
-            self.node_id,
-            self.child_id,
-            self.type,
-            self.ack,
-            self.sub_type,
-            self.payload,
+        return (
+            f'<Message data="{self.node_id};{self.child_id};{self.type};'
+            f'{self.ack};{self.sub_type};{self.payload}">'
         )
 
     def copy(self, **kwargs):
@@ -97,7 +93,7 @@ class Message:
             vol.Range(
                 min=0,
                 max=BROADCAST_ID,
-                msg="Not valid node_id: {}".format(self.node_id),
+                msg=f"Not valid node_id: {self.node_id}",
             ),
         )
         valid_child_ids = vol.All(
@@ -105,7 +101,7 @@ class Message:
             vol.Range(
                 min=0,
                 max=SYSTEM_CHILD_ID,
-                msg="Not valid child_id: {}".format(self.child_id),
+                msg=f"Not valid child_id: {self.child_id}",
             ),
         )
         if self.type in (const.MessageType.internal, const.MessageType.stream):
@@ -113,8 +109,9 @@ class Message:
                 vol.Coerce(int),
                 vol.In(
                     [SYSTEM_CHILD_ID],
-                    msg="When message type is {}, child_id must be {}".format(
-                        self.type, SYSTEM_CHILD_ID
+                    msg=(
+                        f"When message type is {self.type}, "
+                        f"child_id must be {SYSTEM_CHILD_ID}"
                     ),
                 ),
             )
@@ -127,7 +124,7 @@ class Message:
             vol.Coerce(int),
             vol.In(
                 [member.value for member in const.VALID_MESSAGE_TYPES],
-                msg="Not valid message type: {}".format(self.type),
+                msg=f"Not valid message type: {self.type}",
             ),
         )
         if self.child_id == SYSTEM_CHILD_ID:
@@ -140,15 +137,15 @@ class Message:
                         const.MessageType.stream.value,
                     ],
                     msg=(
-                        "When child_id is {}, {} is not a valid "
-                        "message type".format(SYSTEM_CHILD_ID, self.type)
+                        f"When child_id is {SYSTEM_CHILD_ID}, "
+                        f"{self.type} is not a valid message type"
                     ),
                 ),
             )
-        valid_ack = vol.In([0, 1], msg="Not valid ack flag: {}".format(self.ack))
+        valid_ack = vol.In([0, 1], msg=f"Not valid ack flag: {self.ack}")
         valid_sub_types = vol.In(
             [member.value for member in const.VALID_MESSAGE_TYPES.get(self.type, [])],
-            msg="Not valid message sub-type: {}".format(self.sub_type),
+            msg=f"Not valid message sub-type: {self.sub_type}",
         )
         valid_payload = const.VALID_PAYLOADS.get(self.type, {}).get(self.sub_type, "")
         attrs = {

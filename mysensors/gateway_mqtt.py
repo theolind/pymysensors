@@ -29,7 +29,7 @@ class BaseMQTTGateway(Gateway):
         if not self.tasks.persistence:
             return
         topics = [
-            "/{}/{}/{}/+/+".format(str(sensor.sensor_id), str(child.id), msg_type)
+            f"/{sensor.sensor_id}/{child.id}/{msg_type}/+/+"
             for sensor in self.sensors.values()
             for child in sensor.children.values()
             for msg_type in (
@@ -39,9 +39,7 @@ class BaseMQTTGateway(Gateway):
         ]
         topics.extend(
             [
-                "/{}/+/{}/+/+".format(
-                    str(sensor.sensor_id), int(self.const.MessageType.stream)
-                )
+                f"/{sensor.sensor_id}/+/{int(self.const.MessageType.stream)}/+/+"
                 for sensor in self.sensors.values()
             ]
         )
@@ -54,15 +52,13 @@ class BaseMQTTGateway(Gateway):
             return
         # this is a presentation of a child sensor
         topics = [
-            "/{}/{}/{}/+/+".format(str(msg.node_id), str(msg.child_id), msg_type)
+            f"/{msg.node_id}/{msg.child_id}/{msg_type}/+/+"
             for msg_type in (
                 int(self.const.MessageType.set),
                 int(self.const.MessageType.req),
             )
         ]
-        topics.append(
-            "/{}/+/{}/+/+".format(str(msg.node_id), int(self.const.MessageType.stream))
-        )
+        topics.append(f"/{msg.node_id}/+/{int(self.const.MessageType.stream)}/+/+")
         self.tasks.transport.handle_subscription(topics)
 
     def parse_mqtt_to_message(self, topic, payload, qos):
@@ -94,7 +90,7 @@ class BaseMQTTGateway(Gateway):
         payload = str(msg.payload)
         msg.payload = ""
         # prefix/node/child/type/ack/subtype : payload
-        return "/{}".format(msg.encode("/"))[:-2], payload, msg.ack
+        return f"/{msg.encode('/')}"[:-2], payload, msg.ack
 
     def _get_gateway_id(self):
         """Return a unique id for the gateway."""
@@ -115,7 +111,7 @@ class MQTTGateway(BaseSyncGateway, BaseMQTTGateway):
         in_prefix="",
         out_prefix="",
         retain=True,
-        **kwargs
+        **kwargs,
     ):
         """Set up MQTT gateway."""
         transport = MQTTSyncTransport(
@@ -146,7 +142,7 @@ class AsyncMQTTGateway(BaseAsyncGateway, BaseMQTTGateway):
         in_prefix="",
         out_prefix="",
         retain=True,
-        **kwargs
+        **kwargs,
     ):
         """Set up MQTT gateway."""
         transport = MQTTAsyncTransport(

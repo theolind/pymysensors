@@ -17,7 +17,7 @@ def fw_hex_to_int(hex_str, words):
     Use little-endian and unsigned int format. Specify number of words to
     unpack with argument words.
     """
-    return struct.unpack("<{}H".format(words), binascii.unhexlify(hex_str))
+    return struct.unpack(f"<{words}H", binascii.unhexlify(hex_str))
 
 
 def fw_int_to_hex(*args):
@@ -25,9 +25,7 @@ def fw_int_to_hex(*args):
 
     Use little-endian and unsigned int format.
     """
-    return binascii.hexlify(struct.pack("<{}H".format(len(args)), *args)).decode(
-        "utf-8"
-    )
+    return binascii.hexlify(struct.pack(f"<{len(args)}H", *args)).decode("utf-8")
 
 
 def compute_crc(data):
