@@ -32,9 +32,7 @@ class BaseTCPGateway(Gateway):
             self.tcp_disconnect_timer + 2 * self.tasks.transport.reconnect_timeout
         ) < time.time():
             self.tcp_disconnect_timer = time.time()
-            raise OSError(
-                "No response from {}. Disconnecting".format(self.server_address)
-            )
+            raise OSError(f"No response from {self.server_address}. Disconnecting")
         if (
             self.tcp_check_timer + self.tasks.transport.reconnect_timeout
         ) >= time.time():
