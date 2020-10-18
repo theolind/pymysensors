@@ -83,7 +83,7 @@ class TestOTA(TestCase):
         payload = binascii.hexlify(
             struct.pack("<4H", FW_TYPE, FW_VER, BLOCKS, CRC)
         ).decode("utf-8")
-        self.assertEqual(ret, "1;255;4;0;1;{}\n".format(payload))
+        self.assertEqual(ret, f"1;255;4;0;1;{payload}\n")
 
     def test_respond_fw(self):
         """Test respond to firmware request."""
@@ -96,7 +96,7 @@ class TestOTA(TestCase):
             payload = binascii.hexlify(
                 struct.pack("<3H", FW_TYPE, FW_VER, block)
             ).decode("utf-8")
-            ret = self.gateway.logic("1;255;4;0;2;{}\n".format(payload))
+            ret = self.gateway.logic(f"1;255;4;0;2;{payload}\n")
             payload = binascii.hexlify(
                 struct.pack("<3H", FW_TYPE, FW_VER, block)
             ).decode("utf-8")
@@ -105,7 +105,7 @@ class TestOTA(TestCase):
                 + FIRMWARE_BLOCK_SIZE
             ]
             payload += binascii.hexlify(blk_data).decode("utf-8")
-            self.assertEqual(ret, "1;255;4;0;3;{}\n".format(payload))
+            self.assertEqual(ret, f"1;255;4;0;3;{payload}\n")
         # Test that firmware config request does not generate a new response.
         ret = self.gateway.logic("1;255;4;0;0;01000200B00626E80300\n")
         self.assertEqual(ret, None)
@@ -121,7 +121,7 @@ class TestOTA(TestCase):
         payload = binascii.hexlify(struct.pack("<3H", FW_TYPE, FW_VER, block)).decode(
             "utf-8"
         )
-        ret = self.gateway.logic("1;255;4;0;2;{}\n".format(payload))
+        ret = self.gateway.logic(f"1;255;4;0;2;{payload}\n")
         payload = binascii.hexlify(struct.pack("<3H", FW_TYPE, FW_VER, block)).decode(
             "utf-8"
         )
@@ -130,7 +130,7 @@ class TestOTA(TestCase):
             + FIRMWARE_BLOCK_SIZE
         ]
         payload += binascii.hexlify(blk_data).decode("utf-8")
-        self.assertEqual(ret, "1;255;4;0;3;{}\n".format(payload))
+        self.assertEqual(ret, f"1;255;4;0;3;{payload}\n")
         with tempfile.NamedTemporaryFile() as file_handle:
             file_handle.write(HEX_FILE_STR.encode("utf-8"))
             file_handle.flush()
@@ -139,7 +139,7 @@ class TestOTA(TestCase):
         payload = binascii.hexlify(
             struct.pack("<3H", FW_TYPE, FW_VER, block - 1)
         ).decode("utf-8")
-        ret = self.gateway.logic("1;255;4;0;2;{}\n".format(payload))
+        ret = self.gateway.logic(f"1;255;4;0;2;{payload}\n")
         # Test that firmware request does not generate a response.
         self.assertEqual(ret, None)
         # Test that firmware config request generates a new response.
@@ -150,7 +150,7 @@ class TestOTA(TestCase):
             payload = binascii.hexlify(
                 struct.pack("<3H", FW_TYPE, FW_VER, block)
             ).decode("utf-8")
-            ret = self.gateway.logic("1;255;4;0;2;{}\n".format(payload))
+            ret = self.gateway.logic(f"1;255;4;0;2;{payload}\n")
             payload = binascii.hexlify(
                 struct.pack("<3H", FW_TYPE, FW_VER, block)
             ).decode("utf-8")
@@ -159,16 +159,14 @@ class TestOTA(TestCase):
                 + FIRMWARE_BLOCK_SIZE
             ]
             payload += binascii.hexlify(blk_data).decode("utf-8")
-            self.assertEqual(ret, "1;255;4;0;3;{}\n".format(payload))
+            self.assertEqual(ret, f"1;255;4;0;3;{payload}\n")
 
     def test_respond_fw_two_nodes(self):
         """Test respond to firmware request for two different nodes."""
         nodes = [1, 2]
         self._setup_firmware(nodes, HEX_FILE_STR)
         for node_id in nodes:
-            ret = self.gateway.logic(
-                "{};255;4;0;0;01000200B00626E80300\n".format(node_id)
-            )
+            ret = self.gateway.logic(f"{node_id};255;4;0;0;01000200B00626E80300\n")
             # Test that firmware config request generates a response.
             # A detailed test of the response is done in another test.
             self.assertIsNotNone(ret)
@@ -177,7 +175,7 @@ class TestOTA(TestCase):
                 payload = binascii.hexlify(
                     struct.pack("<3H", FW_TYPE, FW_VER, block)
                 ).decode("utf-8")
-                ret = self.gateway.logic("{};255;4;0;2;{}\n".format(node_id, payload))
+                ret = self.gateway.logic(f"{node_id};255;4;0;2;{payload}\n")
                 payload = binascii.hexlify(
                     struct.pack("<3H", FW_TYPE, FW_VER, block)
                 ).decode("utf-8")
@@ -186,7 +184,7 @@ class TestOTA(TestCase):
                     + FIRMWARE_BLOCK_SIZE
                 ]
                 payload += binascii.hexlify(blk_data).decode("utf-8")
-                self.assertEqual(ret, "{};255;4;0;3;{}\n".format(node_id, payload))
+                self.assertEqual(ret, f"{node_id};255;4;0;3;{payload}\n")
 
     def test_different_firmware_type(self):
         """Test respond to fw config request for a different firmware type."""
@@ -195,7 +193,7 @@ class TestOTA(TestCase):
         payload = binascii.hexlify(
             struct.pack("<4H", FW_TYPE, FW_VER, BLOCKS, CRC)
         ).decode("utf-8")
-        self.assertEqual(ret, "1;255;4;0;1;{}\n".format(payload))
+        self.assertEqual(ret, f"1;255;4;0;1;{payload}\n")
 
 
 if __name__ == "__main__":
