@@ -136,7 +136,7 @@ class SyncTasks(Tasks):
         self.persistence.save_sensors()
 
     def update_fw(self, nids, fw_type, fw_ver, fw_path=None):
-        """Update firwmare of all node_ids in nids."""
+        """Update firmware of all node_ids in nids."""
         fw_bin = None
         if fw_path:
             fw_bin = load_fw(fw_path)
@@ -205,7 +205,7 @@ class AsyncTasks(Tasks):
         await self.persistence.schedule_save_sensors()
 
     async def update_fw(self, nids, fw_type, fw_ver, fw_path=None):
-        """Start update firwmare of all node_ids in nids in executor."""
+        """Start update firmware of all node_ids in nids in executor."""
         fw_bin = None
         if fw_path:
             fw_bin = await self.loop.run_in_executor(None, load_fw, fw_path)

@@ -196,7 +196,7 @@ class BaseSyncGateway(Gateway):
         self.tasks.start_persistence()
 
     def update_fw(self, nids, fw_type, fw_ver, fw_path=None):
-        """Update firwmare of all node_ids in nids."""
+        """Update firmware of all node_ids in nids."""
         self.tasks.update_fw(nids, fw_type, fw_ver, fw_path=fw_path)
 
 
@@ -236,5 +236,5 @@ class BaseAsyncGateway(Gateway):
         await self.tasks.start_persistence()
 
     async def update_fw(self, nids, fw_type, fw_ver, fw_path=None):
-        """Update firwmare of all node_ids in nids."""
+        """Update firmware of all node_ids in nids."""
         await self.tasks.update_fw(nids, fw_type, fw_ver, fw_path=fw_path)

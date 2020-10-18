@@ -18,7 +18,7 @@ def common_serial_options(func):
         default=115200,
         show_default=True,
         type=int,
-        help="Baudrate of the serial connection.",
+        help="Baud rate of the serial connection.",
     )(func)
     func = click.option(
         "-p", "--port", required=True, help="Serial port of the gateway."
