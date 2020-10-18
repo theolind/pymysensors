@@ -7,7 +7,7 @@ PROJECT_DIR = Path(__file__).parent.resolve()
 VERSION = (PROJECT_DIR / "mysensors" / "VERSION").read_text().strip()
 
 README_FILE = PROJECT_DIR / "README.md"
-LONG_DESCR = README_FILE.read_text(encoding="utf-8")
+LONG_DESCRIPTION = README_FILE.read_text(encoding="utf-8")
 
 REQUIRES = [
     "click",
@@ -25,7 +25,7 @@ setup(
     name="pymysensors",
     version=VERSION,
     description="Python API for talking to a MySensors gateway",
-    long_description=LONG_DESCR,
+    long_description=LONG_DESCRIPTION,
     long_description_content_type="text/markdown",
     url="https://github.com/theolind/pymysensors",
     author="Theodor Lindquist",

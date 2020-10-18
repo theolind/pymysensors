@@ -119,7 +119,7 @@ Set the keyword argument `protocol_version` to set which version of the MySensor
 
 ### Serial gateway
 
-The serial gateway also supports setting the baudrate, read timeout and reconnect timeout.
+The serial gateway also supports setting the baud rate, read timeout and reconnect timeout.
 
 ```py
 import mysensors.mysensors as mysensors
@@ -131,7 +131,7 @@ def event(message):
 GATEWAY = mysensors.SerialGateway(
   '/dev/ttyACM0', baud=115200, timeout=1.0, reconnect_timeout=10.0,
   event_callback=event, persistence=True,
-  persistence_file='somefolder/mysensors.pickle', protocol_version='2.2')
+  persistence_file='some_folder/mysensors.pickle', protocol_version='2.2')
 GATEWAY.start_persistence() # optional, remove this line if you don't need persistence.
 GATEWAY.start()
 ```
@@ -146,7 +146,7 @@ The ethernet gateway is initialized similar to the serial gateway. The ethernet 
 GATEWAY = mysensors.TCPGateway(
   '127.0.0.1', port=5003, timeout=1.0, reconnect_timeout=10.0,
   event_callback=event, persistence=True,
-  persistence_file='somefolder/mysensors.pickle', protocol_version='1.4')
+  persistence_file='some_folder/mysensors.pickle', protocol_version='1.4')
 ```
 
 ### MQTT gateway
@@ -157,9 +157,9 @@ The MQTT gateway requires MySensors serial API v2.0 or greater and the MQTT clie
 
 Call `Gateway` method `update_fw` to set one or more nodes for OTA
 firmware update. The method takes three positional arguments and one
-keyword arguement. The first argument should be the node id of the node to
+keyword argument. The first argument should be the node id of the node to
 update. This can also be a list of many node ids. The next two arguments should
-be integers representing the firwmare type and version. The keyword argument is
+be integers representing the firmware type and version. The keyword argument is
 optional and should be a path to a hex file with the new firmware.
 
 ```py

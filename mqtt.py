@@ -10,7 +10,7 @@ class MQTT(object):
     # pylint: disable=unused-argument
 
     def __init__(self, broker, port, keepalive):
-        """Setup MQTT client."""
+        """Set up MQTT client."""
         self.topics = {}
         self._mqttc = mqtt.Client()
         self._mqttc.connect(broker, port, keepalive)
@@ -25,7 +25,7 @@ class MQTT(object):
             return
 
         def _message_callback(mqttc, userdata, msg):
-            """Callback added to callback list for received message."""
+            """Run callback for received message."""
             callback(msg.topic, msg.payload.decode("utf-8"), msg.qos)
 
         self._mqttc.subscribe(topic, qos)
@@ -45,7 +45,7 @@ class MQTT(object):
 
 
 def event(message):
-    """Callback for mysensors updates."""
+    """Run callback for mysensors updates."""
     print("sensor_update " + str(message.node_id))
 
 
