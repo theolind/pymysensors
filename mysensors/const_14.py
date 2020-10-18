@@ -239,19 +239,19 @@ VALID_SETREQ = {
     SetReq.V_HUM: str,
     SetReq.V_LIGHT: vol.In(
         [LOGICAL_ZERO, LOGICAL_ONE],
-        msg="value must be either {} or {}".format(LOGICAL_ZERO, LOGICAL_ONE),
+        msg=f"value must be either {LOGICAL_ZERO} or {LOGICAL_ONE}",
     ),
     SetReq.V_DIMMER: vol.All(
         percent_int,
         vol.Coerce(str),
-        msg="value must be integer between {} and {}".format(0, 100),
+        msg=f"value must be integer between {0} and {100}",
     ),
     SetReq.V_PRESSURE: str,
     SetReq.V_FORECAST: vol.Any(
         str,
         vol.In(
             FORECASTS,
-            msg="forecast must be one of: {}, {}, {}, {}, {}, {}".format(*FORECASTS),
+            msg=f"forecast must be one of: {', '.join(FORECASTS)}",
         ),
     ),
     SetReq.V_RAIN: str,
@@ -265,11 +265,11 @@ VALID_SETREQ = {
     SetReq.V_IMPEDANCE: str,
     SetReq.V_ARMED: vol.In(
         [LOGICAL_ZERO, LOGICAL_ONE],
-        msg="value must be either {} or {}".format(LOGICAL_ZERO, LOGICAL_ONE),
+        msg=f"value must be either {LOGICAL_ZERO} or {LOGICAL_ONE}",
     ),
     SetReq.V_TRIPPED: vol.In(
         [LOGICAL_ZERO, LOGICAL_ONE],
-        msg="value must be either {} or {}".format(LOGICAL_ZERO, LOGICAL_ONE),
+        msg=f"value must be either {LOGICAL_ZERO} or {LOGICAL_ONE}",
     ),
     SetReq.V_WATT: str,
     SetReq.V_KWH: str,
@@ -277,19 +277,17 @@ VALID_SETREQ = {
     SetReq.V_SCENE_OFF: str,
     SetReq.V_HEATER: vol.In(
         [OFF, HEAT_ON, COOL_ON, AUTO_CHANGE_OVER],
-        msg="value must be one of: {}, {}, {} or {}".format(
-            OFF, HEAT_ON, COOL_ON, AUTO_CHANGE_OVER
-        ),
+        msg=f"value must be one of: {OFF}, {HEAT_ON}, {COOL_ON} or {AUTO_CHANGE_OVER}",
     ),
     SetReq.V_HEATER_SW: vol.In(
         [LOGICAL_ZERO, LOGICAL_ONE],
-        msg="value must be either {} or {}".format(LOGICAL_ZERO, LOGICAL_ONE),
+        msg=f"value must be either {LOGICAL_ZERO} or {LOGICAL_ONE}",
     ),
     SetReq.V_LIGHT_LEVEL: vol.All(
         vol.Coerce(float),
         vol.Range(min=0.0, max=100.0),
         vol.Coerce(str),
-        msg="value must be float between {} and {}".format(0.0, 100.0),
+        msg=f"value must be float between {0.0} and {100.0}",
     ),
     SetReq.V_VAR1: str,
     SetReq.V_VAR2: str,
@@ -305,7 +303,7 @@ VALID_SETREQ = {
     SetReq.V_VOLUME: str,
     SetReq.V_LOCK_STATUS: vol.In(
         [LOGICAL_ZERO, LOGICAL_ONE],
-        msg="value must be either {} or {}".format(LOGICAL_ZERO, LOGICAL_ONE),
+        msg=f"value must be either {LOGICAL_ZERO} or {LOGICAL_ONE}",
     ),
     SetReq.V_DUST_LEVEL: str,
     SetReq.V_VOLTAGE: str,
@@ -320,7 +318,7 @@ VALID_INTERNAL = {
     Internal.I_BATTERY_LEVEL: vol.All(
         percent_int,
         vol.Coerce(str),
-        msg="value must be integer between {} and {}".format(0, 100),
+        msg=f"value must be integer between {0} and {100}",
     ),
     Internal.I_TIME: vol.Any("", vol.All(vol.Coerce(int), vol.Coerce(str))),
     Internal.I_VERSION: str,
