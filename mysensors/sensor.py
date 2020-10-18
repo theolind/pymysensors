@@ -58,9 +58,7 @@ class Sensor:
 
     def __repr__(self):
         """Return the representation."""
-        return "<Sensor sensor_id={}, children: {}>".format(
-            self.sensor_id, self.children
-        )
+        return f"<Sensor sensor_id={self.sensor_id}, children: {self.children}>"
 
     @property
     def battery_level(self):
@@ -168,11 +166,10 @@ class ChildSensor:
 
     def __repr__(self):
         """Return the representation."""
-        ret = (
-            "<ChildSensor child_id={0!s}, child_type={1!s}, "
-            "description={2!s}, values: {3!s}>"
+        return (
+            f"<ChildSensor child_id={self.id}, child_type={self.type}, "
+            f"description={self.description}, values: {self.values}>"
         )
-        return ret.format(self.id, self.type, self.description, self.values)
 
     def get_schema(self, protocol_version):
         """Return the child schema for the correct const version."""
