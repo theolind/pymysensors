@@ -3,6 +3,6 @@ crcmod==1.7
 getmac==0.8.2
 IntelHex==2.3.0
 paho-mqtt==1.5.1
-pyserial==3.4
+pyserial==3.5
 pyserial-asyncio==0.4
 voluptuous==0.12.0
