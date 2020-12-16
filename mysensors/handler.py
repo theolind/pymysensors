@@ -30,6 +30,11 @@ def handle_smartsleep(msg):
                     value_type,
                     new_value,
                 )
+                
+                
+def handle_wakeup(msg):
+    for child in msg.gateway.sensors[msg.node_id].children.values():
+        msg.gateway.sensors[msg.node_id].new_state = None
 
 
 @HANDLERS.register("presentation")
@@ -285,4 +290,14 @@ def handle_pre_sleep_notification(msg):
     if not msg.gateway.is_sensor(msg.node_id):
         return None
     handle_smartsleep(msg)
+    return None
+
+
+@HANDLERS_22.register("I_POST_SLEEP_NOTIFICATION")
+def handle_post_sleep_notification(msg):
+    """Process an internal pre sleep notification message."""
+    if not msg.gateway.is_sensor(msg.node_id):
+        return None
+    handle_smartsleep(msg)
+    handle_wakeup(msg)
     return None
