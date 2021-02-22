@@ -81,6 +81,7 @@ class Message:
             )
         except ValueError:
             _LOGGER.error("Error encoding message to gateway")
+            return None
 
     def validate(self, protocol_version):
         """Validate message."""

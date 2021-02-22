@@ -27,7 +27,7 @@ class BaseConst(IntEnum):
 class MessageType(BaseConst):
     """MySensors message types."""
 
-    # pylint: disable=too-few-public-methods
+    # pylint: disable=too-few-public-methods, invalid-name
     presentation = 0  # sent by a node when presenting attached sensors
     set = 1  # sent from/to sensor when value should be updated
     req = 2  # requests a variable value
@@ -90,7 +90,7 @@ class SetReq(BaseConst):
     V_IMPEDANCE = 14  # Impedance value
     # Armed status of a security sensor.  1=Armed, 0=Bypassed
     V_ARMED = 15
-    # Tripped status of a security sensor. 1=Tripped, 0=Untripped
+    # Tripped status of a security sensor. 1=Tripped, 0=Clear
     V_TRIPPED = 16
     V_WATT = 17  # Watt value for power meters
     V_KWH = 18  # Accumulated number of KWH for a power meter
