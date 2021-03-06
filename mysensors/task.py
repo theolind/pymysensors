@@ -188,7 +188,7 @@ class AsyncTasks(Tasks):
         """Return function to schedule saving sensors."""
 
         async def save_on_schedule():
-            """Wait and schedule a new save."""
+            """Save sensors and sleep until next save."""
             while True:
                 try:
                     await self.loop.run_in_executor(None, save_sensors)
@@ -197,7 +197,7 @@ class AsyncTasks(Tasks):
                     break
 
         async def schedule_save():
-            """Save sensors and schedule a new save."""
+            """Schedule the save task."""
             task = self.loop.create_task(save_on_schedule())
 
             async def cancel_save():
