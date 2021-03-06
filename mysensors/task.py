@@ -1,7 +1,6 @@
 """Handle sync and async tasks."""
 import asyncio
 from collections import deque
-from functools import partial
 import logging
 import threading
 import time
@@ -168,7 +167,7 @@ class AsyncTasks(Tasks):
         if not self.persistence:
             return
         if self._cancel_save is not None:
-            self._cancel_save()
+            await self._cancel_save()
             self._cancel_save = None
         await self.loop.run_in_executor(None, self.persistence.save_sensors)
 
@@ -188,12 +187,25 @@ class AsyncTasks(Tasks):
     def _schedule_factory(self, save_sensors):
         """Return function to schedule saving sensors."""
 
+        async def save_on_schedule():
+            """Save sensors and sleep until next save."""
+            while True:
+                try:
+                    await self.loop.run_in_executor(None, save_sensors)
+                    await asyncio.sleep(10.0)
+                except asyncio.CancelledError:
+                    break
+
         async def schedule_save():
-            """Save sensors and schedule a new save."""
-            await self.loop.run_in_executor(None, save_sensors)
-            callback = partial(self.loop.create_task, schedule_save())
-            task = self.loop.call_later(10.0, callback)
-            self._cancel_save = task.cancel
+            """Schedule the save task."""
+            task = self.loop.create_task(save_on_schedule())
+
+            async def cancel_save():
+                """Cancel the save task."""
+                task.cancel()
+                await task
+
+            self._cancel_save = cancel_save
 
         return schedule_save
 
