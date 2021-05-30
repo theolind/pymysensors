@@ -81,6 +81,11 @@ class Sensor:
         self._heartbeat = is_heartbeat(value)
 
     @property
+    def is_smart_sleep_node(self):
+        """Returns True if the node uses smart sleep mode."""
+        return bool(self.new_state)
+
+    @property
     def protocol_version(self):
         """Return protocol version."""
         return self._protocol_version
@@ -102,6 +107,14 @@ class Sensor:
             return None
         self.children[child_id] = ChildSensor(child_id, child_type, description)
         return child_id
+
+    def init_smart_sleep_mode(self):
+        """Inits desired state dict for all known children."""
+        for child in self.children.values():
+            if child.id in self.new_state:
+                continue
+
+            self.new_state[child.id] = ChildSensor(child.id, child.type, child.description)
 
     def set_child_desired_state(self, child_id, value_type, value):
         """Set a desired child sensor's value for smart sleep nodes."""

@@ -17,19 +17,17 @@ def handle_smartsleep(msg):
     """Process a message before going back to smartsleep."""
     sensor = msg.gateway.sensors[msg.node_id]
 
+    sensor.init_smart_sleep_mode()
+
     while sensor.queue:
         job = sensor.queue.popleft()
         msg.gateway.tasks.add_job(str, job)
 
     for child in sensor.children.values():
-        default_child_state = ChildSensor(child.id, child.type, child.description)
+        new_child_state = sensor.new_state.get(child.id)
 
-        new_child_state = sensor.new_state.get(
-            child.id,
-            default_child_state
-        )
-
-        sensor.new_state[child.id] = new_child_state
+        if not new_child_state:
+            continue
 
         for value_type, _ in child.values.items():
             new_value = new_child_state.values.get(value_type)
@@ -81,21 +79,26 @@ def handle_set(msg):
     """Process a set message."""
     if not msg.gateway.is_sensor(msg.node_id, msg.child_id):
         return None
-    msg.gateway.sensors[msg.node_id].update_child_value(
+
+    sensor = msg.gateway.sensors[msg.node_id]
+
+    sensor.update_child_value(
         msg.child_id,
         msg.sub_type,
         msg.payload,
     )
 
-    if msg.gateway.sensors[msg.node_id].new_state:
-        msg.gateway.sensors[msg.node_id].set_child_desired_state(
+    if sensor.is_smart_sleep_node:
+        sensor.set_child_desired_state(
             msg.child_id,
             msg.sub_type,
             msg.payload,
         )
+
     msg.gateway.alert(msg)
+
     # Check if reboot is true
-    if msg.gateway.sensors[msg.node_id].reboot:
+    if sensor.reboot:
         return msg.copy(
             child_id=SYSTEM_CHILD_ID,
             type=msg.gateway.const.MessageType.internal,

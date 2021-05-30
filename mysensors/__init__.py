@@ -124,13 +124,16 @@ class Gateway:
             or msg.type == self.const.MessageType.presentation
         ):
             return None
+
         if (
             msg.node_id not in self.sensors
             or msg.type == self.const.MessageType.stream
-            or not self.sensors[msg.node_id].new_state
+            or not self.sensors[msg.node_id].is_smart_sleep_node
         ):
             return msg
+
         self.sensors[msg.node_id].queue.append(msg.encode())
+
         return None
 
     def set_child_value(self, sensor_id, child_id, value_type, value, **kwargs):
@@ -149,7 +152,7 @@ class Gateway:
 
         sensor = self.sensors[sensor_id]
 
-        if sensor.new_state:
+        if sensor.is_smart_sleep_node:
             sensor.set_child_desired_state(
                     child_id,
                     value_type,
