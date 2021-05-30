@@ -36,12 +36,15 @@ def handle_smartsleep(msg):
             if new_value is None or new_value == value:
                 continue
 
-            msg.gateway.tasks.add_job(
-                sensor.set_child_value,
-                child.id,
-                value_type,
-                new_value,
+            msg_to_send = Message(
+                node_id=sensor.sensor_id,
+                child_id=child.id,
+                type=msg.gateway.const.MessageType.set,
+                sub_type=value_type,
+                payload=new_value
             )
+
+            msg.gateway.tasks.add_job(msg_to_send.encode)
 
 
 @HANDLERS.register("presentation")
