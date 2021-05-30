@@ -88,13 +88,6 @@ def handle_set(msg):
         msg.payload,
     )
 
-    if sensor.is_smart_sleep_node:
-        sensor.set_child_desired_state(
-            msg.child_id,
-            msg.sub_type,
-            msg.payload,
-        )
-
     msg.gateway.alert(msg)
 
     # Check if reboot is true
