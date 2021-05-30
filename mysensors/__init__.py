@@ -146,20 +146,32 @@ class Gateway:
         """
         if not self.is_sensor(sensor_id, child_id):
             return
-        if self.sensors[sensor_id].new_state:
-            self.sensors[sensor_id].set_child_value(
-                child_id, value_type, value, children=self.sensors[sensor_id].new_state
-            )
-        else:
-            self.tasks.add_job(
-                partial(
-                    self.sensors[sensor_id].set_child_value,
+
+        sensor = self.sensors[sensor_id]
+
+        if sensor.new_state:
+            sensor.set_child_value(
                     child_id,
                     value_type,
                     value,
-                    **kwargs,
+                children=sensor.new_state
                 )
+
+            return
+
+        msg_type = kwargs.get("msg_type", self.const.MessageType.set)
+        ack = kwargs.get("ack", 0)
+
+        msg_to_send = Message(
+            node_id=sensor.sensor_id,
+            child_id=child_id,
+            type=msg_type,
+            ack=ack,
+            sub_type=value_type,
+            payload=value
             )
+
+        self.tasks.add_job(msg_to_send.encode)
 
     def send(self, message):
         """Write a message to the arduino gateway."""
