@@ -4,6 +4,7 @@ import logging
 import time
 
 from .const import SYSTEM_CHILD_ID
+from .message import Message
 from .sensor import ChildSensor
 from .util import Registry
 
@@ -14,22 +15,33 @@ HANDLERS = Registry()
 
 def handle_smartsleep(msg):
     """Process a message before going back to smartsleep."""
-    while msg.gateway.sensors[msg.node_id].queue:
-        msg.gateway.tasks.add_job(str, msg.gateway.sensors[msg.node_id].queue.popleft())
-    for child in msg.gateway.sensors[msg.node_id].children.values():
-        new_child = msg.gateway.sensors[msg.node_id].new_state.get(
-            child.id, ChildSensor(child.id, child.type, child.description)
+    sensor = msg.gateway.sensors[msg.node_id]
+
+    while sensor.queue:
+        job = sensor.queue.popleft()
+        msg.gateway.tasks.add_job(str, job)
+
+    for child in sensor.children.values():
+        default_child_state = ChildSensor(child.id, child.type, child.description)
+
+        new_child_state = sensor.new_state.get(
+            child.id,
+            default_child_state
         )
-        msg.gateway.sensors[msg.node_id].new_state[child.id] = new_child
+
+        sensor.new_state[child.id] = new_child_state
+
         for value_type, value in child.values.items():
-            new_value = new_child.values.get(value_type)
-            if new_value is not None and new_value != value:
-                msg.gateway.tasks.add_job(
-                    msg.gateway.sensors[msg.node_id].set_child_value,
-                    child.id,
-                    value_type,
-                    new_value,
-                )
+            new_value = new_child_state.values.get(value_type)
+            if new_value is None or new_value == value:
+                continue
+
+            msg.gateway.tasks.add_job(
+                sensor.set_child_value,
+                child.id,
+                value_type,
+                new_value,
+            )
 
 
 @HANDLERS.register("presentation")
