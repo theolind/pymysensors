@@ -81,15 +81,17 @@ def handle_set(msg):
     """Process a set message."""
     if not msg.gateway.is_sensor(msg.node_id, msg.child_id):
         return None
-    msg.gateway.sensors[msg.node_id].set_child_value(
-        msg.child_id, msg.sub_type, msg.payload
+    msg.gateway.sensors[msg.node_id].update_child_value(
+        msg.child_id,
+        msg.sub_type,
+        msg.payload,
     )
+
     if msg.gateway.sensors[msg.node_id].new_state:
-        msg.gateway.sensors[msg.node_id].set_child_value(
+        msg.gateway.sensors[msg.node_id].set_child_desired_state(
             msg.child_id,
             msg.sub_type,
             msg.payload,
-            children=msg.gateway.sensors[msg.node_id].new_state,
         )
     msg.gateway.alert(msg)
     # Check if reboot is true

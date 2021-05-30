@@ -103,46 +103,70 @@ class Sensor:
         self.children[child_id] = ChildSensor(child_id, child_type, description)
         return child_id
 
-    def set_child_value(self, child_id, value_type, value, **kwargs):
-        """Set a child sensor's value."""
-        children = kwargs.get("children", self.children)
-        if not isinstance(children, dict) or child_id not in children:
-            return None
-        msg_type = kwargs.get("msg_type", 1)
-        ack = kwargs.get("ack", 0)
-        msg = Message().modify(
+    def set_child_desired_state(self, child_id, value_type, value):
+        """Set a desired child sensor's value for smart sleep nodes."""
+        if child_id not in self.new_state:
+            _LOGGER.warning(
+                "Warning: attempt to set a desired state value on non-smart sleep node: "
+                "node %s, child %s, type %s, value %s",
+                self.sensor_id,
+                child_id,
+                value_type,
+                value
+            )
+            return
+
+        if not self.validate_child_state(child_id, value_type, value):
+            _LOGGER.warning("Unable to set desired child sate")
+            return
+
+        child = self.new_state[child_id]
+        child.values[value_type] = value
+
+    def update_child_value(self, child_id, value_type, value):
+        """Update a child sensor's local state."""
+        child = self.children[child_id]
+        child.values[value_type] = value
+
+    def validate_child_state(self, child_id, value_type, value):
+        """Check if we will be able to generate a set message from these values"""
+        const = get_const(self.protocol_version)
+
+        msg_type = const.MessageType.set
+
+        msg = Message(
             node_id=self.sensor_id,
             child_id=child_id,
             type=msg_type,
-            ack=ack,
             sub_type=value_type,
             payload=value,
         )
+
         msg_string = msg.encode()
+
         if msg_string is None:
             _LOGGER.error(
-                "Not a valid message: node %s, child %s, type %s, ack %s, "
+                "Not a valid state: node %s, child %s, type %s, "
                 "sub_type %s, payload %s",
                 self.sensor_id,
                 child_id,
                 msg_type,
-                ack,
                 value_type,
                 value,
             )
-            return None
-        msg = Message(msg_string)
+            return False
+
         try:
             msg.validate(self.protocol_version)
         except AttributeError as exc:
             _LOGGER.error("Invalid %s: %s", msg, exc)
-            return None
+            return False
         except vol.Invalid as exc:
             _LOGGER.error("Invalid %s: %s", msg, humanize_error(msg.__dict__, exc))
-            return None
-        child = children[msg.child_id]
-        child.values[msg.sub_type] = msg.payload
-        return msg_string
+            return False
+
+        return True
+
 
 
 class ChildSensor:

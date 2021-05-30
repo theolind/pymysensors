@@ -150,11 +150,10 @@ class Gateway:
         sensor = self.sensors[sensor_id]
 
         if sensor.new_state:
-            sensor.set_child_value(
+            sensor.set_child_desired_state(
                     child_id,
                     value_type,
-                    value,
-                children=sensor.new_state
+                value
                 )
 
             return
