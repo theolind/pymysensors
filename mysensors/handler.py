@@ -31,9 +31,9 @@ def handle_smartsleep(msg):
 
         sensor.new_state[child.id] = new_child_state
 
-        for value_type, value in child.values.items():
+        for value_type, _ in child.values.items():
             new_value = new_child_state.values.get(value_type)
-            if new_value is None or new_value == value:
+            if new_value is None:
                 continue
 
             msg_to_send = Message(
