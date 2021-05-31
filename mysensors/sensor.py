@@ -144,12 +144,11 @@ class Sensor:
         if child_id not in self.new_state:
             return
 
-        # New state is equal to the desired state -
+        # New sate received from the node - 
         # we can clear the desired state value to indicate that no changes are required
         new_state_child = self.new_state[child_id]
 
-        if new_state_child.values[value_type] == value:
-            new_state_child.values[value_type] = None
+        new_state_child.values[value_type] = None
 
     def validate_child_state(self, child_id, value_type, value):
         """Check if we will be able to generate a set message from these values"""
