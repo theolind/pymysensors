@@ -176,6 +176,8 @@ class Sensor:
         const = get_const(self.protocol_version)
 
         msg_type = const.MessageType.set
+        value_type = int(value_type)
+        value = str(value)
 
         msg = Message(
             node_id=self.sensor_id,

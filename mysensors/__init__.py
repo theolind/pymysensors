@@ -106,6 +106,9 @@ class Gateway:
         msg_type = kwargs.get("msg_type", self.const.MessageType.set)
         ack = kwargs.get("ack", default_ack)
 
+        value_type = int(value_type)
+        value = str(value)
+
         msg = Message(
             node_id=sensor.sensor_id,
             child_id=child_id,
