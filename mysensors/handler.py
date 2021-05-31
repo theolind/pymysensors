@@ -33,10 +33,7 @@ def handle_smartsleep(msg):
                 continue
 
             msg_to_send = msg.gateway.create_message_to_set_sensor_value(
-                sensor,
-                child.id,
-                value_type,
-                new_value
+                sensor, child.id, value_type, new_value
             )
 
             if msg_to_send is None:

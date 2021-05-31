@@ -3,7 +3,6 @@ import logging
 
 # pylint: disable=no-name-in-module, import-error
 from distutils.version import LooseVersion as parse_ver
-from functools import partial
 from pathlib import Path
 
 import voluptuous as vol
@@ -98,7 +97,9 @@ class Gateway:
             self.sensors[sensorid] = Sensor(sensorid)
         return sensorid if sensorid in self.sensors else None
 
-    def create_message_to_set_sensor_value(self, sensor, child_id, value_type, value, **kwargs):
+    def create_message_to_set_sensor_value(
+        self, sensor, child_id, value_type, value, **kwargs
+    ):
         """Create a message to set specified sensor child value."""
         default_ack = int(self.use_ack_when_set_values)
 
@@ -111,7 +112,7 @@ class Gateway:
             type=msg_type,
             ack=ack,
             sub_type=value_type,
-            payload=value
+            payload=value,
         )
 
         msg_string = msg.encode()
@@ -195,20 +196,12 @@ class Gateway:
         sensor = self.sensors[sensor_id]
 
         if sensor.is_smart_sleep_node:
-            sensor.set_child_desired_state(
-                child_id,
-                value_type,
-                value
-            )
+            sensor.set_child_desired_state(child_id, value_type, value)
 
             return
 
         msg_to_send = self.create_message_to_set_sensor_value(
-            sensor,
-            child_id,
-            value_type,
-            value,
-            **kwargs
+            sensor, child_id, value_type, value, **kwargs
         )
 
         if msg_to_send is None:

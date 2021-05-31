@@ -82,7 +82,7 @@ class Sensor:
 
     @property
     def is_smart_sleep_node(self):
-        """Returns True if the node uses smart sleep mode."""
+        """Return True if the node uses smart sleep mode."""
         return bool(self.new_state)
 
     @property
@@ -109,23 +109,25 @@ class Sensor:
         return child_id
 
     def init_smart_sleep_mode(self):
-        """Inits desired state dict for all known children."""
+        """Init desired state dict for all known children."""
         for child in self.children.values():
             if child.id in self.new_state:
                 continue
 
-            self.new_state[child.id] = ChildSensor(child.id, child.type, child.description)
+            self.new_state[child.id] = ChildSensor(
+                child.id, child.type, child.description
+            )
 
     def set_child_desired_state(self, child_id, value_type, value):
         """Set a desired child sensor's value for smart sleep nodes."""
         if child_id not in self.new_state:
             _LOGGER.warning(
-                "Warning: attempt to set a desired state value on non-smart sleep node: "
-                "node %s, child %s, type %s, value %s",
+                "Warning: attempt to set a desired state value"
+                " on non-smart sleep node: node %s, child %s, type %s, value %s",
                 self.sensor_id,
                 child_id,
                 value_type,
-                value
+                value,
             )
             return
 
@@ -144,14 +146,14 @@ class Sensor:
         if child_id not in self.new_state:
             return
 
-        # New sate received from the node - 
+        # New sate received from the node -
         # we can clear the desired state value to indicate that no changes are required
         new_state_child = self.new_state[child_id]
 
         new_state_child.values[value_type] = None
 
     def validate_child_state(self, child_id, value_type, value):
-        """Check if we will be able to generate a set message from these values"""
+        """Check if we will be able to generate a set message from these values."""
         const = get_const(self.protocol_version)
 
         msg_type = const.MessageType.set
@@ -188,7 +190,6 @@ class Sensor:
             return False
 
         return True
-
 
 
 class ChildSensor:
