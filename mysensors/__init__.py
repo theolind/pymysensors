@@ -65,9 +65,9 @@ class Gateway:
         msg.gateway = self
         message_type = self.const.MessageType(msg.type)
         handler = message_type.get_handler(self.handlers)
-        msg = handler(msg)
-        msg = self._route_message(msg)
-        return msg.encode() if msg else None
+        reply = handler(msg)
+        reply = self._route_message(reply)
+        return reply.encode() if reply else None
 
     def alert(self, msg):
         """Tell anyone who wants to know that a sensor was updated."""
@@ -196,10 +196,10 @@ class Gateway:
 
         if sensor.is_smart_sleep_node:
             sensor.set_child_desired_state(
-                    child_id,
-                    value_type,
+                child_id,
+                value_type,
                 value
-                )
+            )
 
             return
 
@@ -209,7 +209,7 @@ class Gateway:
             value_type,
             value,
             **kwargs
-            )
+        )
 
         if msg_to_send is None:
             return
