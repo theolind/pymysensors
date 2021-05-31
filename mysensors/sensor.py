@@ -1,6 +1,7 @@
 """Handle sensor classes."""
 import logging
 from collections import deque
+from os import chown
 
 import voluptuous as vol
 from voluptuous.humanize import humanize_error
@@ -107,6 +108,24 @@ class Sensor:
             return None
         self.children[child_id] = ChildSensor(child_id, child_type, description)
         return child_id
+
+    def get_desired_value(self, child_id, value_type):
+        """Return sensor state value taking into account node type."""
+        if self.children[child_id] is None:
+            return None
+
+        value = None
+
+        if self.is_smart_sleep_node:
+            child = self.new_state[child_id]
+            value = child.values.get(value_type) if child else None
+
+        if value:
+            return value
+
+        child = self.children[child_id]
+
+        return child.values.get(value_type)
 
     def init_smart_sleep_mode(self):
         """Init desired state dict for all known children."""

@@ -108,12 +108,15 @@ def handle_req(msg):
     """
     if not msg.gateway.is_sensor(msg.node_id, msg.child_id):
         return None
-    value = (
-        msg.gateway.sensors[msg.node_id].children[msg.child_id].values.get(msg.sub_type)
-    )
-    if value is not None:
-        return msg.copy(type=msg.gateway.const.MessageType.set, payload=value)
-    return None
+
+    sensor = msg.gateway.sensors[msg.node_id]
+
+    value = sensor.get_desired_value(msg.child_id, msg.sub_type)
+
+    if value is None:
+        return None
+
+    return msg.copy(type=msg.gateway.const.MessageType.set, payload=value)
 
 
 @HANDLERS.register("internal")
