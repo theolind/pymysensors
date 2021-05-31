@@ -110,7 +110,7 @@ class Sensor:
 
     def get_desired_value(self, child_id, value_type):
         """Return sensor state value taking into account node type."""
-        if self.children[child_id] is None:
+        if child_id not in self.children:
             return None
 
         value = None
@@ -158,6 +158,9 @@ class Sensor:
 
     def update_child_value(self, child_id, value_type, value):
         """Update a child sensor's local state."""
+        if child_id not in self.children:
+            return
+
         child = self.children[child_id]
         child.values[value_type] = value
 
