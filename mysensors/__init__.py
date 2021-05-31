@@ -97,6 +97,45 @@ class Gateway:
             self.sensors[sensorid] = Sensor(sensorid)
         return sensorid if sensorid in self.sensors else None
 
+    def create_message_to_set_sensor_value(self, sensor, child_id, value_type, value, **kwargs):
+        """Create a message to set specified sensor child value."""
+        msg_type = kwargs.get("msg_type", self.const.MessageType.set)
+        ack = kwargs.get("ack", 0)
+
+        msg = Message(
+            node_id=sensor.sensor_id,
+            child_id=child_id,
+            type=msg_type,
+            ack=ack,
+            sub_type=value_type,
+            payload=value
+        )
+
+        msg_string = msg.encode()
+
+        if msg_string is None:
+            _LOGGER.error(
+                "Not a valid message: node %s, child %s, type %s, "
+                "sub_type %s, payload %s",
+                sensor.sensor_id,
+                child_id,
+                msg_type,
+                value_type,
+                value,
+            )
+            return None
+
+        try:
+            msg.validate(self.protocol_version)
+        except AttributeError as exc:
+            _LOGGER.error("Invalid %s: %s", msg, exc)
+            return None
+        except vol.Invalid as exc:
+            _LOGGER.error("Invalid %s: %s", msg, humanize_error(msg.__dict__, exc))
+            return None
+
+        return msg
+
     def is_sensor(self, sensorid, child_id=None):
         """Return True if a sensor and its child exist."""
         ret = sensorid in self.sensors
@@ -161,17 +200,16 @@ class Gateway:
 
             return
 
-        msg_type = kwargs.get("msg_type", self.const.MessageType.set)
-        ack = kwargs.get("ack", 0)
-
-        msg_to_send = Message(
-            node_id=sensor.sensor_id,
-            child_id=child_id,
-            type=msg_type,
-            ack=ack,
-            sub_type=value_type,
-            payload=value
+        msg_to_send = self.create_message_to_set_sensor_value(
+            sensor,
+            child_id,
+            value_type,
+            value,
+            **kwargs
             )
+
+        if msg_to_send is None:
+            return
 
         self.tasks.add_job(msg_to_send.encode)
 

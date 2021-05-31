@@ -4,8 +4,6 @@ import logging
 import time
 
 from .const import SYSTEM_CHILD_ID
-from .message import Message
-from .sensor import ChildSensor
 from .util import Registry
 
 _LOGGER = logging.getLogger(__name__)
@@ -34,13 +32,15 @@ def handle_smartsleep(msg):
             if new_value is None:
                 continue
 
-            msg_to_send = Message(
-                node_id=sensor.sensor_id,
-                child_id=child.id,
-                type=msg.gateway.const.MessageType.set,
-                sub_type=value_type,
-                payload=new_value
+            msg_to_send = msg.gateway.create_message_to_set_sensor_value(
+                sensor,
+                child.id,
+                value_type,
+                new_value
             )
+
+            if msg_to_send is None:
+                continue
 
             msg.gateway.tasks.add_job(msg_to_send.encode)
 
