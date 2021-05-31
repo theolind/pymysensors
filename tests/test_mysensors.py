@@ -333,7 +333,7 @@ def test_req(gateway, add_sensor):
     """Test req message in case where value exists."""
     sensor = add_sensor(1)
     sensor.add_child_sensor(1, gateway.const.Presentation.S_POWER)
-    sensor.set_child_value(1, gateway.const.SetReq.V_WATT, 42)
+    sensor.update_child_value(1, gateway.const.SetReq.V_WATT, 42)
     ret = gateway.logic("1;1;2;0;17;\n")
     assert ret == "1;1;1;0;17;42\n"
 
@@ -342,7 +342,7 @@ def test_req_zerovalue(gateway, add_sensor):
     """Test req message in case where value exists but is zero."""
     sensor = add_sensor(1)
     sensor.add_child_sensor(1, gateway.const.Presentation.S_POWER)
-    sensor.set_child_value(1, gateway.const.SetReq.V_WATT, 0)
+    sensor.update_child_value(1, gateway.const.SetReq.V_WATT, 0)
     ret = gateway.logic("1;1;2;0;17;\n")
     assert ret == "1;1;1;0;17;0\n"
 
@@ -460,15 +460,6 @@ def test_non_presented_child(protocol_version, return_value):
     assert 1 not in sensor.children
     ret = gateway.tasks.run_job()
     assert ret == return_value
-
-
-def test_set_child_no_children(gateway, add_sensor):
-    """Test Gateway method set_child_value without child in children."""
-    sensor = add_sensor(1)
-    sensor.add_child_sensor(0, gateway.const.Presentation.S_LIGHT)
-    gateway.set_child_value(1, 0, gateway.const.SetReq.V_LIGHT, 1, children={})
-    ret = gateway.tasks.run_job()
-    assert ret is None
 
 
 def test_set_child_value_bad_type(gateway, add_sensor):
@@ -594,9 +585,9 @@ def test_smartsleep(protocol_version, wake_msg):
     # heartbeat comes in
     gateway.logic(wake_msg)
     ret = gateway.tasks.run_job()
-    # instance responds with new values
+    # instance sends new values to the node
     assert ret == "1;0;1;0;23;57\n"
-    # request from node
+    # node requests value from the instance
     gateway.logic("1;0;2;0;23;\n")
     ret = gateway.tasks.run_job()
     # no heartbeat
@@ -604,13 +595,31 @@ def test_smartsleep(protocol_version, wake_msg):
     # heartbeat
     gateway.logic(wake_msg)
     ret = gateway.tasks.run_job()
-    # instance responds to request with current value
+    # instance responds to request with the desired(new) value
+    # despite the lack of new values confirmation from the node
+    # reply to the incoming message is handled first
     assert ret == "1;0;1;0;23;57\n"
+    ret = gateway.tasks.run_job()
+    # then instance sends new values to the node again
+    # because there were no confirmation from the node
+    assert ret == "1;0;1;0;23;57\n"
+    # node confirms new values
+    gateway.logic("1;0;1;0;23;57\n")
+    ret = gateway.tasks.run_job()
+    # nothing actions before heartbeat
+    assert ret is None
     # heartbeat
     gateway.logic(wake_msg)
     ret = gateway.tasks.run_job()
-    # nothing has changed
+    # no changes required since states match
     assert ret is None
+    # node requests value from the instance
+    gateway.logic("1;0;2;0;23;\n")
+    # heartbeat
+    gateway.logic(wake_msg)
+    ret = gateway.tasks.run_job()
+    # instance responds to request with current values
+    assert ret == "1;0;1;0;23;57\n"
 
 
 @pytest.mark.parametrize(
@@ -643,12 +652,26 @@ def test_set_with_new_state(protocol_version, wake_msg):
     sensor = get_sensor(1, gateway)
     sensor.add_child_sensor(0, gateway.const.Presentation.S_LIGHT_LEVEL)
     gateway.logic("1;0;1;0;23;43\n")
+
+    # Mark sensor as smart sleep
     gateway.logic(wake_msg)
+
+    value_type = gateway.const.SetReq.V_LIGHT_LEVEL
+
+    # Set desired value
+    gateway.set_child_value(sensor.sensor_id, 0, value_type, "65")
+
+    # Check that we have old value in the state
+    # and desired one in the new_state
+    assert sensor.children[0].values[value_type] == "43"
+    assert sensor.new_state[0].values[value_type] == "65"
+
+    # Receive state update from the node
     gateway.logic("1;0;1;0;23;57\n")
-    assert (
-        sensor.children[0].values[gateway.const.SetReq.V_LIGHT_LEVEL]
-        == sensor.new_state[0].values[gateway.const.SetReq.V_LIGHT_LEVEL]
-    )
+
+    # Check that the desired state value is cleared
+    assert sensor.children[0].values[value_type] == "57"
+    assert sensor.new_state[0].values[value_type] is None
 
 
 @pytest.mark.parametrize("protocol_version", ["2.0", "2.1", "2.2"])
