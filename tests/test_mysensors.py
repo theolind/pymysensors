@@ -564,6 +564,31 @@ def test_set_rgbw(protocol_version):
         ("2.2", "1;255;3;0;32;500\n"),
     ],
 )
+def test_node_mark_as_smartsleep(protocol_version, wake_msg):
+    """Test that node is correctly marked as smartsleep after the heartbeat message."""
+    gateway = get_gateway(protocol_version=protocol_version)
+    sensor = get_sensor(1, gateway)
+    sensor.add_child_sensor(0, gateway.const.Presentation.S_LIGHT_LEVEL)
+    gateway.logic("1;0;1;0;23;43\n")
+    assert not sensor.is_smart_sleep_node
+
+    # heartbeat
+    gateway.logic(wake_msg)
+
+    assert sensor.is_smart_sleep_node
+
+    # check that the new_state dict was initialized
+    assert 0 in sensor.new_state
+
+
+@pytest.mark.parametrize(
+    "protocol_version, wake_msg",
+    [
+        ("2.0", "1;255;3;0;22;123456\n"),
+        ("2.1", "1;255;3;0;22;123456\n"),
+        ("2.2", "1;255;3;0;32;500\n"),
+    ],
+)
 def test_smartsleep(protocol_version, wake_msg):
     """Test smartsleep feature."""
     gateway = get_gateway(protocol_version=protocol_version)
