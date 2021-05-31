@@ -1,7 +1,6 @@
 """Handle sensor classes."""
 import logging
 from collections import deque
-from os import chown
 
 import voluptuous as vol
 from voluptuous.humanize import humanize_error
