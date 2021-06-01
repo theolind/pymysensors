@@ -176,9 +176,22 @@ class Sensor:
     def validate_child_state(self, child_id, value_type, value):
         """Check if we will be able to generate a set message from these values."""
         const = get_const(self.protocol_version)
-
         msg_type = const.MessageType.set
-        value_type = int(value_type)
+
+        try:
+            value_type = int(value_type)
+        except ValueError:
+            _LOGGER.error(
+                "Not a valid message type: node %s, child %s, type %s, "
+                "sub_type %s, payload %s",
+                self.sensor_id,
+                child_id,
+                msg_type,
+                value_type,
+                value,
+            )
+            return False
+
         value = str(value)
 
         msg = Message(

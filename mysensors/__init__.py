@@ -106,7 +106,20 @@ class Gateway:
         msg_type = kwargs.get("msg_type", self.const.MessageType.set)
         ack = kwargs.get("ack", default_ack)
 
-        value_type = int(value_type)
+        try:
+            value_type = int(value_type)
+        except ValueError:
+            _LOGGER.error(
+                "Not a valid message type: node %s, child %s, type %s, "
+                "sub_type %s, payload %s",
+                sensor.sensor_id,
+                child_id,
+                msg_type,
+                value_type,
+                value,
+            )
+            return None
+
         value = str(value)
 
         msg = Message(
