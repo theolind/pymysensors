@@ -1,4 +1,4 @@
 black==21.5b2
 flake8==3.9.2
 pydocstyle==6.1.1
-pylint==2.8.2
+pylint==2.8.3
