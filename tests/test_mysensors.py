@@ -626,7 +626,7 @@ def test_smartsleep(protocol_version, wake_msg):
     assert ret == "1;0;1;0;23;57\n"
     ret = gateway.tasks.run_job()
     # then instance sends new values to the node again
-    # because there were no confirmation from the node
+    # because there was no confirmation from the node
     assert ret == "1;0;1;0;23;57\n"
     # node confirms new values
     gateway.logic("1;0;1;0;23;57\n")
