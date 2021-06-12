@@ -3,7 +3,6 @@ import logging
 from collections import deque
 
 import voluptuous as vol
-from voluptuous.humanize import humanize_error
 
 from .const import get_const
 from .message import Message
@@ -194,6 +193,7 @@ class Sensor:
             )
 
         msg.validate(self.protocol_version)
+
 
 class ChildSensor:
     """Represent a child sensor."""
