@@ -631,7 +631,7 @@ def test_smartsleep(protocol_version, wake_msg):
     # node confirms new values
     gateway.logic("1;0;1;0;23;57\n")
     ret = gateway.tasks.run_job()
-    # nothing actions before heartbeat
+    # no actions before heartbeat
     assert ret is None
     # heartbeat
     gateway.logic(wake_msg)

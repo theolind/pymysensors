@@ -167,7 +167,7 @@ class Sensor:
         if child_id not in self.new_state:
             return
 
-        # New sate received from the node -
+        # New state received from the node -
         # we can clear the desired state value to indicate that no changes are required
         new_state_child = self.new_state[child_id]
 
