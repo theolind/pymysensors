@@ -469,18 +469,16 @@ def test_set_child_value_bad_type(gateway, add_sensor):
     """Test Gateway method set_child_value with bad type."""
     sensor = add_sensor(1)
     sensor.add_child_sensor(0, gateway.const.Presentation.S_LIGHT)
-    gateway.set_child_value(1, 0, gateway.const.SetReq.V_LIGHT, 1, msg_type="one")
-    ret = gateway.tasks.run_job()
-    assert ret is None
+    with pytest.raises(ValueError):
+        gateway.set_child_value(1, 0, gateway.const.SetReq.V_LIGHT, 1, msg_type="one")
 
 
 def test_set_child_value_bad_ack(gateway, add_sensor):
     """Test Gateway method set_child_value with bad ack."""
     sensor = add_sensor(1)
     sensor.add_child_sensor(0, gateway.const.Presentation.S_LIGHT)
-    gateway.set_child_value(1, 0, gateway.const.SetReq.V_LIGHT, 1, ack="one")
-    ret = gateway.tasks.run_job()
-    assert ret is None
+    with pytest.raises(ValueError):
+        gateway.set_child_value(1, 0, gateway.const.SetReq.V_LIGHT, 1, ack="one")
 
 
 def test_set_child_value_value_type(gateway, add_sensor):

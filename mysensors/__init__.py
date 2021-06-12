@@ -108,17 +108,8 @@ class Gateway:
 
         try:
             value_type = int(value_type)
-        except ValueError:
-            _LOGGER.error(
-                "Not a valid message type: node %s, child %s, type %s, "
-                "sub_type %s, payload %s",
-                sensor.sensor_id,
-                child_id,
-                msg_type,
-                value_type,
-                value,
-            )
-            return None
+        except (ValueError, TypeError) as exc:
+            raise ValueError(f"Invalid value_type provided: {value_type}") from exc
 
         value = str(value)
 
@@ -134,25 +125,12 @@ class Gateway:
         msg_string = msg.encode()
 
         if msg_string is None:
-            _LOGGER.error(
-                "Not a valid message: node %s, child %s, type %s, "
-                "sub_type %s, payload %s",
-                sensor.sensor_id,
-                child_id,
-                msg_type,
-                value_type,
-                value,
+            raise ValueError(
+                f"Unable to encode message: node {sensor.sensor_id}, child {child_id}, "
+                "type {msg_type}, ack {ack}, sub_type {value_type}, payload {value}"
             )
-            return None
 
-        try:
-            msg.validate(self.protocol_version)
-        except AttributeError as exc:
-            _LOGGER.error("Invalid %s: %s", msg, exc)
-            return None
-        except vol.Invalid as exc:
-            _LOGGER.error("Invalid %s: %s", msg, humanize_error(msg.__dict__, exc))
-            return None
+        msg.validate(self.protocol_version)
 
         return msg
 
@@ -213,15 +191,11 @@ class Gateway:
 
         if sensor.is_smart_sleep_node:
             sensor.set_child_desired_state(child_id, value_type, value)
-
             return
 
         msg_to_send = self.create_message_to_set_sensor_value(
             sensor, child_id, value_type, value, **kwargs
         )
-
-        if msg_to_send is None:
-            return
 
         self.tasks.add_job(msg_to_send.encode)
 

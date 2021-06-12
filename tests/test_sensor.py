@@ -1,4 +1,7 @@
 """Test task module."""
+import pytest
+import voluptuous
+
 from mysensors.sensor import ChildSensor, Sensor
 from mysensors.const import get_const
 
@@ -90,16 +93,16 @@ def test_set_child_desired_state():
     assert sensor.new_state[child_id].values[value_type] == "90"
 
     # does not set unknown child
-    sensor.set_child_desired_state(wrong_child_id, value_type, "50")
-    assert wrong_child_id not in sensor.new_state
+    with pytest.raises(ValueError):
+        sensor.set_child_desired_state(wrong_child_id, value_type, "50")
 
     # does not set wrong value type
-    sensor.set_child_desired_state(child_id, wrong_value_type, "50")
-    assert wrong_value_type not in sensor.new_state[child_id].values
+    with pytest.raises(voluptuous.error.MultipleInvalid):
+        sensor.set_child_desired_state(child_id, wrong_value_type, "50")
 
     # does not set wrong value type
-    sensor.set_child_desired_state(child_id, value_type, "bad value")
-    assert sensor.new_state[child_id].values[value_type] == "90"
+    with pytest.raises(voluptuous.error.MultipleInvalid):
+        sensor.set_child_desired_state(child_id, value_type, "bad value")
 
 
 def test_update_child_value():
@@ -157,10 +160,19 @@ def test_validate_child_state():
     sensor = Sensor(sensor_id)
     sensor.add_child_sensor(child_id, const.Presentation.S_LIGHT_LEVEL)
 
-    assert not sensor.validate_child_state(child_id, value_type, "bad value")
+    with pytest.raises(voluptuous.error.MultipleInvalid):
+        sensor.validate_child_state(child_id, value_type, "bad value")
 
-    assert not sensor.validate_child_state(300, value_type, "50")
+    with pytest.raises(voluptuous.error.MultipleInvalid):
+        sensor.validate_child_state(300, value_type, "50")
 
-    assert not sensor.validate_child_state(child_id, 9999, "50")
+    with pytest.raises(voluptuous.error.MultipleInvalid):
+        sensor.validate_child_state(child_id, 9999, "50")
 
-    assert sensor.validate_child_state(child_id, value_type, "50")
+    with pytest.raises(ValueError):
+        sensor.validate_child_state(child_id, "bad value type", "50")
+
+    with pytest.raises(ValueError):
+        sensor.validate_child_state(child_id, None, "50")
+
+    sensor.validate_child_state(child_id, value_type, "50")

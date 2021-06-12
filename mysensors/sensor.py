@@ -139,19 +139,11 @@ class Sensor:
     def set_child_desired_state(self, child_id, value_type, value):
         """Set a desired child sensor's value for smart sleep nodes."""
         if child_id not in self.new_state:
-            _LOGGER.warning(
-                "Warning: attempt to set a desired state value"
-                " on non-smart sleep node: node %s, child %s, type %s, value %s",
-                self.sensor_id,
-                child_id,
-                value_type,
-                value,
+            raise ValueError(
+                f"Child with id {child_id} not found for sensor {self.sensor_id}"
             )
-            return
 
-        if not self.validate_child_state(child_id, value_type, value):
-            _LOGGER.warning("Unable to set desired child sate")
-            return
+        self.validate_child_state(child_id, value_type, value)
 
         child = self.new_state[child_id]
         child.values[value_type] = value
@@ -180,17 +172,8 @@ class Sensor:
 
         try:
             value_type = int(value_type)
-        except ValueError:
-            _LOGGER.error(
-                "Not a valid message type: node %s, child %s, type %s, "
-                "sub_type %s, payload %s",
-                self.sensor_id,
-                child_id,
-                msg_type,
-                value_type,
-                value,
-            )
-            return False
+        except (ValueError, TypeError) as exc:
+            raise ValueError(f"Invalid value_type provided: {value_type}") from exc
 
         value = str(value)
 
@@ -205,28 +188,12 @@ class Sensor:
         msg_string = msg.encode()
 
         if msg_string is None:
-            _LOGGER.error(
-                "Not a valid state: node %s, child %s, type %s, "
-                "sub_type %s, payload %s",
-                self.sensor_id,
-                child_id,
-                msg_type,
-                value_type,
-                value,
+            raise ValueError(
+                f"Unable to encode message: node {self.sensor_id}, child {child_id}, "
+                "type {msg_type}, sub_type {value_type}, payload {value}"
             )
-            return False
 
-        try:
-            msg.validate(self.protocol_version)
-        except AttributeError as exc:
-            _LOGGER.error("Invalid %s: %s", msg, exc)
-            return False
-        except vol.Invalid as exc:
-            _LOGGER.error("Invalid %s: %s", msg, humanize_error(msg.__dict__, exc))
-            return False
-
-        return True
-
+        msg.validate(self.protocol_version)
 
 class ChildSensor:
     """Represent a child sensor."""
