@@ -460,6 +460,9 @@ def test_non_presented_child(protocol_version, return_value):
     assert 1 not in sensor.children
     ret = gateway.tasks.run_job()
     assert ret == return_value
+    gateway.set_child_value(1, 0, gateway.const.SetReq.V_LIGHT, 1)
+    ret = gateway.tasks.run_job()
+    assert ret == return_value
 
 
 def test_set_child_value_bad_type(gateway, add_sensor):
