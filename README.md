@@ -117,10 +117,6 @@ GATEWAY.start_persistence()
 
 Set the keyword argument `protocol_version` to set which version of the MySensors serial API to use. The default value is `'1.4'`. Set the `protocol_version` to the version you're using.
 
-### Echo(ACK) default value for `Set` requests
-
-Set the keyword argument `use_ack_when_set_values` to `True` (default `False`) if you want `ack` flag to be enabled for `Set` requests. Primary required to control this flag during smart sleep nodes update.
-
 ### Serial gateway
 
 The serial gateway also supports setting the baud rate, read timeout and reconnect timeout.
