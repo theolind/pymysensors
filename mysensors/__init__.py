@@ -23,7 +23,7 @@ class Gateway:
 
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self, event_callback=None, protocol_version="1.4", **kwargs):
+    def __init__(self, event_callback=None, protocol_version="1.4"):
         """Set up Gateway."""
         protocol_version = safe_is_version(protocol_version)
         self.const = get_const(protocol_version)
@@ -38,7 +38,6 @@ class Gateway:
         self.protocol_version = protocol_version
         self.sensors = {}
         self.tasks = None
-        self.use_ack_when_set_values = kwargs.get("use_ack_when_set_values", False)
 
     def __repr__(self):
         """Return the representation."""
@@ -101,10 +100,8 @@ class Gateway:
         self, sensor, child_id, value_type, value, **kwargs
     ):
         """Create a message to set specified sensor child value."""
-        default_ack = int(self.use_ack_when_set_values)
-
         msg_type = kwargs.get("msg_type", self.const.MessageType.set)
-        ack = kwargs.get("ack", default_ack)
+        ack = kwargs.get("ack", 0)
 
         try:
             value_type = int(value_type)
