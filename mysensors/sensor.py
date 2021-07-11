@@ -3,7 +3,6 @@ import logging
 from collections import deque
 
 import voluptuous as vol
-from voluptuous.humanize import humanize_error
 
 from .const import get_const
 from .message import Message
@@ -81,6 +80,11 @@ class Sensor:
         self._heartbeat = is_heartbeat(value)
 
     @property
+    def is_smart_sleep_node(self):
+        """Return True if the node uses smart sleep mode."""
+        return bool(self.new_state)
+
+    @property
     def protocol_version(self):
         """Return protocol version."""
         return self._protocol_version
@@ -103,46 +107,92 @@ class Sensor:
         self.children[child_id] = ChildSensor(child_id, child_type, description)
         return child_id
 
-    def set_child_value(self, child_id, value_type, value, **kwargs):
-        """Set a child sensor's value."""
-        children = kwargs.get("children", self.children)
-        if not isinstance(children, dict) or child_id not in children:
+    def get_desired_value(self, child_id, value_type):
+        """Return sensor state value taking into account node type."""
+        if child_id not in self.children:
             return None
-        msg_type = kwargs.get("msg_type", 1)
-        ack = kwargs.get("ack", 0)
-        msg = Message().modify(
+
+        value = None
+
+        if self.is_smart_sleep_node:
+            child = self.new_state[child_id]
+            value = child.values.get(value_type) if child else None
+
+        if value:
+            return value
+
+        child = self.children[child_id]
+
+        return child.values.get(value_type)
+
+    def init_smart_sleep_mode(self):
+        """Init desired state dict for all known children."""
+        for child in self.children.values():
+            if child.id in self.new_state:
+                continue
+
+            self.new_state[child.id] = ChildSensor(
+                child.id, child.type, child.description
+            )
+
+    def set_child_desired_state(self, child_id, value_type, value):
+        """Set a desired child sensor's value for smart sleep nodes."""
+        if child_id not in self.new_state:
+            raise ValueError(
+                f"Child with id {child_id} not found for sensor {self.sensor_id}"
+            )
+
+        self.validate_child_state(child_id, value_type, value)
+
+        child = self.new_state[child_id]
+        child.values[value_type] = value
+
+    def update_child_value(self, child_id, value_type, value):
+        """Update a child sensor's local state."""
+        if child_id not in self.children:
+            return
+
+        child = self.children[child_id]
+        child.values[value_type] = value
+
+        if child_id not in self.new_state:
+            return
+
+        # New state received from the node -
+        # we can clear the desired state value to indicate that no changes are required
+        new_state_child = self.new_state[child_id]
+
+        new_state_child.values[value_type] = None
+
+    def validate_child_state(self, child_id, value_type, value):
+        """Check if we will be able to generate a set message from these values."""
+        const = get_const(self.protocol_version)
+        msg_type = const.MessageType.set
+
+        try:
+            value_type = int(value_type)
+        except (ValueError, TypeError) as exc:
+            raise ValueError(f"Invalid value_type provided: {value_type}") from exc
+
+        value = str(value)
+
+        msg = Message(
             node_id=self.sensor_id,
             child_id=child_id,
             type=msg_type,
-            ack=ack,
             sub_type=value_type,
             payload=value,
         )
+
         msg_string = msg.encode()
+
         if msg_string is None:
-            _LOGGER.error(
-                "Not a valid message: node %s, child %s, type %s, ack %s, "
-                "sub_type %s, payload %s",
-                self.sensor_id,
-                child_id,
-                msg_type,
-                ack,
-                value_type,
-                value,
+            raise ValueError(
+                f"Unable to encode message: node {self.sensor_id}, child {child_id}, "
+                "type {msg_type}, sub_type {value_type}, payload {value}"
             )
-            return None
-        msg = Message(msg_string)
-        try:
-            msg.validate(self.protocol_version)
-        except AttributeError as exc:
-            _LOGGER.error("Invalid %s: %s", msg, exc)
-            return None
-        except vol.Invalid as exc:
-            _LOGGER.error("Invalid %s: %s", msg, humanize_error(msg.__dict__, exc))
-            return None
-        child = children[msg.child_id]
-        child.values[msg.sub_type] = msg.payload
-        return msg_string
+
+        msg.validate(self.protocol_version)
 
 
 class ChildSensor:

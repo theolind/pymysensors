@@ -3,7 +3,6 @@ import logging
 
 # pylint: disable=no-name-in-module, import-error
 from distutils.version import LooseVersion as parse_ver
-from functools import partial
 from pathlib import Path
 
 import voluptuous as vol
@@ -64,9 +63,9 @@ class Gateway:
         msg.gateway = self
         message_type = self.const.MessageType(msg.type)
         handler = message_type.get_handler(self.handlers)
-        msg = handler(msg)
-        msg = self._route_message(msg)
-        return msg.encode() if msg else None
+        reply = handler(msg)
+        reply = self._route_message(reply)
+        return reply.encode() if reply else None
 
     def alert(self, msg):
         """Tell anyone who wants to know that a sensor was updated."""
@@ -97,6 +96,41 @@ class Gateway:
             self.sensors[sensorid] = Sensor(sensorid)
         return sensorid if sensorid in self.sensors else None
 
+    def create_message_to_set_sensor_value(
+        self, sensor, child_id, value_type, value, **kwargs
+    ):
+        """Create a message to set specified sensor child value."""
+        msg_type = kwargs.get("msg_type", self.const.MessageType.set)
+        ack = kwargs.get("ack", 0)
+
+        try:
+            value_type = int(value_type)
+        except (ValueError, TypeError) as exc:
+            raise ValueError(f"Invalid value_type provided: {value_type}") from exc
+
+        value = str(value)
+
+        msg = Message(
+            node_id=sensor.sensor_id,
+            child_id=child_id,
+            type=msg_type,
+            ack=ack,
+            sub_type=value_type,
+            payload=value,
+        )
+
+        msg_string = msg.encode()
+
+        if msg_string is None:
+            raise ValueError(
+                f"Unable to encode message: node {sensor.sensor_id}, child {child_id}, "
+                "type {msg_type}, ack {ack}, sub_type {value_type}, payload {value}"
+            )
+
+        msg.validate(self.protocol_version)
+
+        return msg
+
     def is_sensor(self, sensorid, child_id=None):
         """Return True if a sensor and its child exist."""
         ret = sensorid in self.sensors
@@ -124,13 +158,16 @@ class Gateway:
             or msg.type == self.const.MessageType.presentation
         ):
             return None
+
         if (
             msg.node_id not in self.sensors
             or msg.type == self.const.MessageType.stream
-            or not self.sensors[msg.node_id].new_state
+            or not self.sensors[msg.node_id].is_smart_sleep_node
         ):
             return msg
+
         self.sensors[msg.node_id].queue.append(msg.encode())
+
         return None
 
     def set_child_value(self, sensor_id, child_id, value_type, value, **kwargs):
@@ -146,20 +183,18 @@ class Gateway:
         """
         if not self.is_sensor(sensor_id, child_id):
             return
-        if self.sensors[sensor_id].new_state:
-            self.sensors[sensor_id].set_child_value(
-                child_id, value_type, value, children=self.sensors[sensor_id].new_state
-            )
-        else:
-            self.tasks.add_job(
-                partial(
-                    self.sensors[sensor_id].set_child_value,
-                    child_id,
-                    value_type,
-                    value,
-                    **kwargs,
-                )
-            )
+
+        sensor = self.sensors[sensor_id]
+
+        if sensor.is_smart_sleep_node:
+            sensor.set_child_desired_state(child_id, value_type, value)
+            return
+
+        msg_to_send = self.create_message_to_set_sensor_value(
+            sensor, child_id, value_type, value, **kwargs
+        )
+
+        self.tasks.add_job(msg_to_send.encode)
 
     def send(self, message):
         """Write a message to the arduino gateway."""

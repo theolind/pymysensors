@@ -4,7 +4,6 @@ import logging
 import time
 
 from .const import SYSTEM_CHILD_ID
-from .sensor import ChildSensor
 from .util import Registry
 
 _LOGGER = logging.getLogger(__name__)
@@ -14,22 +13,33 @@ HANDLERS = Registry()
 
 def handle_smartsleep(msg):
     """Process a message before going back to smartsleep."""
-    while msg.gateway.sensors[msg.node_id].queue:
-        msg.gateway.tasks.add_job(str, msg.gateway.sensors[msg.node_id].queue.popleft())
-    for child in msg.gateway.sensors[msg.node_id].children.values():
-        new_child = msg.gateway.sensors[msg.node_id].new_state.get(
-            child.id, ChildSensor(child.id, child.type, child.description)
-        )
-        msg.gateway.sensors[msg.node_id].new_state[child.id] = new_child
-        for value_type, value in child.values.items():
-            new_value = new_child.values.get(value_type)
-            if new_value is not None and new_value != value:
-                msg.gateway.tasks.add_job(
-                    msg.gateway.sensors[msg.node_id].set_child_value,
-                    child.id,
-                    value_type,
-                    new_value,
-                )
+    sensor = msg.gateway.sensors[msg.node_id]
+
+    sensor.init_smart_sleep_mode()
+
+    while sensor.queue:
+        job = sensor.queue.popleft()
+        msg.gateway.tasks.add_job(str, job)
+
+    for child in sensor.children.values():
+        new_child_state = sensor.new_state.get(child.id)
+
+        if not new_child_state:
+            continue
+
+        for value_type, _ in child.values.items():
+            new_value = new_child_state.values.get(value_type)
+            if new_value is None:
+                continue
+
+            msg_to_send = msg.gateway.create_message_to_set_sensor_value(
+                sensor, child.id, value_type, new_value
+            )
+
+            if msg_to_send is None:
+                continue
+
+            msg.gateway.tasks.add_job(msg_to_send.encode)
 
 
 @HANDLERS.register("presentation")
@@ -66,19 +76,19 @@ def handle_set(msg):
     """Process a set message."""
     if not msg.gateway.is_sensor(msg.node_id, msg.child_id):
         return None
-    msg.gateway.sensors[msg.node_id].set_child_value(
-        msg.child_id, msg.sub_type, msg.payload
+
+    sensor = msg.gateway.sensors[msg.node_id]
+
+    sensor.update_child_value(
+        msg.child_id,
+        msg.sub_type,
+        msg.payload,
     )
-    if msg.gateway.sensors[msg.node_id].new_state:
-        msg.gateway.sensors[msg.node_id].set_child_value(
-            msg.child_id,
-            msg.sub_type,
-            msg.payload,
-            children=msg.gateway.sensors[msg.node_id].new_state,
-        )
+
     msg.gateway.alert(msg)
+
     # Check if reboot is true
-    if msg.gateway.sensors[msg.node_id].reboot:
+    if sensor.reboot:
         return msg.copy(
             child_id=SYSTEM_CHILD_ID,
             type=msg.gateway.const.MessageType.internal,
@@ -98,12 +108,15 @@ def handle_req(msg):
     """
     if not msg.gateway.is_sensor(msg.node_id, msg.child_id):
         return None
-    value = (
-        msg.gateway.sensors[msg.node_id].children[msg.child_id].values.get(msg.sub_type)
-    )
-    if value is not None:
-        return msg.copy(type=msg.gateway.const.MessageType.set, payload=value)
-    return None
+
+    sensor = msg.gateway.sensors[msg.node_id]
+
+    value = sensor.get_desired_value(msg.child_id, msg.sub_type)
+
+    if value is None:
+        return None
+
+    return msg.copy(type=msg.gateway.const.MessageType.set, payload=value)
 
 
 @HANDLERS.register("internal")
