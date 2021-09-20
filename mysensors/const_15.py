@@ -26,7 +26,6 @@ from mysensors.validation import is_version, percent_int
 class Presentation(BaseConst):
     """MySensors presentation sub-types."""
 
-    # pylint: disable=too-few-public-methods
     S_DOOR = 0  # Door and window sensors
     S_MOTION = 1  # Motion sensors
     S_SMOKE = 2  # Smoke sensor
@@ -71,7 +70,6 @@ class Presentation(BaseConst):
 class SetReq(BaseConst):
     """MySensors set/req sub-types."""
 
-    # pylint: disable=too-few-public-methods
     V_TEMP = 0  # Temperature
     V_HUM = 1  # Humidity
     V_STATUS = 2  # Binary status, 0=off, 1=on
@@ -144,7 +142,6 @@ class SetReq(BaseConst):
 class Internal(BaseConst):
     """MySensors internal sub-types."""
 
-    # pylint: disable=too-few-public-methods
     # Use this to report the battery level (in percent 0-100).
     I_BATTERY_LEVEL = 0
     # Sensors can request the current time from the Controller using this

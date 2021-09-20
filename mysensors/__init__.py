@@ -1,7 +1,6 @@
 """Python implementation of MySensors API."""
 import logging
 
-# pylint: disable=no-name-in-module, import-error
 from distutils.version import LooseVersion as parse_ver
 from pathlib import Path
 

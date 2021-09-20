@@ -7,3 +7,7 @@ disable=
   bad-continuation,
   duplicate-code,
   locally-disabled,
+
+enable=
+  useless-suppression,
+  use-symbolic-message-instead,

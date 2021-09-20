@@ -8,8 +8,6 @@ from mysensors import Gateway, Message, get_const, Sensor
 from mysensors.const_14 import Internal, MessageType
 from mysensors.task import SyncTasks
 
-# pylint: disable=unnecessary-comprehension
-
 PRES_FIXTURES_14 = {
     "S_DOOR": "Front Door",
     "S_ARDUINO_NODE": "1.4",

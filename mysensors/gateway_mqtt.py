@@ -66,7 +66,6 @@ class BaseMQTTGateway(Gateway):
 
         Return a mysensors command string.
         """
-        # pylint: disable=no-self-use
         topic_levels = topic.split("/")
         topic_levels = not_prefix = topic_levels[-5:]
         prefix_end_idx = topic.find("/".join(not_prefix)) - 1
@@ -132,7 +131,7 @@ class MQTTGateway(BaseSyncGateway, BaseMQTTGateway):
 class AsyncMQTTGateway(BaseAsyncGateway, BaseMQTTGateway):
     """MySensors async MQTT client gateway."""
 
-    # pylint: disable=too-many-arguments, useless-super-delegation
+    # pylint: disable=too-many-arguments
 
     def __init__(
         self,

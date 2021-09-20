@@ -1,7 +1,6 @@
 """MySensors constants for version 2.0 of MySensors."""
 import voluptuous as vol
 
-# pylint: disable=unused-import
 from mysensors.const_15 import (
     VALID_INTERNAL,
     VALID_SETREQ,
@@ -25,7 +24,6 @@ def get_handler_registry():
 class Presentation(BaseConst):
     """MySensors presentation sub-types."""
 
-    # pylint: disable=too-few-public-methods
     S_DOOR = 0  # Door and window sensors
     S_MOTION = 1  # Motion sensors
     S_SMOKE = 2  # Smoke sensor
@@ -75,7 +73,6 @@ class Presentation(BaseConst):
 class SetReq(BaseConst):
     """MySensors set/req sub-types."""
 
-    # pylint: disable=too-few-public-methods
     V_TEMP = 0  # S_TEMP, S_HEATER, S_HVAC. Temperature.
     V_HUM = 1  # S_HUM. Humidity.
     # S_LIGHT, S_DIMMER, S_SPRINKLER, S_HVAC, S_HEATER.
@@ -189,7 +186,6 @@ class SetReq(BaseConst):
 class Internal(BaseConst):
     """MySensors internal sub-types."""
 
-    # pylint: disable=too-few-public-methods
     # Use this to report the battery level (in percent 0-100).
     I_BATTERY_LEVEL = 0
     # Sensors can request the current time from the Controller using this

@@ -1,11 +1,8 @@
 """Expose validators to use in the library."""
-# pylint: disable=import-error, no-name-in-module
 from distutils.version import LooseVersion as parse_ver
 import logging
 
 import voluptuous as vol
-
-# pylint: disable=invalid-name
 
 _LOGGER = logging.getLogger(__name__)
 

@@ -8,7 +8,7 @@ import pytest
 from mysensors.gateway_mqtt import MQTTGateway
 from mysensors.sensor import Sensor
 
-# pylint: disable=redefined-outer-name, too-many-arguments
+# pylint: disable=redefined-outer-name
 
 
 @pytest.fixture
@@ -193,7 +193,6 @@ def test_mqtt_load_persistence(mock_pub, mock_sub, tmpdir):
     del gateway.sensors[1]
     assert 1 not in gateway.sensors
     gateway.tasks.persistence.safe_load_sensors()
-    # pylint: disable=protected-access
     gateway.init_topics()
     assert gateway.sensors[1].children[1].id == sensor.children[1].id
     assert gateway.sensors[1].children[1].type == sensor.children[1].type
