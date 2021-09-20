@@ -15,7 +15,7 @@ from .task import AsyncTasks, SyncTasks
 from .validation import safe_is_version
 
 _LOGGER = logging.getLogger(__name__)
-__version__ = (Path(__file__).parent / "VERSION").read_text().strip()
+__version__ = (Path(__file__).parent / "VERSION").read_text(encoding="utf-8").strip()
 
 
 class Gateway:

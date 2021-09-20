@@ -44,7 +44,7 @@ def load_fw(path):
         return None
     try:
         intel_hex = IntelHex()
-        with open(path, "r") as file_handle:
+        with open(path, "r", encoding="utf-8") as file_handle:
             intel_hex.fromfile(file_handle, format="hex")
         return intel_hex.tobinstr()
     except (IntelHexError, TypeError, ValueError) as exc:
