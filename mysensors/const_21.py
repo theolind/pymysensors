@@ -19,7 +19,6 @@ from mysensors.const_20 import (  # noqa: F401
 class Internal(BaseConst):
     """MySensors internal sub-types."""
 
-    # pylint: disable=too-few-public-methods
     # Use this to report the battery level (in percent 0-100).
     I_BATTERY_LEVEL = 0
     # Sensors can request the current time from the Controller using this
