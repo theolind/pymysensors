@@ -101,7 +101,7 @@ def test_empty_files(gateway, filename, tmpdir):
     )
     persistence = gateway.persistence
     persistence_file.write("")
-    with open(persistence.persistence_bak, "w") as file_handle:
+    with open(persistence.persistence_bak, "w", encoding="utf-8") as file_handle:
         file_handle.write("")
     gateway.persistence.safe_load_sensors()
     assert not gateway.sensors
@@ -118,7 +118,7 @@ def test_json_empty_file_good_bak(gateway, add_sensor, tmpdir):
     del gateway.sensors[1]
     assert 1 not in gateway.sensors
     persistence_file.rename(gateway.persistence.persistence_bak)
-    with open(orig_file_name, "w") as json_file:
+    with open(orig_file_name, "w", encoding="utf-8") as json_file:
         json_file.write("")
     gateway.persistence.safe_load_sensors()
     assert 1 in gateway.sensors
@@ -134,7 +134,7 @@ def test_persistence_upgrade(mock_save_json, gateway, add_sensor, filename, tmpd
 
         Only used for testing upgrade with missing attributes.
         """
-        with open(filename, "w") as file_handle:
+        with open(filename, "w", encoding="utf-8") as file_handle:
             json.dump(gateway.sensors, file_handle, cls=MySensorsJSONEncoderTestUpgrade)
             file_handle.flush()
             os.fsync(file_handle.fileno())
@@ -180,14 +180,14 @@ def test_persistence_upgrade(mock_save_json, gateway, add_sensor, filename, tmpd
 class MySensorsJSONEncoderTestUpgrade(MySensorsJSONEncoder):
     """JSON encoder used for testing upgrade with missing attributes."""
 
-    def default(self, obj):  # pylint: disable=E0202
+    def default(self, o):
         """Serialize obj into JSON."""
-        if isinstance(obj, Sensor):
-            return obj.__dict__
-        if isinstance(obj, ChildSensor):
+        if isinstance(o, Sensor):
+            return o.__dict__
+        if isinstance(o, ChildSensor):
             return {
-                "id": obj.id,
-                "type": obj.type,
-                "values": obj.values,
+                "id": o.id,
+                "type": o.type,
+                "values": o.values,
             }
-        return super().default(obj)
+        return super().default(o)

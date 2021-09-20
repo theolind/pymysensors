@@ -107,6 +107,6 @@ async def async_connect(transport):
                     "Waiting %s secs before trying to connect again",
                     transport.reconnect_timeout,
                 )
-                await asyncio.sleep(transport.reconnect_timeout, loop=transport.loop)
+                await asyncio.sleep(transport.reconnect_timeout)
     except asyncio.CancelledError:
         _LOGGER.debug("Connect attempt to %s cancelled", transport.gateway.port)

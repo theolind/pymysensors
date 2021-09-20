@@ -34,14 +34,14 @@ class Persistence:
 
     def _save_json(self, filename):
         """Save sensors to json file."""
-        with open(filename, "w") as file_handle:
+        with open(filename, "w", encoding="utf-8") as file_handle:
             json.dump(self._sensors, file_handle, cls=MySensorsJSONEncoder, indent=4)
             file_handle.flush()
             os.fsync(file_handle.fileno())
 
     def _load_json(self, filename):
         """Load sensors from json file."""
-        with open(filename, "r") as file_handle:
+        with open(filename, "r", encoding="utf-8") as file_handle:
             self._sensors.update(json.load(file_handle, cls=MySensorsJSONDecoder))
 
     def save_sensors(self):
@@ -116,28 +116,27 @@ class Persistence:
 class MySensorsJSONEncoder(json.JSONEncoder):
     """JSON encoder."""
 
-    def default(self, obj):
+    def default(self, o):
         """Serialize obj into JSON."""
-        # pylint: disable=method-hidden, protected-access, arguments-differ
-        if isinstance(obj, Sensor):
+        if isinstance(o, Sensor):
             return {
-                "sensor_id": obj.sensor_id,
-                "children": obj.children,
-                "type": obj.type,
-                "sketch_name": obj.sketch_name,
-                "sketch_version": obj.sketch_version,
-                "battery_level": obj.battery_level,
-                "protocol_version": obj.protocol_version,
-                "heartbeat": obj.heartbeat,
+                "sensor_id": o.sensor_id,
+                "children": o.children,
+                "type": o.type,
+                "sketch_name": o.sketch_name,
+                "sketch_version": o.sketch_version,
+                "battery_level": o.battery_level,
+                "protocol_version": o.protocol_version,
+                "heartbeat": o.heartbeat,
             }
-        if isinstance(obj, ChildSensor):
+        if isinstance(o, ChildSensor):
             return {
-                "id": obj.id,
-                "type": obj.type,
-                "description": obj.description,
-                "values": obj.values,
+                "id": o.id,
+                "type": o.type,
+                "description": o.description,
+                "values": o.values,
             }
-        return json.JSONEncoder.default(self, obj)
+        return json.JSONEncoder.default(self, o)
 
 
 class MySensorsJSONDecoder(json.JSONDecoder):
