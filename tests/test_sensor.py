@@ -69,6 +69,27 @@ def test_get_desired_value():
     assert sensor.get_desired_value(child_id, wrong_value_type) is None
 
 
+def test_get_desired_value_empty_string():
+    """Test that sensor returns correct value if the desired state is empty string."""
+    const = get_const("1.4")
+    sensor_id = 1
+    child_id = 0
+    value_type = const.SetReq.V_VAR1
+
+    sensor = Sensor(sensor_id)
+    sensor.add_child_sensor(child_id, const.Presentation.S_CUSTOM)
+
+    assert sensor.get_desired_value(child_id, value_type) is None
+
+    sensor.update_child_value(child_id, value_type, "Some string")
+    assert sensor.get_desired_value(child_id, value_type) == "Some string"
+
+    sensor.init_smart_sleep_mode()
+
+    sensor.set_child_desired_state(child_id, value_type, "")
+    assert sensor.get_desired_value(child_id, value_type) == ""
+
+
 def test_set_child_desired_state():
     """Test that we area able to set the desired state."""
     const = get_const("1.4")
