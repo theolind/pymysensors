@@ -118,7 +118,7 @@ class Sensor:
             child = self.new_state[child_id]
             value = child.values.get(value_type) if child else None
 
-        if value:
+        if value is not None:
             return value
 
         child = self.children[child_id]
