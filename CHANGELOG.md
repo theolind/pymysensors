@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.22.1](https://github.com/theolind/pymysensors/tree/0.22.1) (2021-11-13)
+
+[Full Changelog](https://github.com/theolind/pymysensors/compare/0.22.0...0.22.1)
+
+**Merged pull requests:**
+
+- Bump version to 0.22.1 [\#407](https://github.com/theolind/pymysensors/pull/407) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Fix processing empty string as a desired state value [\#406](https://github.com/theolind/pymysensors/pull/406) ([gorbunovav](https://github.com/gorbunovav))
+- Update changelog [\#405](https://github.com/theolind/pymysensors/pull/405) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [0.22.0](https://github.com/theolind/pymysensors/tree/0.22.0) (2021-11-10)
 
 [Full Changelog](https://github.com/theolind/pymysensors/compare/0.21.0...0.22.0)
