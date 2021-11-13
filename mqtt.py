@@ -1,13 +1,11 @@
 """Example for using pymysensors with mqtt."""
-import paho.mqtt.client as mqtt  # pylint: disable=import-error
+import paho.mqtt.client as mqtt
 
-import mysensors.mysensors as mysensors
+from mysensors import mysensors
 
 
-class MQTT(object):
+class MQTT:
     """MQTT client example."""
-
-    # pylint: disable=unused-argument
 
     def __init__(self, broker, port, keepalive):
         """Set up MQTT client."""
@@ -21,6 +19,8 @@ class MQTT(object):
 
     def subscribe(self, topic, callback, qos):
         """Subscribe to an MQTT topic."""
+        # pylint: disable=unused-argument
+
         if topic in self.topics:
             return
 

@@ -1,13 +1,13 @@
 """Example for using pymysensors."""
 import logging
 
-import mysensors.mysensors as mysensors
+from mysensors import mysensors
 
 logging.basicConfig(level=logging.DEBUG)
 
 
 def event(message):
-    """Callback for mysensors updates."""
+    """Handle mysensors updates."""
     print("sensor_update " + str(message.node_id))
 
 
