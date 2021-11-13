@@ -119,14 +119,12 @@ def sync_connect(transport):
 class AsyncTCPGateway(BaseAsyncGateway, BaseTCPGateway):
     """MySensors async TCP gateway."""
 
-    def __init__(self, *args, loop=None, **kwargs):
+    def __init__(self, *args, **kwargs):
         """Set up TCP gateway."""
         self.cancel_check_conn = None
         protocol = AsyncTCPMySensorsProtocol
-        transport = AsyncTransport(
-            self, async_connect, loop=loop, protocol=protocol, **kwargs
-        )
-        super().__init__(transport, *args, loop=loop, **kwargs)
+        transport = AsyncTransport(self, async_connect, protocol=protocol, **kwargs)
+        super().__init__(transport, *args, **kwargs)
 
     def check_connection(self):
         """Check if connection is alive every reconnect_timeout seconds."""
@@ -137,25 +135,29 @@ class AsyncTCPGateway(BaseAsyncGateway, BaseTCPGateway):
             self.tasks.transport.protocol.transport.close()
             self.tasks.transport.protocol.conn_lost_callback()
             return
-        task = self.tasks.loop.call_later(
+
+        loop = asyncio.get_running_loop()
+        task = loop.call_later(
             self.tasks.transport.reconnect_timeout + 0.1, self.check_connection
         )
         self.cancel_check_conn = task.cancel
 
     async def get_gateway_id(self):
         """Return a unique id for the gateway."""
-        mac = await self.tasks.loop.run_in_executor(None, self._get_gateway_id)
+        loop = asyncio.get_running_loop()
+        mac = await loop.run_in_executor(None, self._get_gateway_id)
         return mac
 
 
 async def async_connect(transport):
     """Connect to the socket."""
+    loop = asyncio.get_running_loop()
     try:
         while True:
             _LOGGER.info("Trying to connect to %s", transport.gateway.server_address)
             try:
                 await asyncio.wait_for(
-                    transport.loop.create_connection(
+                    loop.create_connection(
                         lambda: transport.protocol, *transport.gateway.server_address
                     ),
                     transport.reconnect_timeout,
@@ -188,6 +190,7 @@ async def async_connect(transport):
         _LOGGER.debug(
             "Connect attempt to %s cancelled", transport.gateway.server_address
         )
+        raise
 
 
 class AsyncTCPMySensorsProtocol(BaseMySensorsProtocol, asyncio.Protocol):

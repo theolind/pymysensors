@@ -240,7 +240,6 @@ class BaseAsyncGateway(Gateway):
         self,
         transport,
         *args,
-        loop=None,
         persistence=False,
         persistence_file="mysensors.pickle",
         **kwargs,
@@ -253,7 +252,6 @@ class BaseAsyncGateway(Gateway):
             persistence_file,
             self.sensors,
             transport,
-            loop=loop,
         )
 
     async def start(self):

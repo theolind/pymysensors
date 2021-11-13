@@ -147,10 +147,9 @@ class SyncTasks(Tasks):
 class AsyncTasks(Tasks):
     """Async version of tasks class."""
 
-    def __init__(self, *args, loop=None, **kwargs):
+    def __init__(self, *args, **kwargs):
         """Set up Tasks."""
         super().__init__(*args, **kwargs)
-        self.loop = loop or asyncio.get_event_loop()
         self._cancel_save = None
 
     async def start(self):
@@ -169,7 +168,8 @@ class AsyncTasks(Tasks):
         if self._cancel_save is not None:
             await self._cancel_save()
             self._cancel_save = None
-        await self.loop.run_in_executor(None, self.persistence.save_sensors)
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(None, self.persistence.save_sensors)
 
     def add_job(self, func, *args):
         """Add a job that should return a reply to be sent.
@@ -189,16 +189,18 @@ class AsyncTasks(Tasks):
 
         async def save_on_schedule():
             """Save sensors and sleep until next save."""
+            loop = asyncio.get_running_loop()
             while True:
                 try:
-                    await self.loop.run_in_executor(None, save_sensors)
+                    await loop.run_in_executor(None, save_sensors)
                     await asyncio.sleep(10.0)
                 except asyncio.CancelledError:
                     break
 
         async def schedule_save():
             """Schedule the save task."""
-            task = self.loop.create_task(save_on_schedule())
+            loop = asyncio.get_running_loop()
+            task = loop.create_task(save_on_schedule())
 
             async def cancel_save():
                 """Cancel the save task."""
@@ -213,14 +215,16 @@ class AsyncTasks(Tasks):
         """Load persistence file and schedule saving of persistence file."""
         if not self.persistence:
             return
-        await self.loop.run_in_executor(None, self.persistence.safe_load_sensors)
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(None, self.persistence.safe_load_sensors)
         await self.persistence.schedule_save_sensors()
 
     async def update_fw(self, nids, fw_type, fw_ver, fw_path=None):
         """Start update firmware of all node_ids in nids in executor."""
         fw_bin = None
         if fw_path:
-            fw_bin = await self.loop.run_in_executor(None, load_fw, fw_path)
+            loop = asyncio.get_running_loop()
+            fw_bin = await loop.run_in_executor(None, load_fw, fw_path)
             if not fw_bin:
                 return
         self.ota.make_update(nids, fw_type, fw_ver, fw_bin)

@@ -70,12 +70,16 @@ def mqtt_gateway(broker, port, **kwargs):
 @common_gateway_options
 def async_mqtt_gateway(broker, port, **kwargs):
     """Start an async mqtt gateway."""
-    loop = asyncio.get_event_loop()
-    mqttc = loop.run_until_complete(async_start_mqtt_client(loop, broker, port))
-    gateway = AsyncMQTTGateway(
-        mqttc.publish, mqttc.subscribe, event_callback=handle_msg, loop=loop, **kwargs
-    )
-    run_async_gateway(gateway, mqttc.stop())
+
+    async def gateway_factory():
+        """Create the async MQTT gateway."""
+        mqttc = await async_start_mqtt_client(broker, port)
+        gateway = AsyncMQTTGateway(
+            mqttc.publish, mqttc.subscribe, event_callback=handle_msg, **kwargs
+        )
+        return gateway, mqttc.stop
+
+    run_async_gateway(gateway_factory)
 
 
 @contextmanager
@@ -95,9 +99,9 @@ def run_mqtt_client(broker, port):
         mqttc.stop()
 
 
-async def async_start_mqtt_client(loop, broker, port):
+async def async_start_mqtt_client(broker, port):
     """Start async mqtt client."""
-    mqttc = AsyncMQTTClient(loop, broker, port)
+    mqttc = AsyncMQTTClient(broker, port)
     try:
         await mqttc.start()
     except OSError as exc:
@@ -171,9 +175,8 @@ class MQTTClient(BaseMQTTClient):
 class AsyncMQTTClient(BaseMQTTClient):
     """Async MQTT client."""
 
-    def __init__(self, loop, *args):
+    def __init__(self, *args):
         """Set up async MQTT client."""
-        self.loop = loop
         self.disconnected = None
         self._aio_helper = None
         super().__init__(*args)
@@ -185,9 +188,10 @@ class AsyncMQTTClient(BaseMQTTClient):
 
     def _connect(self):
         """Connect to broker."""
-        self.disconnected = self.loop.create_future()
+        loop = asyncio.get_running_loop()
+        self.disconnected = loop.create_future()
         self._client.on_disconnect = self.on_disconnect
-        self._aio_helper = AsyncioHelper(self.loop, self._client)
+        self._aio_helper = AsyncioHelper(loop, self._client)
         super()._connect()
         self._client.socket().setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 2048)
 

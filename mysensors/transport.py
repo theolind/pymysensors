@@ -75,14 +75,14 @@ class SyncTransport(Transport):
 class AsyncTransport(Transport):
     """Async version of transport class."""
 
-    def __init__(self, *args, loop=None, protocol=None, **kwargs):
+    def __init__(self, *args, protocol=None, **kwargs):
         """Set up transport."""
         super().__init__(*args, **kwargs)
-        self.loop = loop or asyncio.get_event_loop()
 
         def conn_lost():
             """Handle connection_lost in protocol class."""
-            self.connect_task = self.loop.create_task(self.connect())
+            loop = asyncio.get_running_loop()
+            self.connect_task = loop.create_task(self.connect())
 
         if not protocol:
             protocol = AsyncMySensorsProtocol

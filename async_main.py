@@ -13,21 +13,25 @@ def event(message):
     print("sensor_update " + str(message.node_id))
 
 
-LOOP = asyncio.get_event_loop()
-LOOP.set_debug(True)
+async def main():
+    """Run main function."""
+    # To create a serial gateway.
+    gateway = mysensors.AsyncSerialGateway(
+        "/dev/ttyACM0", event_callback=event, protocol_version="2.1"
+    )
+    await gateway.start()
+    # To set sensor 1, child 1, sub-type V_LIGHT (= 2), with value 1.
+    # gateway.set_child_value(1, 1, 2, 1)
+    try:
+        await asyncio.sleep(0.5)
+    except asyncio.CancelledError:
+        await gateway.stop()
+        raise
+    except Exception as exc:  # pylint: disable=broad-except
+        print(exc)
+
 
 try:
-    # To create a serial gateway.
-    GATEWAY = mysensors.AsyncSerialGateway(
-        "/dev/ttyACM0", loop=LOOP, event_callback=event, protocol_version="2.1"
-    )
-    LOOP.run_until_complete(GATEWAY.start())
-    LOOP.run_forever()
+    asyncio.run(main())
 except KeyboardInterrupt:
-    GATEWAY.stop()
-    LOOP.close()
-except Exception as exc:  # pylint: disable=broad-except
-    print(exc)
-
-# To set sensor 1, child 1, sub-type V_LIGHT (= 2), with value 1.
-# GATEWAY.set_child_value(1, 1, 2, 1)
+    pass

@@ -40,5 +40,9 @@ def tcp_gateway(**kwargs):
 @common_gateway_options
 def async_tcp_gateway(**kwargs):
     """Start an async tcp gateway."""
-    gateway = AsyncTCPGateway(event_callback=handle_msg, **kwargs)
-    run_async_gateway(gateway)
+
+    async def gateway_factory():
+        """Create the async TCP gateway."""
+        return AsyncTCPGateway(event_callback=handle_msg, **kwargs), None
+
+    run_async_gateway(gateway_factory)

@@ -40,5 +40,9 @@ def serial_gateway(**kwargs):
 @common_gateway_options
 def async_serial_gateway(**kwargs):
     """Start an async serial gateway."""
-    gateway = AsyncSerialGateway(event_callback=handle_msg, **kwargs)
-    run_async_gateway(gateway)
+
+    async def gateway_factory():
+        """Create the async serial gateway."""
+        return AsyncSerialGateway(event_callback=handle_msg, **kwargs), None
+
+    run_async_gateway(gateway_factory)
