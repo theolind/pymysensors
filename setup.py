@@ -4,7 +4,7 @@ from pathlib import Path
 from setuptools import setup, find_packages
 
 PROJECT_DIR = Path(__file__).parent.resolve()
-VERSION = (PROJECT_DIR / "mysensors" / "VERSION").read_text().strip()
+VERSION = (PROJECT_DIR / "mysensors" / "VERSION").read_text(encoding="utf-8").strip()
 
 README_FILE = PROJECT_DIR / "README.md"
 LONG_DESCRIPTION = README_FILE.read_text(encoding="utf-8")
