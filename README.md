@@ -10,7 +10,7 @@ Python API for talking to a [MySensors gateway](http://www.mysensors.org/). Curr
 
 ## Requirements
 
-pymysensors requires Python 3.6+.
+pymysensors requires Python 3.7+.
 
 ## Installation
 
@@ -242,7 +242,6 @@ make
 ### Code formatting
 
 We use black code formatter to automatically format the code.
-This requires Python 3.6 for development.
 
 ```sh
 black ./
