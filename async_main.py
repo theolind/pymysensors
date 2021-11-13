@@ -2,7 +2,7 @@
 import asyncio
 import logging
 
-import mysensors.mysensors as mysensors
+from mysensors import mysensors
 
 
 logging.basicConfig(level=logging.DEBUG)
