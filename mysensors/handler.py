@@ -135,7 +135,7 @@ def handle_stream(msg):
     if not msg.gateway.is_sensor(msg.node_id):
         return None
     stream = msg.gateway.const.Stream(msg.sub_type)
-    msg.gateway.alert(msg)	
+    msg.gateway.alert(msg)
     handler = stream.get_handler(msg.gateway.handlers)
     if handler is None:
         return None

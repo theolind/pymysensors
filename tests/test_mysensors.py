@@ -392,7 +392,7 @@ def test_callback_for_type_stream(gateway, add_sensor):
         messages.append(message)
 
     gateway.event_callback = callback
-    sensor = add_sensor(1)
+    add_sensor(1)
     gateway.logic("1;255;4;0;0;01000200B00626E80300\n")
     assert len(messages) == 1
     assert messages[0].gateway is gateway
