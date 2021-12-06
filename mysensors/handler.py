@@ -138,7 +138,9 @@ def handle_stream(msg):
     handler = stream.get_handler(msg.gateway.handlers)
     if handler is None:
         return None
-    return handler(msg)
+    resp = handler(msg)
+    msg.gateway.alert(msg)
+    return resp
 
 
 @HANDLERS.register("ST_FIRMWARE_CONFIG_REQUEST")
