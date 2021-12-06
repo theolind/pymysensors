@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.23.0](https://github.com/theolind/pymysensors/tree/0.23.0) (2021-12-06)
+
+[Full Changelog](https://github.com/theolind/pymysensors/compare/0.22.1...0.23.0)
+
+**Merged pull requests:**
+
+- Bump version to 0.23.0 [\#420](https://github.com/theolind/pymysensors/pull/420) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Add Stream event forward [\#419](https://github.com/theolind/pymysensors/pull/419) ([dianlight](https://github.com/dianlight))
+- Bump setuptools from 59.2.0 to 59.4.0 [\#418](https://github.com/theolind/pymysensors/pull/418) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump pylint from 2.11.1 to 2.12.1 [\#417](https://github.com/theolind/pymysensors/pull/417) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump setuptools from 59.1.0 to 59.2.0 [\#416](https://github.com/theolind/pymysensors/pull/416) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump black from 21.10b0 to 21.11b1 [\#415](https://github.com/theolind/pymysensors/pull/415) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump twine from 3.5.0 to 3.6.0 [\#414](https://github.com/theolind/pymysensors/pull/414) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump setuptools from 58.5.3 to 59.1.0 [\#413](https://github.com/theolind/pymysensors/pull/413) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Use flake8-docstrings [\#411](https://github.com/theolind/pymysensors/pull/411) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Drop support for Python 3.6 [\#410](https://github.com/theolind/pymysensors/pull/410) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Add support for Python 3.10 [\#409](https://github.com/theolind/pymysensors/pull/409) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Update changelog [\#408](https://github.com/theolind/pymysensors/pull/408) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [0.22.1](https://github.com/theolind/pymysensors/tree/0.22.1) (2021-11-13)
 
 [Full Changelog](https://github.com/theolind/pymysensors/compare/0.22.0...0.22.1)
