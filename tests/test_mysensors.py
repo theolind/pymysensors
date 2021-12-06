@@ -383,6 +383,28 @@ def test_callback(gateway, add_sensor):
     assert messages[0].payload == "43"
 
 
+def test_callback_for_type_stream(gateway, add_sensor):
+    """Test gateway callback function."""
+    messages = []
+
+    def callback(message):
+        """Add message to messages list."""
+        messages.append(message)
+
+    gateway.event_callback = callback
+    sensor = add_sensor(1)
+    #sensor.add_child_sensor(0, gateway.const.Presentation.S_LIGHT_LEVEL)
+    gateway.logic("1;255;4;0;0;01000200B00626E80300\n")
+    assert len(messages) == 1
+    assert messages[0].gateway is gateway
+    assert messages[0].node_id == 1
+    assert messages[0].child_id == 255
+    assert messages[0].type == 4
+    assert messages[0].ack == 0
+    assert messages[0].sub_type == 0
+    assert messages[0].payload == "01000200B00626E80300"
+
+
 def test_callback_exception(gateway, caplog):
     """Test gateway callback with exception."""
     side_effect = ValueError("test callback error")
