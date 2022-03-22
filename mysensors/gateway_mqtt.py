@@ -137,7 +137,6 @@ class AsyncMQTTGateway(BaseAsyncGateway, BaseMQTTGateway):
         self,
         pub_callback,
         sub_callback,
-        loop=None,
         in_prefix="",
         out_prefix="",
         retain=True,
@@ -152,7 +151,7 @@ class AsyncMQTTGateway(BaseAsyncGateway, BaseMQTTGateway):
             out_prefix=out_prefix,
             retain=retain,
         )
-        super().__init__(transport, loop=loop, **kwargs)
+        super().__init__(transport, **kwargs)
 
     async def get_gateway_id(self):
         """Return a unique id for the gateway."""

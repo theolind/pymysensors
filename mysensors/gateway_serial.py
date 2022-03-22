@@ -75,27 +75,27 @@ def sync_connect(transport):
 class AsyncSerialGateway(BaseAsyncGateway, BaseSerialGateway):
     """MySensors async serial gateway."""
 
-    def __init__(self, *args, loop=None, **kwargs):
+    def __init__(self, *args, **kwargs):
         """Set up serial gateway."""
-        transport = AsyncTransport(self, async_connect, loop=loop, **kwargs)
-        super().__init__(transport, *args, loop=loop, **kwargs)
+        transport = AsyncTransport(self, async_connect, **kwargs)
+        super().__init__(transport, *args, **kwargs)
 
     async def get_gateway_id(self):
         """Return a unique id for the gateway."""
-        serial_number = await self.tasks.loop.run_in_executor(
-            None, self._get_gateway_id
-        )
+        loop = asyncio.get_running_loop()
+        serial_number = await loop.run_in_executor(None, self._get_gateway_id)
         return serial_number
 
 
 async def async_connect(transport):
     """Connect to the serial port."""
+    loop = asyncio.get_running_loop()
     try:
         while True:
             _LOGGER.info("Trying to connect to %s", transport.gateway.port)
             try:
                 await serial_asyncio.create_serial_connection(
-                    transport.loop,
+                    loop,
                     lambda: transport.protocol,
                     transport.gateway.port,
                     transport.gateway.baud,
@@ -110,3 +110,4 @@ async def async_connect(transport):
                 await asyncio.sleep(transport.reconnect_timeout)
     except asyncio.CancelledError:
         _LOGGER.debug("Connect attempt to %s cancelled", transport.gateway.port)
+        raise
