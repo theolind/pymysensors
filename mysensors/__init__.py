@@ -1,10 +1,9 @@
 """Python implementation of MySensors API."""
 import logging
-
-from distutils.version import LooseVersion as parse_ver
 from pathlib import Path
 
 import voluptuous as vol
+from awesomeversion import AwesomeVersion
 from voluptuous.humanize import humanize_error
 
 from .const import SYSTEM_CHILD_ID, get_const
@@ -139,7 +138,7 @@ class Gateway:
             ret = child_id in self.sensors[sensorid].children
             if not ret:
                 _LOGGER.warning("Child %s is unknown", child_id)
-        if not ret and parse_ver(self.protocol_version) >= parse_ver("2.0"):
+        if not ret and AwesomeVersion(self.protocol_version) >= AwesomeVersion("2.0"):
             _LOGGER.info("Requesting new presentation for node %s", sensorid)
             msg = Message(gateway=self).modify(
                 node_id=sensorid,

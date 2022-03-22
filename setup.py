@@ -10,6 +10,7 @@ README_FILE = PROJECT_DIR / "README.md"
 LONG_DESCRIPTION = README_FILE.read_text(encoding="utf-8")
 
 REQUIRES = [
+    "awesomeversion",
     "click",
     "crcmod>=1.7",
     "getmac",
