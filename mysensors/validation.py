@@ -1,7 +1,7 @@
 """Expose validators to use in the library."""
-from distutils.version import LooseVersion as parse_ver
 import logging
 
+from awesomeversion import AwesomeVersion, AwesomeVersionException
 import voluptuous as vol
 
 _LOGGER = logging.getLogger(__name__)
@@ -13,10 +13,10 @@ def is_version(value):
     """Validate that value is a valid version string."""
     try:
         value = str(value)
-        if parse_ver("1.4") > parse_ver(value):
+        if AwesomeVersion("1.4") > AwesomeVersion(value):
             raise ValueError()
         return value
-    except (AttributeError, TypeError, ValueError) as exc:
+    except (AwesomeVersionException, TypeError, ValueError) as exc:
         raise vol.Invalid(f"{value} is not a valid version specifier") from exc
 
 

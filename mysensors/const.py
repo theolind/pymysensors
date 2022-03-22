@@ -1,6 +1,7 @@
 """Helpers for const."""
-from distutils.version import LooseVersion as parse_ver
 from importlib import import_module
+
+from awesomeversion import AwesomeVersion
 
 LOADED_CONST = {}
 
@@ -21,7 +22,7 @@ def get_const(protocol_version):
         (
             CONST_VERSIONS[const_version]
             for const_version in sorted(CONST_VERSIONS, reverse=True)
-            if parse_ver(protocol_version) >= parse_ver(const_version)
+            if AwesomeVersion(protocol_version) >= AwesomeVersion(const_version)
         ),
         "mysensors.const_14",
     )
