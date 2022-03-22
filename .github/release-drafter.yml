@@ -4,6 +4,10 @@ categories:
   - title: "Breaking changes:"
     labels:
       - "breaking change"
+  - title: "⬆️ Dependencies"
+    collapse-after: 1
+    labels:
+      - "dependencies"
 template: |
   ## Merged pull requests:
 
