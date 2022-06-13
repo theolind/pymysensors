@@ -55,7 +55,7 @@ class Message:
             ]
         except ValueError:
             _LOGGER.warning(
-                "Error decoding message from gateway, " "bad data received: %s",
+                "Error decoding message from gateway, bad data received: %s",
                 data.rstrip(),
             )
             raise

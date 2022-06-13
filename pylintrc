@@ -4,7 +4,6 @@ reports=no
 # Black needs to disable wrong-hanging-indent.
 
 disable=
-  bad-continuation,
   duplicate-code,
   locally-disabled,
 
