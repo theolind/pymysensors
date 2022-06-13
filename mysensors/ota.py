@@ -171,7 +171,7 @@ class OTAFirmware:
             fw_type, fw_ver = int(fw_type), int(fw_ver)
         except ValueError:
             _LOGGER.error(
-                "Firmware type %s or version %s not valid, " "please enter integers",
+                "Firmware type %s or version %s not valid, please enter integers",
                 fw_type,
                 fw_ver,
             )

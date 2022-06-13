@@ -26,7 +26,7 @@ def safe_is_version(value):
         return is_version(value)
     except vol.Invalid:
         _LOGGER.warning(
-            "%s is not a valid version specifier, " "falling back to version 1.4", value
+            "%s is not a valid version specifier, falling back to version 1.4", value
         )
         return "1.4"
 

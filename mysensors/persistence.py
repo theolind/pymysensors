@@ -146,7 +146,7 @@ class MySensorsJSONDecoder(json.JSONDecoder):
         """Set up decoder."""
         json.JSONDecoder.__init__(self, object_hook=self.dict_to_object)
 
-    def dict_to_object(self, obj):  # pylint: disable=no-self-use
+    def dict_to_object(self, obj):
         """Return object from dict."""
         if not isinstance(obj, dict):
             return obj
