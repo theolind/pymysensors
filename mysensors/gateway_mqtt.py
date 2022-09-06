@@ -101,8 +101,6 @@ class BaseMQTTGateway(Gateway):
 class MQTTGateway(BaseSyncGateway, BaseMQTTGateway):
     """MySensors MQTT client gateway."""
 
-    # pylint: disable=too-many-arguments
-
     def __init__(
         self,
         pub_callback,
@@ -131,8 +129,6 @@ class MQTTGateway(BaseSyncGateway, BaseMQTTGateway):
 class AsyncMQTTGateway(BaseAsyncGateway, BaseMQTTGateway):
     """MySensors async MQTT client gateway."""
 
-    # pylint: disable=too-many-arguments
-
     def __init__(
         self,
         pub_callback,
@@ -160,8 +156,6 @@ class AsyncMQTTGateway(BaseAsyncGateway, BaseMQTTGateway):
 
 class MQTTTransport(Transport):
     """MySensors MQTT transport."""
-
-    # pylint: disable=too-many-arguments
 
     def __init__(
         self,

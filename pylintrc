@@ -1,8 +1,13 @@
-[MASTER]
-reports=no
+[MAIN]
+fail-on=
+  I,
 
-# Black needs to disable wrong-hanging-indent.
+jobs=2
 
+load-plugins=
+  pylint_strict_informational,
+
+[MESSAGES CONTROL]
 disable=
   duplicate-code,
   locally-disabled,
@@ -10,3 +15,7 @@ disable=
 enable=
   useless-suppression,
   use-symbolic-message-instead,
+
+[DESIGN]
+max-args=7
+max-attributes=9
