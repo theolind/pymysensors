@@ -2,3 +2,4 @@ black==22.8.0
 flake8==5.0.4
 flake8-docstrings==1.6.0
 pylint==2.15.0
+pylint-strict-informational==0.1

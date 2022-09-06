@@ -22,8 +22,6 @@ class Tasks:
     The transport attribute should hold an instance of the Transport class.
     """
 
-    # pylint: disable=too-many-arguments
-
     def __init__(self, const, persistence, persistence_file, sensors, transport):
         """Set up Tasks."""
         self.queue = deque()
