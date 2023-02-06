@@ -8,7 +8,7 @@ from mysensors.cli.gateway_mqtt import async_mqtt_gateway, mqtt_gateway
 from mysensors.cli.gateway_serial import async_serial_gateway, serial_gateway
 from mysensors.cli.gateway_tcp import async_tcp_gateway, tcp_gateway
 
-SETTINGS = dict(help_option_names=["-h", "--help"])
+SETTINGS = {"help_option_names": ["-h", "--help"]}
 
 
 @click.group(

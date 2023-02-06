@@ -109,6 +109,7 @@ class Persistence:
         try:
             func = getattr(self, f"_{action}_{ext[1:]}")
         except AttributeError as exc:
+            # pylint: disable-next=broad-exception-raised
             raise Exception(f"Unsupported file type {ext[1:]}") from exc
         func(filename)
 
