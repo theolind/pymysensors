@@ -1,5 +1,5 @@
 awesomeversion==23.5.0
-click==8.1.4
+click==8.1.5
 crcmod==1.7
 getmac==0.9.4
 IntelHex==2.3.0
