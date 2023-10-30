@@ -200,7 +200,6 @@ class ChildSensor:
 
     def __init__(self, child_id, child_type, description=""):
         """Set up child sensor."""
-        # pylint: disable=invalid-name
         self.id = child_id
         self.type = child_type
         self.description = description
