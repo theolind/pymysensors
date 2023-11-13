@@ -1,4 +1,4 @@
-awesomeversion==23.8.0
+awesomeversion==23.11.0
 click==8.1.7
 crcmod==1.7
 getmac==0.9.4
