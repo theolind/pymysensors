@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Generate changelog for master branch
     steps:
-      - uses: actions/checkout@v4.1.4
+      - uses: actions/checkout@v4.1.5
         with:
           ref: master
 
