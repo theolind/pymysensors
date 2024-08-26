@@ -2,6 +2,6 @@
 -r requirements_lint.txt
 -r requirements_pypi.txt
 -r requirements_test.txt
-tox==4.17.1
+tox==4.18.0
 
 -e .
