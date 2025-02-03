@@ -19,3 +19,4 @@ enable=
 [DESIGN]
 max-args=7
 max-attributes=9
+max-positional-arguments=7
