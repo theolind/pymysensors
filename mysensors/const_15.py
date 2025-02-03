@@ -1,4 +1,5 @@
 """MySensors constants for version 1.5 of MySensors."""
+
 import binascii
 
 import voluptuous as vol

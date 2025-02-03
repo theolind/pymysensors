@@ -1,4 +1,5 @@
 """Show how to implement pymysensors async."""
+
 import asyncio
 import logging
 

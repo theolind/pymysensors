@@ -1,4 +1,5 @@
 """Implement an MQTT gateway."""
+
 import logging
 
 from mysensors import BaseAsyncGateway, BaseSyncGateway, Gateway, Message

@@ -1,4 +1,5 @@
 """MySensors constants for version 2.0 of MySensors."""
+
 import voluptuous as vol
 
 from mysensors.const_15 import (

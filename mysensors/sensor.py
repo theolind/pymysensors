@@ -1,4 +1,5 @@
 """Handle sensor classes."""
+
 import logging
 from collections import deque
 

@@ -1,4 +1,5 @@
 """Start a serial gateway."""
+
 import click
 
 from mysensors.cli.helper import (

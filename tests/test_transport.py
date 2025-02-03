@@ -1,4 +1,5 @@
 """Test the gateway transport."""
+
 from unittest import mock
 
 import pytest

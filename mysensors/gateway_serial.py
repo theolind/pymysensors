@@ -1,4 +1,5 @@
 """Implement a serial gateway."""
+
 import asyncio
 import logging
 import time

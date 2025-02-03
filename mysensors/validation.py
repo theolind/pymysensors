@@ -1,4 +1,5 @@
 """Expose validators to use in the library."""
+
 import logging
 
 from awesomeversion import AwesomeVersion, AwesomeVersionException

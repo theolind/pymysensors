@@ -1,4 +1,5 @@
 """Handle persistence."""
+
 import json
 import logging
 import os

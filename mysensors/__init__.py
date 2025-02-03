@@ -1,4 +1,5 @@
 """Python implementation of MySensors API."""
+
 import logging
 from pathlib import Path
 

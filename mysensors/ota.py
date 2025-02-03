@@ -1,4 +1,5 @@
 """Handle MySensors OTA FW updates."""
+
 import binascii
 import logging
 import os
