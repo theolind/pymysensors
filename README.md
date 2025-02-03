@@ -10,7 +10,7 @@ Python API for talking to a [MySensors gateway](http://www.mysensors.org/). Curr
 
 ## Requirements
 
-pymysensors requires Python 3.8+.
+pymysensors requires Python 3.9+.
 
 ## Installation
 
