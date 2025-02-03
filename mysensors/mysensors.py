@@ -1,4 +1,5 @@
 """Convenience module for backwards compatibility."""
+
 # flake8: noqa: F401
 # pylint: disable=unused-import
 from mysensors import Gateway

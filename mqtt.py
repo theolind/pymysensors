@@ -1,4 +1,5 @@
 """Example for using pymysensors with mqtt."""
+
 import paho.mqtt.client as mqtt
 
 from mysensors import mysensors

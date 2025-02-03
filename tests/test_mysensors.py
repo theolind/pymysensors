@@ -1,4 +1,5 @@
 """Test mysensors with unittest."""
+
 import logging
 import time
 from unittest import mock

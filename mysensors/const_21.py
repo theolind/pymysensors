@@ -1,4 +1,5 @@
 """MySensors constants for version 2.1 of MySensors."""
+
 # pylint: disable=unused-import
 from mysensors.const_20 import (  # noqa: F401
     MAX_NODE_ID,

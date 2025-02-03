@@ -1,4 +1,5 @@
 """Example for using pymysensors."""
+
 import logging
 
 from mysensors import mysensors

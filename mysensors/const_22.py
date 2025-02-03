@@ -1,4 +1,5 @@
 """MySensors constants for version 2.2 of MySensors."""
+
 import voluptuous as vol
 
 # pylint: disable=unused-import

@@ -1,4 +1,5 @@
 """Test task module."""
+
 from unittest import mock
 
 from mysensors import Gateway

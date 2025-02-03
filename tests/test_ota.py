@@ -1,4 +1,5 @@
 """Test mysensors OTA FW with unittest."""
+
 import binascii
 import struct
 import tempfile

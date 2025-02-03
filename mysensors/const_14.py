@@ -1,4 +1,5 @@
 """MySensors constants for version 1.4 of MySensors."""
+
 from enum import IntEnum
 
 import voluptuous as vol

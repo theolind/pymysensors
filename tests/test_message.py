@@ -1,4 +1,5 @@
 """Test mysensors messages."""
+
 from unittest import mock
 
 import pytest

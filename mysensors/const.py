@@ -1,4 +1,5 @@
 """Helpers for const."""
+
 from importlib import import_module
 
 from awesomeversion import AwesomeVersion

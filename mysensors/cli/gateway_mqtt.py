@@ -1,4 +1,5 @@
 """Start a mqtt gateway."""
+
 import asyncio
 from contextlib import contextmanager
 import logging

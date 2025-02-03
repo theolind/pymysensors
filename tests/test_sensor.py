@@ -1,4 +1,5 @@
 """Test task module."""
+
 import pytest
 import voluptuous
 

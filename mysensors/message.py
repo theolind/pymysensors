@@ -1,4 +1,5 @@
 """Handle messages."""
+
 import logging
 
 import voluptuous as vol
