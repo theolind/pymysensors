@@ -1,0 +1,47 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools>=77.0"]
+
+[project]
+name = "pymysensors"
+license = "MIT"
+license-files = ["LICENSE"]
+description = "Python API for talking to a MySensors gateway"
+authors = [{ name = "Theodor Lindquist", email = "theodor.lindquist@gmail.com" }]
+readme = "README.md"
+requires-python = ">=3.9"
+keywords = ["sensor", "actuator", "IoT", "DYI"]
+classifiers = [
+  "Intended Audience :: Developers",
+  "Intended Audience :: End Users/Desktop",
+  "Natural Language :: English",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Home Automation",
+]
+dependencies = [
+  "awesomeversion",
+  "click",
+  "crcmod>=1.7",
+  "getmac",
+  "IntelHex>=2.2.1",
+  "pyserial>=3.4",
+  "pyserial-asyncio>=0.4",
+  "voluptuous>=0.11.1",
+]
+dynamic = ["version"]
+
+[project.urls]
+"Source code" = "https://github.com/theolind/pymysensors"
+
+[project.scripts]
+pymysensors = "mysensors.cli:cli"
+
+[project.optional-dependencies]
+mqtt-client = [
+  "paho-mqtt",
+]
