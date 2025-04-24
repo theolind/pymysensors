@@ -1,7 +1,5 @@
 include CHANGELOG.md
 include CONTRIBUTING.md
-include LICENSE
-include README.md
 include mysensors/VERSION
 
 recursive-exclude * __pycache__
