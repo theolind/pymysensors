@@ -7,7 +7,7 @@ import time
 import serial
 import serial.threaded
 import serial.tools.list_ports
-import serial_asyncio
+import serial_asyncio_fast
 
 from mysensors import BaseSyncGateway, BaseAsyncGateway, Gateway
 from .transport import AsyncTransport, SyncTransport
@@ -95,7 +95,7 @@ async def async_connect(transport):
         while True:
             _LOGGER.info("Trying to connect to %s", transport.gateway.port)
             try:
-                await serial_asyncio.create_serial_connection(
+                await serial_asyncio_fast.create_serial_connection(
                     loop,
                     lambda: transport.protocol,
                     transport.gateway.port,
