@@ -1,6 +1,5 @@
 -r requirements.txt
 -r requirements_lint.txt
--r requirements_pypi.txt
 -r requirements_test.txt
 tox==4.26.0
 
