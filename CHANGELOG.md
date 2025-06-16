@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.25.2](https://github.com/theolind/pymysensors/tree/0.25.2) (2025-06-16)
+
+[Full Changelog](https://github.com/theolind/pymysensors/compare/0.25.1...0.25.2)
+
+**Merged pull requests:**
+
+- Bump version to 0.25.2 [\#829](https://github.com/theolind/pymysensors/pull/829) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Fix publish action version [\#828](https://github.com/theolind/pymysensors/pull/828) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Update changelog [\#827](https://github.com/theolind/pymysensors/pull/827) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [0.25.1](https://github.com/theolind/pymysensors/tree/0.25.1) (2025-06-16)
 
 [Full Changelog](https://github.com/theolind/pymysensors/compare/0.25.0...0.25.1)
