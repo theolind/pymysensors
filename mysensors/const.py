@@ -12,6 +12,7 @@ CONST_VERSIONS = {
     "2.0": "mysensors.const_20",
     "2.1": "mysensors.const_21",
     "2.2": "mysensors.const_22",
+    "2.4": "mysensors.const_24",
 }
 
 SYSTEM_CHILD_ID = 255
