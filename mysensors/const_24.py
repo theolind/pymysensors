@@ -2,6 +2,7 @@
 
 import voluptuous as vol
 
+# pylint: disable=unused-import
 from mysensors.const_22 import (  # noqa: F401
     MAX_NODE_ID,
     VALID_INTERNAL,
@@ -12,12 +13,12 @@ from mysensors.const_22 import (  # noqa: F401
     BaseConst,
     MessageType,
     Presentation,
+    SetReq,
     Stream,
     Internal,
 )
-from mysensors.const_22 import SetReq as _SetReq
 
-from .handler import HANDLERS_22 as HANDLERS_24
+from .handler import HANDLERS_24
 
 
 def get_handler_registry():
@@ -25,7 +26,7 @@ def get_handler_registry():
     return HANDLERS_24
 
 
-class SetReq(_SetReq):  # type: ignore[misc]
+class SetReq(BaseConst):
     """MySensors set/req sub-types for protocol 2.4."""
 
     V_TILT = 58  # Tilt position. Percentage (0-100 %)

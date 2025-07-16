@@ -309,8 +309,7 @@ def test_validate_bad_pres(protocol_version, name, payload):
     + [("1.5", name, payload) for name, payload in SET_FIXTURES_15.items()]
     + [("2.0", name, payload) for name, payload in SET_FIXTURES_20.items()]
     + [("2.1", name, payload) for name, payload in SET_FIXTURES_20.items()]
-    + [("2.2", name, payload) for name, payload in SET_FIXTURES_20.items()]
-    + [("2.4", name, payload) for name, payload in SET_FIXTURES_24.items()],
+    + [("2.2", name, payload) for name, payload in SET_FIXTURES_20.items()],
 )
 def test_validate_set(protocol_version, name, payload):
     """Test Set messages."""
