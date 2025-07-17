@@ -1,7 +1,6 @@
 """MySensors constants for version 2.4 of MySensors."""
 
 import voluptuous as vol
-from enum import Enum
 
 # pylint: disable=unused-import
 from mysensors.const_22 import (  # noqa: F401
@@ -24,6 +23,7 @@ from .handler import HANDLERS_22 as HANDLERS_24
 def get_handler_registry():
     """Return handler registry for this protocol version."""
     return HANDLERS_24
+
 
 class SetReq(BaseConst):
     """MySensors set/req sub-types."""
@@ -136,8 +136,9 @@ class SetReq(BaseConst):
     # Ratio of real power to apparent power.
     # Floating point value in the range [-1,..,1]
     V_POWER_FACTOR = 56
-    #V_MULTI_MESSAGE = 57 Multi message is not supported
-    V_TILT = 58 # S_COVER, Tilt position (Integer between 0-100)
+    # V_MULTI_MESSAGE = 57 Multi message is not supported
+    V_TILT = 58  # S_COVER, Tilt position (Integer between 0-100)
+
 
 VALID_SETREQ = dict(VALID_SETREQ)
 VALID_SETREQ.update(
