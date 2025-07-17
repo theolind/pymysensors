@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.26.0](https://github.com/theolind/pymysensors/tree/0.26.0) (2025-07-17)
+
+[Full Changelog](https://github.com/theolind/pymysensors/compare/0.25.2...0.26.0)
+
+**Merged pull requests:**
+
+- Bump version to 0.26.0 [\#836](https://github.com/theolind/pymysensors/pull/836) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Add V\_TILT \(58\) and protocol 2.4 support [\#835](https://github.com/theolind/pymysensors/pull/835) ([hypnosiss](https://github.com/hypnosiss))
+- Bump flake8 from 7.2.0 to 7.3.0 [\#834](https://github.com/theolind/pymysensors/pull/834) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump pytest from 8.4.0 to 8.4.1 [\#833](https://github.com/theolind/pymysensors/pull/833) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump tox from 4.26.0 to 4.27.0 [\#832](https://github.com/theolind/pymysensors/pull/832) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump pytest-cov from 6.1.1 to 6.2.1 [\#831](https://github.com/theolind/pymysensors/pull/831) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Update changelog [\#830](https://github.com/theolind/pymysensors/pull/830) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [0.25.2](https://github.com/theolind/pymysensors/tree/0.25.2) (2025-06-16)
 
 [Full Changelog](https://github.com/theolind/pymysensors/compare/0.25.1...0.25.2)
