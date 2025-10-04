@@ -26,7 +26,7 @@ classifiers = [
 dependencies = [
   "awesomeversion",
   "click",
-  "crcmod>=1.7",
+  "crc",
   "getmac",
   "IntelHex>=2.2.1",
   "pyserial>=3.4",
