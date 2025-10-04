@@ -5,7 +5,7 @@ import logging
 import os
 import struct
 
-import crcmod.predefined
+import crc
 from intelhex import IntelHex, IntelHexError
 
 FIRMWARE_BLOCK_SIZE = 16
@@ -31,9 +31,8 @@ def fw_int_to_hex(*args):
 
 def compute_crc(data):
     """Compute CRC16 of data and return an int."""
-    crc16 = crcmod.predefined.Crc("modbus")
-    crc16.update(data)
-    return int(crc16.hexdigest(), 16)
+    crc16 = crc.Calculator(crc.Crc16.MODBUS)
+    return crc16.checksum(data)
 
 
 def load_fw(path):

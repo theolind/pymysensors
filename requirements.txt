@@ -1,6 +1,6 @@
 awesomeversion==25.8.0
 click==8.1.8
-crcmod==1.7
+crc==7.1.0
 getmac==0.9.5
 IntelHex==2.3.0
 paho-mqtt==2.1.0
