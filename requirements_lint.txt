@@ -1,5 +1,5 @@
 black==25.9.0
 flake8==7.3.0
 flake8-docstrings==1.7.0
-pylint==3.3.8
+pylint==3.3.9
 pylint-strict-informational==0.1
