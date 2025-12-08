@@ -9,14 +9,13 @@ license-files = ["LICENSE"]
 description = "Python API for talking to a MySensors gateway"
 authors = [{ name = "Theodor Lindquist", email = "theodor.lindquist@gmail.com" }]
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 keywords = ["sensor", "actuator", "IoT", "DYI"]
 classifiers = [
   "Intended Audience :: Developers",
   "Intended Audience :: End Users/Desktop",
   "Natural Language :: English",
   "Operating System :: OS Independent",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
