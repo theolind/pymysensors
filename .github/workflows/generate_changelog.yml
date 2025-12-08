@@ -22,7 +22,7 @@ jobs:
           since_tag: "0.13"
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v7.0.9
+        uses: peter-evans/create-pull-request@v7.0.11
         with:
           base: master
           token: ${{ secrets.GITHUB_TOKEN }}
