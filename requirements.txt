@@ -6,4 +6,4 @@ IntelHex==2.3.0
 paho-mqtt==2.1.0
 pyserial==3.5
 pyserial-asyncio-fast==0.16
-voluptuous==0.15.2
+voluptuous==0.16.0
