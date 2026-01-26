@@ -5,7 +5,6 @@ import logging
 
 from mysensors import mysensors
 
-
 logging.basicConfig(level=logging.DEBUG)
 
 

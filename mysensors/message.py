@@ -51,7 +51,7 @@ class Message:
         try:
             list_data = data.rstrip().split(delimiter)
             self.payload = list_data.pop()
-            (self.node_id, self.child_id, self.type, self.ack, self.sub_type) = [
+            self.node_id, self.child_id, self.type, self.ack, self.sub_type = [
                 int(f) for f in list_data
             ]
         except ValueError:
