@@ -129,7 +129,7 @@ class OTAFirmware:
 
     def respond_fw_config(self, msg):
         """Respond to a firmware config request."""
-        (req_fw_type, req_fw_ver, req_blocks, req_crc, bloader_ver) = fw_hex_to_int(
+        req_fw_type, req_fw_ver, req_blocks, req_crc, bloader_ver = fw_hex_to_int(
             msg.payload, 5
         )
         _LOGGER.debug(
