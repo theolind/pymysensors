@@ -11,7 +11,7 @@ jobs:
       id-token: write # IMPORTANT: this permission is mandatory for trusted publishing
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.1
+      - uses: actions/checkout@v6.0.2
       - name: Set up Python 3.10
         uses: actions/setup-python@v6.2.0
         with:
