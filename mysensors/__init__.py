@@ -22,7 +22,7 @@ class Gateway:
 
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self, event_callback=None, protocol_version="1.4"):
+    def __init__(self, event_callback=None, protocol_version="1.4", **kwargs):
         """Set up Gateway."""
         protocol_version = safe_is_version(protocol_version)
         self.const = get_const(protocol_version)
