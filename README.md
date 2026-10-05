@@ -155,6 +155,83 @@ The MQTT gateway requires MySensors serial API v2.0 or greater and the MQTT clie
 
 ### Over the air (OTA) firmware updates
 
+Async gateways expose a native install session for one target at a time. Import
+`.bin`, `.hex` or `.ihex` files with `FirmwareImage.from_file`; this is synchronous
+file I/O, so use an executor from an async application:
+
+```py
+import asyncio
+from mysensors.gateway_serial import AsyncSerialGateway
+from mysensors.ota import FirmwareImage, FirmwareUpdateError
+
+async def install():
+    gateway = AsyncSerialGateway('/dev/ttyACM0', protocol_version='2.3')
+    await gateway.start()
+    try:
+        image = await asyncio.to_thread(
+            FirmwareImage.from_file, '/path/to/firmware.bin', 42, 9
+        )
+        installed = await gateway.install_firmware(
+            31, image, progress_callback=lambda percent: print(f'{percent}%'),
+            timeout=30.0, confirmation_timeout=60.0,
+        )
+        print(f'Node 31 runs firmware version {installed.firmware_version}')
+    except FirmwareUpdateError as error:
+        print(f'Install was not confirmed: {error}')
+    finally:
+        await gateway.stop()
+
+asyncio.run(install())
+```
+
+The node may still be in its bootloader and need not have presented application
+sensors. `gateway.firmware_configs` maps node IDs to immutable `FirmwareConfig`
+announcements (type, version, block count, CRC and bootloader version); validated
+config requests also invoke the existing event callback before presentation.
+Images are padded with `FF` to the next 128-byte boundary, without an extra page
+for already aligned images. IntelHEX addresses start at zero, with gaps filled
+with `FF`. Empty, malformed or oversized imports raise `ValueError`.
+
+The session arms before sending exactly one direct reboot. Only that image is
+served, including duplicate or descending block requests. Automatic presentation
+requests for the target are deferred during installation to avoid restarting a
+bootloader handshake. Incoming application events are still handled. Progress is a
+synchronous integer callback, capped at 99 during transfer. A successful return
+and 100 require every block to have been served, a subsequent config matching
+all four image words, and then fresh application presentation, sketch information
+or heartbeat. Bootloader config alone is not proof of installation. The host
+acknowledges the final current config so AVR bootloaders can enter the application.
+
+`timeout` limits transfer inactivity; a whole transfer also has a deadline of
+`min(3600, timeout * (image.blocks + 1))` seconds. `confirmation_timeout` is a fixed
+proof deadline starting after all blocks are served. USB disconnection during
+the initial reboot or final confirmation allows normal gateway reconnect within
+those deadlines. A transfer disconnect, explicit stop, cancellation, wrong
+running image or timeout ends the session. No session is persisted or replayed,
+and no reboot is automatically retried. An identical initial config can receive
+the same offer again before any block is served; this does not extend either
+transfer deadline. A stale or changed config after blocks start fails the install.
+MQTT reboot and OTA responses are never retained. MQTT adapters must forward the broker's retain
+flag to the registered receive callback as a fourth argument:
+`callback(message.topic, payload, message.qos, message.retain)`.
+`MQTTTransport.recv(topic, payload, qos, retain=None)` accepts normal sensor data
+without this flag, but native OTA only accepts messages with explicit
+`retain=False`. Retained messages and messages with unknown provenance cannot
+start an offer, request blocks, confirm an image or prove that the application
+is running. Serial `gateway.logic(data, *, retained=False)` defaults to fresh
+transport data. Validated messages passed to the event callback expose this
+provenance as `message.retained` (`False`, `True` or `None`). Only `False` is
+fresh installation evidence.
+
+`FirmwareUpdateBusy` rejects concurrent sessions or an active legacy install
+on any node of the gateway. A legacy install releases its reservation after all
+blocks have been served, a matching final config, and fresh application evidence;
+its cached image remains available for a later explicit legacy update.
+`FirmwareUpdateTimeout` distinguishes
+expired deadlines. Both inherit `FirmwareUpdateError`.
+
+The legacy API below remains separate from the native session.
+
 Call `Gateway` method `update_fw` to set one or more nodes for OTA
 firmware update. The method takes three positional arguments and one
 keyword argument. The first argument should be the node id of the node to

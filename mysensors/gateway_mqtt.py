@@ -1,5 +1,6 @@
 """Implement an MQTT gateway."""
 
+from functools import partial
 import logging
 
 from mysensors import BaseAsyncGateway, BaseSyncGateway, Gateway, Message
@@ -26,6 +27,8 @@ class BaseMQTTGateway(Gateway):
             "/+/+/0/+/+",
             "/+/+/3/+/+",
         ]
+        if isinstance(self, BaseAsyncGateway):
+            init_topics.append("/+/255/4/+/+")
         self.tasks.transport.handle_subscription(init_topics)
         if not self.tasks.persistence:
             return
@@ -185,6 +188,9 @@ class MQTTTransport(Transport):
 
         The MQTT gateway doesn't need to disconnect.
         """
+        self.gateway._firmware_connection_lost(  # pylint: disable=protected-access
+            stopping=True
+        )
 
     def handle_subscription(self, topics):
         """Handle subscription of topics."""
@@ -203,16 +209,17 @@ class MQTTTransport(Transport):
             except Exception as exception:  # pylint: disable=broad-except
                 _LOGGER.exception("Subscribe to %s failed: %s", topic, exception)
 
-    def recv(self, topic, payload, qos):
+    def recv(self, topic, payload, qos, retain=None):
         """Receive a MQTT message.
 
         Call this method when a message is received from the MQTT broker.
+        Pass the broker retain flag; native OTA requires an explicit False.
         """
         data = self.gateway.parse_mqtt_to_message(topic, payload, qos)
         if data is None:
             return
         _LOGGER.debug("Receiving %s", data)
-        self.gateway.tasks.add_job(self.gateway.logic, data)
+        self.gateway.tasks.add_job(partial(self.gateway.logic, retained=retain), data)
 
     def send(self, message):
         """Publish a command string to the gateway via MQTT."""
@@ -222,8 +229,20 @@ class MQTTTransport(Transport):
         topic = self.out_prefix + topic
         try:
             _LOGGER.debug("Publishing %s", message.strip())
-            self._pub_callback(topic, payload, qos, self._retain)
+            # Reboots/offers/blocks must never be replayed as retained commands.
+            retain = self._retain
+            if isinstance(self.gateway, BaseAsyncGateway):
+                msg = Message(message)
+                if msg.type == self.gateway.const.MessageType.stream or (
+                    msg.type == self.gateway.const.MessageType.internal
+                    and msg.sub_type == self.gateway.const.Internal.I_REBOOT
+                ):
+                    retain = False
+            self._pub_callback(topic, payload, qos, retain)
         except Exception as exception:  # pylint: disable=broad-except
+            self.gateway._firmware_connection_lost(  # pylint: disable=protected-access
+                stopping=True
+            )
             _LOGGER.exception("Publish to %s failed: %s", topic, exception)
 
 
