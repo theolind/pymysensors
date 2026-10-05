@@ -353,7 +353,8 @@ class BaseAsyncGateway(Gateway):
         if msg.type != self.const.MessageType.stream:
             reply = super()._handle_message(msg, retained=retained)
             if session is not None and retained is False:
-                session.application(msg)
+                if probe := session.application(msg):
+                    self.send(probe.encode())
             return reply
         if msg.ack or not 1 <= msg.node_id <= self.const.MAX_NODE_ID:
             return None

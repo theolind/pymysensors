@@ -12,6 +12,8 @@ import struct
 import crc
 from intelhex import IntelHex, IntelHexError
 
+from .const import SYSTEM_CHILD_ID
+
 FIRMWARE_BLOCK_SIZE = 16
 FIRMWARE_PAGE_SIZE = 128
 MAX_FIRMWARE_SIZE = (65535 * FIRMWARE_BLOCK_SIZE // FIRMWARE_PAGE_SIZE) * 128
@@ -230,6 +232,7 @@ class FirmwareSession:
         self.offered = False
         self.initial_config = None
         self.confirmed_config = None
+        self.probed_phases = set()
         self.last_activity = self.loop.time()
         self.deadline = self.last_activity + min(3600.0, timeout * (image.blocks + 1))
         self.confirmation_deadline = None
@@ -335,15 +338,33 @@ class FirmwareSession:
         """Accept application evidence only after a matching final config."""
         if (
             not self._is_active()
-            or self.confirmed_config is None
+            or not self.reboot_sent
             or msg.node_id != self.node_id
-            or msg.ack
+            or not _application_evidence(msg)
         ):
-            return
-        if _application_evidence(msg):
-            self.result.set_result(self.confirmed_config)
-            self._progress(100)
-            self.changed.set()
+            return None
+        if self.confirmed_config is None:
+            if self.offered and len(self.served) != self.image.blocks:
+                return None
+            # Opening a USB serial port can discard the startup config while
+            # later application announcements survive. Solicit it once per
+            # reboot phase, without extending deadlines or restarting transfer.
+            phase = "confirmation" if self.offered else "discovery"
+            presentation = getattr(msg.gateway.const.Internal, "I_PRESENTATION", None)
+            if phase in self.probed_phases or presentation is None:
+                return None
+            self.probed_phases.add(phase)
+            return msg.copy(
+                child_id=SYSTEM_CHILD_ID,
+                type=msg.gateway.const.MessageType.internal,
+                sub_type=presentation,
+                ack=0,
+                payload="",
+            )
+        self.result.set_result(self.confirmed_config)
+        self._progress(100)
+        self.changed.set()
+        return None
 
     async def wait(self):
         """Enforce inactivity, a bounded transfer, and a fixed proof deadline."""

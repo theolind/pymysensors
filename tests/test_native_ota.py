@@ -352,6 +352,35 @@ class TestNativeSession(IsolatedAsyncioTestCase):
         self.gateway.is_sensor(31)
         assert self.writes[-1] == b"31;255;3;0;19;\n"
 
+    async def test_missing_config_requests_one_presentation_per_phase(self):
+        """Recover lost USB announcements without extending deadlines or replaying."""
+        await self.arm()
+        session = self.gateway._firmware_session  # pylint: disable=protected-access
+        activity, deadline = session.last_activity, session.deadline
+        self.gateway.logic(line(11, "cached app", kind=3), retained=True)
+        self.gateway.logic(line(11, "unknown provenance", kind=3), retained=None)
+        self.receive(line(11, "another node", node=32, kind=3))
+        assert b"31;255;3;0;19;\n" not in self.writes
+        self.receive(line(11, "running app", kind=3))
+        self.receive(line(12, "v8", kind=3))
+        assert self.writes.count(b"31;255;3;0;19;\n") == 1
+        assert (session.last_activity, session.deadline) == (activity, deadline)
+        self.offer()
+        self.receive(line(11, "delayed app", kind=3))
+        assert self.writes.count(b"31;255;3;0;19;\n") == 1
+        self.transfer()
+        confirmation_deadline = session.confirmation_deadline
+        self.receive(line(11, "booted app", kind=3))
+        self.receive(line(12, "v9", kind=3))
+        assert self.writes.count(b"31;255;3;0;19;\n") == 2
+        assert session.confirmation_deadline == confirmation_deadline
+        assert not self.task.done()
+        self.receive(line(0, self.final.payload))
+        assert not self.task.done()
+        self.receive(line(11, "confirmed app", kind=3))
+        assert await self.task == self.final
+        assert self.writes.count(b"31;255;3;0;13;\n") == 1
+
     async def test_initial_handshake_retransmission(self):
         """Identical pre-block handshakes reuse the offer with unchanged deadlines."""
         await self.arm()
@@ -627,3 +656,30 @@ def test_legacy_wrong_blocks():
         assert gateway.logic(line(2, payload)) is None
     assert gateway.logic(line(2, words(42, 9, 0))) is not None
     assert gateway.logic(line(0, "xx")) is None
+
+
+@pytest.mark.parametrize("protocol", ["1.4", "1.5"])
+def test_missing_config_without_presentation_command(protocol):
+    """Old protocols still time out cleanly when they cannot solicit a config."""
+
+    async def exercise():
+        """Feed real application messages after an explicitly requested reboot."""
+        transport = mock.Mock()
+        gateway = BaseAsyncGateway(transport, protocol_version=protocol)
+        task = asyncio.create_task(
+            gateway.install_firmware(
+                31, FirmwareImage.from_bytes(b"firmware", 42, 9), timeout=0.02
+            )
+        )
+        await asyncio.sleep(0)
+        try:
+            gateway.logic(line(17, protocol, kind=0))
+            gateway.logic(line(11, "running application", kind=3))
+            transport.send.assert_called_once_with("31;255;3;0;13;\n")
+            with pytest.raises(FirmwareUpdateTimeout):
+                await task
+        finally:
+            task.cancel()
+            await asyncio.gather(task, return_exceptions=True)
+
+    asyncio.run(exercise())
