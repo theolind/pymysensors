@@ -133,6 +133,7 @@ class AsyncTCPGateway(BaseAsyncGateway, BaseTCPGateway):
             super().check_connection()
         except OSError as exc:
             _LOGGER.error(exc)
+            self._firmware_connection_lost()
             self.tasks.transport.protocol.transport.close()
             self.tasks.transport.protocol.conn_lost_callback()
             return
@@ -203,10 +204,7 @@ class AsyncTCPMySensorsProtocol(BaseMySensorsProtocol, asyncio.Protocol):
         if self.gateway.cancel_check_conn:
             self.gateway.cancel_check_conn()
             self.gateway.cancel_check_conn = None
-        if exc:
-            _LOGGER.error(exc)
-            self.conn_lost_callback()
-        self.transport = None
+        self._connection_lost(exc)
 
 
 class TCPTransport(serial.threaded.ReaderThread):
