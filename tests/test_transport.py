@@ -33,7 +33,7 @@ def gateway(connection_transport, reconnect_callback):
         """Connect to device."""
         protocol.connection_made(connection_transport)
 
-    transport = Transport(gateway, connect)
+    transport = Transport(_gateway, connect)
     transport.connect = connect
     transport.protocol = protocol
     _gateway.tasks = SyncTasks(_gateway.const, False, None, _gateway.sensors, transport)

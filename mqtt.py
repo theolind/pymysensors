@@ -27,7 +27,7 @@ class MQTT:
 
         def _message_callback(mqttc, userdata, msg):
             """Run callback for received message."""
-            callback(msg.topic, msg.payload.decode("utf-8"), msg.qos)
+            callback(msg.topic, msg.payload.decode("utf-8"), msg.qos, msg.retain)
 
         self._mqttc.subscribe(topic, qos)
         self._mqttc.message_callback_add(topic, _message_callback)
