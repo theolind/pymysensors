@@ -30,6 +30,9 @@ class Transport:
 
     def disconnect(self):
         """Disconnect from the transport."""
+        self.gateway._firmware_connection_lost(  # pylint: disable=protected-access
+            stopping=True
+        )
         if not self.protocol or not self.protocol.transport:
             self.protocol = None  # Make sure protocol is None
             return
@@ -39,7 +42,10 @@ class Transport:
 
     def send(self, message):
         """Write a message to the gateway."""
-        if not message or not self.protocol or not self.protocol.transport:
+        if not message:
+            return
+        if not self.protocol or not self.protocol.transport:
+            self.gateway._firmware_connection_lost()  # pylint: disable=protected-access
             return
         if not self.can_log:
             _LOGGER.debug("Sending %s", message.strip())
@@ -48,6 +54,9 @@ class Transport:
         except OSError as exc:
             _LOGGER.error(
                 "Failed writing to transport %s: %s", self.protocol.transport, exc
+            )
+            self.gateway._firmware_connection_lost(  # pylint: disable=protected-access
+                stopping=True
             )
             self.protocol.transport.close()
             self.protocol.conn_lost_callback()
@@ -112,6 +121,7 @@ class BaseMySensorsProtocol(serial.threaded.LineReader):
     def connection_made(self, transport):
         """Handle created connection."""
         super().connection_made(transport)
+        self.buffer = bytearray()
         if hasattr(self.transport, "serial"):
             _LOGGER.info("Connected to %s", self.transport.serial)
         else:
@@ -138,10 +148,14 @@ class BaseMySensorsProtocol(serial.threaded.LineReader):
 
     def _connection_lost(self, exc):
         """Call connection lost callbacks."""
+        reboot_window = (
+            self.gateway._firmware_connection_lost()  # pylint: disable=protected-access
+        )
         if self.gateway.on_conn_lost is not None:
             self.gateway.on_conn_lost(self.gateway, exc)
         if exc:
             _LOGGER.error(exc)
+        if exc or reboot_window:
             self.conn_lost_callback()
         self.transport = None
 

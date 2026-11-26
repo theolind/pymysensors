@@ -150,7 +150,7 @@ class BaseMQTTClient:
         def message_callback(mqttc, userdata, msg):
             """Handle received message."""
             # pylint: disable=unused-argument
-            callback(msg.topic, msg.payload.decode("utf-8"), msg.qos)
+            callback(msg.topic, msg.payload.decode("utf-8"), msg.qos, msg.retain)
 
         self._client.subscribe(topic, qos)
         self._client.message_callback_add(topic, message_callback)
